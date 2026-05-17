@@ -4,8 +4,8 @@
   background:
     linear-gradient(90deg, oklch(100% 0 0 / 0.34) 1px, transparent 1px),
     linear-gradient(oklch(100% 0 0 / 0.28) 1px, transparent 1px),
-    radial-gradient(circle at 76% 10%, oklch(78% 0.16 78 / 0.28), transparent 28%),
-    radial-gradient(circle at 12% 86%, oklch(58% 0.19 25 / 0.18), transparent 32%),
+    radial-gradient(circle at 76% 10%, oklch(78% 0.16 78 / 0.28), transparent 30%),
+    radial-gradient(circle at 12% 86%, oklch(58% 0.19 25 / 0.2), transparent 32%),
     radial-gradient(circle at 54% 48%, oklch(70% 0.14 230 / 0.18), transparent 38%),
     linear-gradient(135deg, oklch(98% 0.012 150), oklch(95% 0.025 230));
   background-size: 44px 44px, 44px 44px, auto, auto, auto, auto;
@@ -31,22 +31,22 @@
   position: relative;
   overflow: hidden;
   border: 1px solid var(--glass-edge);
-  border-radius: var(--radius);
+  border-radius: calc(var(--radius) * 2);
   aspect-ratio: 4 / 3;
   background:
-    linear-gradient(135deg, oklch(100% 0 0 / 0.52), oklch(79% 0.17 152 / 0.12)),
-    oklch(92% 0.02 230 / 0.58);
-  box-shadow: var(--shadow-factory-card);
+    linear-gradient(135deg, oklch(100% 0 0 / 0.6), oklch(79% 0.17 152 / 0.14)),
+    oklch(92% 0.02 230 / 0.6);
+  box-shadow: var(--shadow-card);
   backdrop-filter: blur(28px) saturate(1.6);
 }
 
 .videoFrame[data-recording="true"] {
   border-color: oklch(58% 0.19 25 / 0.62);
   box-shadow:
-    0 1px 0 oklch(100% 0 0 / 0.8) inset,
+    0 1px 0 oklch(100% 0 0 / 0.86) inset,
     0 0 0 4px oklch(58% 0.19 25 / 0.12),
-    0 18px 46px oklch(58% 0.19 25 / 0.2),
-    0 36px 92px oklch(67% 0.18 292 / 0.12);
+    0 18px 46px oklch(58% 0.19 25 / 0.22),
+    0 36px 92px oklch(67% 0.18 292 / 0.14);
 }
 
 .videoFrame video {
@@ -71,32 +71,30 @@
   align-items: center;
   gap: 6px;
   min-height: 34px;
-  padding: 0 10px;
-  border: 1px solid oklch(100% 0 0 / 0.72);
+  padding: 0 12px;
+  border: 1px solid var(--glass-edge);
   border-radius: 999px;
-  background: oklch(100% 0 0 / 0.54);
+  background: var(--glass);
   color: oklch(25% 0.035 150);
-  box-shadow:
-    0 1px 0 oklch(100% 0 0 / 0.8) inset,
-    0 8px 20px oklch(70% 0.14 230 / 0.12);
+  box-shadow: var(--shadow-chip);
   backdrop-filter: blur(18px) saturate(1.4);
   font-size: 12px;
-  font-weight: 780;
+  font-weight: var(--fw-body-strong);
 }
 
 .checkGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .checkGrid div {
   min-height: 78px;
-  padding: 12px;
+  padding: 14px;
   border: 1px solid var(--glass-edge);
-  border-radius: var(--radius);
-  background: oklch(100% 0 0 / 0.46);
-  box-shadow: var(--shadow-factory-soft);
+  border-radius: calc(var(--radius) * 1.4);
+  background: var(--glass);
+  box-shadow: var(--shadow-soft);
   backdrop-filter: blur(18px) saturate(1.4);
 }
 
@@ -108,7 +106,7 @@
 .checkGrid strong {
   color: var(--text);
   font-size: 15px;
-  font-weight: 800;
+  font-weight: var(--fw-title);
 }
 
 .checkGrid span {
@@ -116,7 +114,7 @@
   color: var(--muted-text);
   font-size: 13px;
   line-height: 1.4;
-  font-weight: 520;
+  font-weight: var(--fw-body-soft);
 }
 
 .titleBlock {
@@ -127,19 +125,21 @@
 .titleBlock span {
   color: oklch(42% 0.12 165);
   font-size: 13px;
-  font-weight: 820;
+  font-weight: var(--fw-headline);
+  letter-spacing: 0.005em;
 }
 
 .titleBlock h1 {
   margin: 0;
   color: var(--text);
-  font-size: clamp(42px, 7vw, 86px);
-  line-height: 0.95;
-  letter-spacing: 0;
-  font-weight: 910;
+  font-size: clamp(42px, 7vw, 82px);
+  line-height: 0.94;
+  letter-spacing: -0.014em;
+  font-weight: var(--fw-display);
   text-shadow:
-    0 10px 24px oklch(79% 0.17 152 / 0.18),
-    0 24px 62px oklch(70% 0.14 230 / 0.13);
+    0 10px 24px oklch(79% 0.17 152 / 0.2),
+    0 24px 62px oklch(70% 0.14 230 / 0.14);
+  text-wrap: balance;
 }
 
 .panel,
@@ -148,35 +148,42 @@
   gap: 16px;
   padding: clamp(18px, 3vw, 26px);
   border: 1px solid var(--glass-edge);
-  border-radius: var(--radius);
+  border-radius: calc(var(--radius) * 2);
   background:
-    linear-gradient(145deg, oklch(100% 0 0 / 0.8), oklch(100% 0 0 / 0.42)),
-    oklch(79% 0.17 152 / 0.08);
-  box-shadow: var(--shadow-factory-card);
-  backdrop-filter: blur(32px) saturate(1.65);
+    linear-gradient(145deg, oklch(100% 0 0 / 0.86), oklch(100% 0 0 / 0.46)),
+    var(--glass-tint-mint);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(32px) saturate(1.75);
+}
+
+.panel svg {
+  color: var(--mint-deep);
 }
 
 .panel p {
   margin: 0;
   color: oklch(28% 0.03 150);
-  font-size: clamp(17px, 2vw, 21px);
+  font-size: clamp(17px, 2vw, 20px);
   line-height: 1.55;
-  font-weight: 680;
+  font-weight: var(--fw-body);
 }
 
 .questionPanel span {
   color: oklch(52% 0.14 78);
   font-size: 14px;
-  font-weight: 820;
+  font-weight: var(--fw-headline);
+  letter-spacing: 0.005em;
 }
 
 .questionPanel h2 {
   margin: 0;
   color: var(--text);
-  font-size: clamp(28px, 4.6vw, 56px);
-  line-height: 1.12;
-  letter-spacing: 0;
-  font-weight: 900;
+  font-size: clamp(28px, 4.6vw, 54px);
+  line-height: 1.1;
+  letter-spacing: -0.012em;
+  font-weight: var(--fw-display);
+  text-wrap: balance;
+  word-break: keep-all;
 }
 
 .primaryButton,
@@ -189,41 +196,61 @@
   gap: 8px;
   min-height: 50px;
   border: 0;
-  border-radius: var(--radius);
+  border-radius: calc(var(--radius) * 1.6);
   padding: 0 18px;
-  font-weight: 820;
-  box-shadow: var(--shadow-factory-action);
+  font-weight: var(--fw-action);
+  letter-spacing: -0.005em;
+  transition:
+    transform 200ms ease,
+    box-shadow 240ms ease,
+    background 240ms ease;
 }
 
 .primaryButton {
   color: var(--foreground);
-  background: linear-gradient(135deg, oklch(100% 0 0 / 0.86), oklch(95% 0.025 230 / 0.62));
+  background: linear-gradient(135deg, oklch(100% 0 0 / 0.92), oklch(95% 0.025 230 / 0.66));
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--glass-edge);
+}
+
+.primaryButton:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card);
 }
 
 .startButton {
   color: var(--primary-foreground);
-  background: linear-gradient(135deg, oklch(84% 0.16 152), oklch(72% 0.16 165));
+  background: linear-gradient(135deg, var(--mint), var(--mint-deep));
+  box-shadow: var(--shadow-action);
+}
+
+.startButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-action-hover);
 }
 
 .stopButton {
   color: var(--destructive-foreground);
   background: linear-gradient(135deg, oklch(66% 0.19 25), oklch(55% 0.18 18));
-  box-shadow:
-    0 1px 0 oklch(100% 0 0 / 0.48) inset,
-    0 12px 30px oklch(58% 0.19 25 / 0.34),
-    0 26px 62px oklch(67% 0.18 292 / 0.14);
+  box-shadow: var(--shadow-action-warn);
+}
+
+.stopButton:hover:not(:disabled) {
+  transform: translateY(-1px);
 }
 
 .secondaryButton {
   border: 1px solid var(--glass-edge);
   color: var(--foreground);
-  background: oklch(100% 0 0 / 0.56);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-soft);
 }
 
 .startButton:disabled,
 .stopButton:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+  transform: none;
 }
 
 .error {
@@ -231,7 +258,7 @@
   color: var(--destructive);
   font-size: 14px;
   line-height: 1.5;
-  font-weight: 720;
+  font-weight: var(--fw-body-strong);
 }
 
 @media (max-width: 920px) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { getKakaoProviderId } from "@/lib/auth/provider";
+import { consumeAnalysisCredit } from "@/lib/entitlements/service";
 import { cleanupExpiredSessions } from "@/lib/sessions/cleanup";
 import { getSupabaseAuthUser } from "@/lib/supabase/auth-server";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -24,6 +25,15 @@ export async function POST(request: Request) {
   const supabase = getSupabaseServer();
   const authUser = await getSupabaseAuthUser();
   await cleanupExpiredSessions(supabase);
+
+  try {
+    await consumeAnalysisCredit(input.creatorDeviceId);
+  } catch {
+    return NextResponse.json(
+      { error: "무료 체험 1회를 이미 사용했습니다. 결제 기능이 열리면 다시 가보겠습니다." },
+      { status: 402 }
+    );
+  }
 
   const { data, error } = await supabase
     .from("sessions")

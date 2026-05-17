@@ -6,7 +6,7 @@
 
 - Vercel project: `0minseouls-projects/ai-lie-detector`
 - Production URL: `https://ai-lie-detector-lake.vercel.app`
-- Latest production deployment: `https://ai-lie-detector-m4odx3qjz-0minseouls-projects.vercel.app`
+- Latest production deployment: `https://ai-lie-detector-4lrq8c65s-0minseouls-projects.vercel.app`
 - Supabase project ref: `btifyegcjbknhxynkxpl`
 - Supabase URL: `https://btifyegcjbknhxynkxpl.supabase.co`
 - Cloudflare Worker: `https://ai-lie-detector-worker.tnsb5373.workers.dev`
@@ -17,6 +17,7 @@
 - Browser upload goes to Cloudflare Worker, not Vercel request body.
 - Worker upload token expires after 5 minutes.
 - Worker rejects uploads over 95MB.
+- Session creation consumes one free trial or one stored credit before analysis can start.
 - R2 lifecycle deletes `recordings/` objects after 1 day.
 - Current R2 bucket state after setup: `object_count = 0`, `bucket_size = 0 B`.
 - Supabase cleanup RPC deletes expired session rows opportunistically when a new session is created.
@@ -45,7 +46,7 @@ https://ai-lie-detector-lake.vercel.app
 Redirect URLs:
 http://localhost:3000/auth/callback
 https://ai-lie-detector-lake.vercel.app/auth/callback
-https://ai-lie-detector-m4odx3qjz-0minseouls-projects.vercel.app/auth/callback
+https://ai-lie-detector-4lrq8c65s-0minseouls-projects.vercel.app/auth/callback
 https://*-0minseouls-projects.vercel.app/**
 ```
 

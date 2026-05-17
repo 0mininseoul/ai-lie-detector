@@ -423,6 +423,7 @@ MVP 기본값은 전체 1 FPS + 진짜 질문 5 FPS다.
 - R2 object key는 session id 기반으로 예측 어렵게 만든다.
 - 영상은 R2 lifecycle로 1일 후 삭제한다.
 - 브라우저 업로드는 95MB 이하만 허용한다.
+- 결제 미연동 상태에서는 세션 생성 시 무료 1회 또는 저장된 credit을 반드시 소비한다.
 - Supabase row는 새 세션 생성 시 `cleanup_expired_sessions` RPC로 만료분을 점진 삭제한다.
 - Supabase public anon key는 RLS 정책으로 제한한다.
 - 결과 페이지는 UUID 기반 URL로 접근한다.

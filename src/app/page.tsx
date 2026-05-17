@@ -1,9 +1,10 @@
 "use client";
 
-import { LockKeyhole, MessageCircle, ShieldQuestion } from "lucide-react";
+import { LockKeyhole, LogOut, MessageCircle, ScanFace, ShieldQuestion, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { signInWithKakao } from "@/lib/auth/kakao";
+import { getAvatarUrl, getDisplayName, useSupabaseUser } from "@/hooks/useSupabaseUser";
 import styles from "./page.module.css";
 
 const sampleQuestions = [
@@ -14,12 +15,20 @@ const sampleQuestions = [
 
 export default function HomePage() {
   const router = useRouter();
+  const auth = useSupabaseUser();
   const [question, setQuestion] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isStartingLogin, setIsStartingLogin] = useState(false);
   const [error, setError] = useState("");
   const trimmedQuestion = question.trim();
+  const isLoggedIn = Boolean(auth.user);
+  const displayName = getDisplayName(auth.user);
+  const avatarUrl = getAvatarUrl(auth.user);
 
-  const canSubmit = useMemo(() => trimmedQuestion.length >= 3 && !isSubmitting, [isSubmitting, trimmedQuestion]);
+  const canSubmit = useMemo(
+    () => isLoggedIn && trimmedQuestion.length >= 3 && !isSubmitting,
+    [isLoggedIn, isSubmitting, trimmedQuestion]
+  );
 
   async function createSession(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -53,12 +62,19 @@ export default function HomePage() {
   }
 
   async function handleKakaoLogin() {
+    setError("");
+    setIsStartingLogin(true);
     try {
-      setError("");
       await signInWithKakao("/");
     } catch {
       setError("카카오 로그인을 시작하지 못했습니다. Supabase/Kakao 설정을 확인해 주세요.");
+      setIsStartingLogin(false);
     }
+  }
+
+  async function handleSignOut() {
+    setError("");
+    await auth.signOut();
   }
 
   return (
@@ -72,18 +88,60 @@ export default function HomePage() {
           <h1 id="home-title">AI 거짓말탐지기</h1>
           <p className={styles.lead}>착한 내 남자친구, 과연 나한테 거짓말하는 게 없을까?</p>
           <p className={styles.subcopy}>AI는 과연 거짓말을 알아챌 수 있을까?</p>
+
+          <ul className={styles.bullets}>
+            <li>
+              <ScanFace size={16} aria-hidden /> 얼굴·시선·음성 멀티모달 분석
+            </li>
+            <li>
+              <Sparkles size={16} aria-hidden /> 1회 무료, 릴스용 결과 카드 자동 생성
+            </li>
+          </ul>
         </div>
 
-        <form className={styles.console} onSubmit={createSession}>
+        <form className={styles.console} onSubmit={createSession} data-locked={!isLoggedIn}>
           <div className={styles.loginRow}>
-            <button className={styles.kakaoButton} type="button" aria-label="카카오 로그인" onClick={handleKakaoLogin}>
-              <MessageCircle size={18} aria-hidden />
-              카카오로 시작하기
-            </button>
-            <span className={styles.loginHint}>MVP에서는 이 기기 기준으로 바로 시작합니다.</span>
+            {isLoggedIn ? (
+              <>
+                <div className={styles.profileChip}>
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatarUrl} alt="" aria-hidden />
+                  ) : (
+                    <span className={styles.avatarFallback} aria-hidden>
+                      {displayName.slice(0, 1)}
+                    </span>
+                  )}
+                  <div>
+                    <strong>{displayName}</strong>
+                    <span>카카오로 로그인됨</span>
+                  </div>
+                </div>
+                <button type="button" className={styles.signOutButton} onClick={handleSignOut}>
+                  <LogOut size={14} aria-hidden />
+                  로그아웃
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className={styles.kakaoButton}
+                  type="button"
+                  aria-label="카카오로 시작하기"
+                  onClick={handleKakaoLogin}
+                  disabled={isStartingLogin || auth.status === "loading"}
+                >
+                  <MessageCircle size={18} aria-hidden />
+                  {isStartingLogin ? "카카오 여는 중" : "카카오로 시작하기"}
+                </button>
+                <span className={styles.loginHint}>
+                  로그인 후에 질문을 잠글 수 있습니다. 결과는 본인 계정에만 저장돼요.
+                </span>
+              </>
+            )}
           </div>
 
-          <div className={styles.hideNotice}>
+          <div className={styles.hideNotice} data-tone="warn">
             <LockKeyhole size={20} aria-hidden />
             <div>
               <strong>지금은 화면을 가려 주세요.</strong>
@@ -94,19 +152,34 @@ export default function HomePage() {
           <label className={styles.questionLabel} htmlFor="target-question">
             물어볼 질문
           </label>
-          <textarea
-            id="target-question"
-            className={styles.questionInput}
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-            placeholder="어제 누구랑 있었어?"
-            maxLength={160}
-            rows={4}
-          />
+          <div className={styles.questionWrap}>
+            <textarea
+              id="target-question"
+              className={styles.questionInput}
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              placeholder={isLoggedIn ? "어제 누구랑 있었어?" : "로그인하면 질문을 적을 수 있어요"}
+              maxLength={160}
+              rows={4}
+              disabled={!isLoggedIn}
+              aria-disabled={!isLoggedIn}
+            />
+            {!isLoggedIn ? (
+              <div className={styles.lockedVeil} aria-hidden>
+                <LockKeyhole size={22} />
+                <span>카카오로 시작하면 잠금 해제</span>
+              </div>
+            ) : null}
+          </div>
 
           <div className={styles.sampleRow} aria-label="예시 질문">
             {sampleQuestions.map((sample) => (
-              <button key={sample} type="button" onClick={() => setQuestion(sample)}>
+              <button
+                key={sample}
+                type="button"
+                onClick={() => setQuestion(sample)}
+                disabled={!isLoggedIn}
+              >
                 {sample}
               </button>
             ))}
@@ -115,11 +188,12 @@ export default function HomePage() {
           <div className={styles.actionRow}>
             <span>{trimmedQuestion.length}/160</span>
             <button className={styles.lockButton} type="submit" disabled={!canSubmit}>
-              {isSubmitting ? "잠그는 중" : "질문 잠그기"}
+              {!isLoggedIn ? "카카오 로그인 후 진행" : isSubmitting ? "잠그는 중" : "질문 잠그기"}
             </button>
           </div>
 
           {error ? <p className={styles.error}>{error}</p> : null}
+          {auth.error ? <p className={styles.error}>{auth.error}</p> : null}
           <p className={styles.afterLock}>잠그면 이제 상대에게 기기를 넘겨 주세요. 질문 문장은 그대로 보여집니다.</p>
         </form>
       </section>

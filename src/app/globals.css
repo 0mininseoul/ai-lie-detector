@@ -1,7 +1,15 @@
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css");
 
+/*
+ * Design tokens
+ * ─ Hex tokens mirror the 21st palette contract (primary mint #72e3ad).
+ * ─ OKLCH companions drive the liquid-glass shadows, tints, and accent fills.
+ * ─ Typography is locked to Pretendard Variable everywhere.
+ */
 :root {
   color-scheme: light;
+
+  /* surface */
   --card: #fcfcfc;
   --ring: #72e3ad;
   --input: #f6f6f6;
@@ -46,38 +54,108 @@
   --sidebar-accent-foreground: #202020;
   --sidebar-primary-foreground: #1e2723;
 
+  /* canvas + text in OKLCH for consistent contrast tuning */
   --bg: oklch(98.7% 0.006 145);
   --panel: oklch(100% 0 0 / 0.62);
   --line: oklch(80% 0.018 145 / 0.52);
   --text: oklch(18% 0.012 150);
   --muted-text: oklch(42% 0.012 150);
+
+  /* accent tokens (OKLCH) */
+  --mint: oklch(82% 0.16 152);
+  --mint-deep: oklch(64% 0.16 162);
+  --mint-line: oklch(72% 0.16 158);
   --red: oklch(58% 0.19 25);
   --cyan: oklch(70% 0.14 230);
   --green: oklch(79% 0.17 152);
   --amber: oklch(78% 0.16 78);
   --violet: oklch(67% 0.18 292);
+  --kakao: oklch(85% 0.16 95);
+  --kakao-deep: oklch(77% 0.15 85);
+
+  /* liquid glass primitives */
   --glass: oklch(100% 0 0 / 0.58);
   --glass-strong: oklch(100% 0 0 / 0.78);
   --glass-edge: oklch(100% 0 0 / 0.82);
+  --glass-tint-mint: oklch(96% 0.035 152 / 0.54);
+  --glass-tint-cyan: oklch(95% 0.025 230 / 0.5);
   --liquid-highlight: oklch(100% 0 0 / 0.92);
-  --shadow-green: oklch(79% 0.17 152 / 0.36);
-  --shadow-blue: oklch(70% 0.14 230 / 0.24);
-  --shadow-violet: oklch(67% 0.18 292 / 0.18);
-  --shadow-red: oklch(58% 0.19 25 / 0.22);
-  --shadow-factory-soft:
+
+  /* font-weight scale (Pretendard Variable) — varied by background contrast */
+  --fw-display: 900;       /* light glass / strong hierarchy */
+  --fw-headline: 840;
+  --fw-title: 800;
+  --fw-body-strong: 760;   /* labels on white glass */
+  --fw-body: 620;          /* prose on subtle glass */
+  --fw-body-soft: 540;     /* secondary copy */
+  --fw-caption: 500;       /* timestamps / footnotes */
+  --fw-display-on-color: 920; /* display text on saturated fills */
+  --fw-action: 820;        /* CTA buttons */
+
+  /* shadow factory — every layer is colored, never black */
+  --shadow-color-mint: oklch(79% 0.17 152 / 0.36);
+  --shadow-color-cyan: oklch(70% 0.14 230 / 0.24);
+  --shadow-color-violet: oklch(67% 0.18 292 / 0.18);
+  --shadow-color-red: oklch(58% 0.19 25 / 0.22);
+
+  --shadow-soft:
     0 1px 1px oklch(79% 0.17 152 / 0.16),
-    0 10px 30px oklch(70% 0.14 230 / 0.16),
-    0 28px 80px oklch(67% 0.18 292 / 0.12);
-  --shadow-factory-card:
+    0 8px 22px oklch(70% 0.14 230 / 0.14),
+    0 22px 58px oklch(67% 0.18 292 / 0.1);
+
+  --shadow-card:
     0 1px 0 oklch(100% 0 0 / 0.92) inset,
     0 0 0 1px oklch(100% 0 0 / 0.58) inset,
     0 14px 36px oklch(79% 0.17 152 / 0.18),
     0 34px 96px oklch(70% 0.14 230 / 0.14),
     0 60px 140px oklch(67% 0.18 292 / 0.1);
-  --shadow-factory-action:
+
+  --shadow-card-elevated:
+    0 1px 0 oklch(100% 0 0 / 0.96) inset,
+    0 0 0 1px oklch(100% 0 0 / 0.62) inset,
+    0 18px 44px oklch(79% 0.17 152 / 0.24),
+    0 44px 110px oklch(70% 0.14 230 / 0.18),
+    0 88px 170px oklch(67% 0.18 292 / 0.12);
+
+  --shadow-action:
     0 1px 0 oklch(100% 0 0 / 0.76) inset,
     0 10px 26px oklch(79% 0.17 152 / 0.3),
     0 22px 54px oklch(70% 0.14 230 / 0.16);
+
+  --shadow-action-hover:
+    0 1px 0 oklch(100% 0 0 / 0.86) inset,
+    0 14px 32px oklch(79% 0.17 152 / 0.36),
+    0 32px 70px oklch(70% 0.14 230 / 0.2),
+    0 60px 120px oklch(67% 0.18 292 / 0.12);
+
+  --shadow-action-warn:
+    0 1px 0 oklch(100% 0 0 / 0.5) inset,
+    0 10px 28px oklch(58% 0.19 25 / 0.34),
+    0 26px 62px oklch(67% 0.18 292 / 0.14);
+
+  --shadow-input:
+    0 1px 0 oklch(100% 0 0 / 0.86) inset,
+    0 8px 22px oklch(70% 0.14 230 / 0.12),
+    0 22px 48px oklch(67% 0.18 292 / 0.08);
+
+  --shadow-input-focus:
+    0 0 0 4px oklch(79% 0.17 152 / 0.2),
+    0 16px 42px oklch(70% 0.14 230 / 0.16),
+    0 36px 80px oklch(67% 0.18 292 / 0.1);
+
+  --shadow-chip:
+    0 1px 0 oklch(100% 0 0 / 0.82) inset,
+    0 6px 16px oklch(70% 0.14 230 / 0.1),
+    0 14px 28px oklch(79% 0.17 152 / 0.08);
+
+  /* legacy aliases (kept so older modules still compile while we transition) */
+  --shadow-factory-soft: var(--shadow-soft);
+  --shadow-factory-card: var(--shadow-card);
+  --shadow-factory-action: var(--shadow-action);
+  --shadow-green: var(--shadow-color-mint);
+  --shadow-blue: var(--shadow-color-cyan);
+  --shadow-violet: var(--shadow-color-violet);
+  --shadow-red: var(--shadow-color-red);
 }
 
 .dark {
@@ -114,6 +192,39 @@
   --destructive-foreground: #ede9e8;
   --sidebar-accent-foreground: #fafafa;
   --sidebar-primary-foreground: #dde8e3;
+
+  --bg: oklch(16% 0.012 230);
+  --panel: oklch(20% 0.018 230 / 0.6);
+  --line: oklch(40% 0.018 230 / 0.6);
+  --text: oklch(94% 0.012 230);
+  --muted-text: oklch(72% 0.018 230);
+  --mint: oklch(72% 0.16 158);
+  --mint-deep: oklch(58% 0.16 162);
+  --mint-line: oklch(60% 0.16 158);
+
+  --glass: oklch(30% 0.02 230 / 0.46);
+  --glass-strong: oklch(34% 0.02 230 / 0.66);
+  --glass-edge: oklch(100% 0 0 / 0.16);
+  --liquid-highlight: oklch(100% 0 0 / 0.36);
+  --glass-tint-mint: oklch(40% 0.06 152 / 0.4);
+  --glass-tint-cyan: oklch(40% 0.04 230 / 0.4);
+
+  --shadow-soft:
+    0 1px 1px oklch(0% 0 0 / 0.42),
+    0 8px 24px oklch(60% 0.16 152 / 0.18),
+    0 22px 58px oklch(50% 0.14 230 / 0.18);
+
+  --shadow-card:
+    0 1px 0 oklch(100% 0 0 / 0.08) inset,
+    0 0 0 1px oklch(100% 0 0 / 0.06) inset,
+    0 16px 40px oklch(60% 0.16 152 / 0.22),
+    0 38px 110px oklch(50% 0.14 230 / 0.22),
+    0 70px 160px oklch(50% 0.18 292 / 0.18);
+
+  --shadow-action:
+    0 1px 0 oklch(100% 0 0 / 0.16) inset,
+    0 12px 32px oklch(60% 0.16 152 / 0.4),
+    0 28px 64px oklch(50% 0.14 230 / 0.24);
 }
 
 @theme inline {
@@ -182,15 +293,34 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 8%, oklch(79% 0.17 152 / 0.32), transparent 28%),
-    radial-gradient(circle at 86% 12%, oklch(70% 0.14 230 / 0.22), transparent 30%),
-    radial-gradient(circle at 72% 88%, oklch(67% 0.18 292 / 0.16), transparent 34%),
+    radial-gradient(circle at 12% 8%, oklch(79% 0.17 152 / 0.34), transparent 30%),
+    radial-gradient(circle at 86% 12%, oklch(70% 0.14 230 / 0.24), transparent 32%),
+    radial-gradient(circle at 72% 88%, oklch(67% 0.18 292 / 0.18), transparent 36%),
+    radial-gradient(circle at 36% 60%, oklch(78% 0.16 78 / 0.12), transparent 30%),
     linear-gradient(135deg, oklch(99% 0.01 150), oklch(96% 0.025 230));
   color: var(--foreground);
   font-family: var(--font-sans);
   font-synthesis: none;
   letter-spacing: var(--letter-spacing);
+  font-feature-settings: "ss03", "cv11";
   overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(900px 540px at 50% -8%, oklch(100% 0 0 / 0.42), transparent 64%),
+    radial-gradient(720px 480px at 110% 110%, oklch(100% 0 0 / 0.28), transparent 64%);
+  mix-blend-mode: screen;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 body,
@@ -206,6 +336,7 @@ input,
 textarea,
 select {
   color: inherit;
+  font-family: var(--font-sans);
 }
 
 button {
@@ -228,4 +359,10 @@ canvas {
 ::selection {
   color: var(--primary-foreground);
   background: oklch(79% 0.17 152 / 0.55);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-input-focus);
+  border-radius: var(--radius);
 }

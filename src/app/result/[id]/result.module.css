@@ -2,11 +2,12 @@
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 22px;
+  padding: clamp(22px, 3vw, 42px);
   background:
     radial-gradient(circle at 50% 0%, oklch(58% 0.19 25 / 0.2), transparent 30%),
-    radial-gradient(circle at 15% 100%, oklch(79% 0.17 152 / 0.28), transparent 28%),
-    radial-gradient(circle at 86% 72%, oklch(70% 0.14 230 / 0.2), transparent 32%),
+    radial-gradient(circle at 15% 100%, oklch(79% 0.17 152 / 0.3), transparent 30%),
+    radial-gradient(circle at 86% 72%, oklch(70% 0.14 230 / 0.22), transparent 32%),
+    radial-gradient(circle at 50% 56%, oklch(67% 0.18 292 / 0.1), transparent 36%),
     linear-gradient(145deg, oklch(99% 0.006 145), oklch(95% 0.026 230));
 }
 
@@ -14,22 +15,24 @@
 .pending {
   width: min(720px, 100%);
   display: grid;
-  gap: 20px;
-  padding: clamp(22px, 5vw, 42px);
+  gap: 22px;
+  padding: clamp(24px, 5vw, 44px);
   border: 1px solid var(--glass-edge);
-  border-radius: var(--radius);
+  border-radius: calc(var(--radius) * 2.6);
   background:
-    linear-gradient(145deg, oklch(100% 0 0 / 0.84), oklch(100% 0 0 / 0.44)),
-    oklch(79% 0.17 152 / 0.08);
-  box-shadow: var(--shadow-factory-card);
-  backdrop-filter: blur(34px) saturate(1.75);
+    linear-gradient(145deg, oklch(100% 0 0 / 0.88), oklch(100% 0 0 / 0.48)),
+    radial-gradient(circle at 16% 0%, oklch(100% 0 0 / 0.74), transparent 40%),
+    var(--glass-tint-mint);
+  box-shadow: var(--shadow-card-elevated);
+  backdrop-filter: blur(36px) saturate(1.8);
 }
 
 .brand,
 .pending span {
   color: oklch(42% 0.12 165);
   font-size: 13px;
-  font-weight: 820;
+  font-weight: var(--fw-headline);
+  letter-spacing: 0.005em;
 }
 
 .result h1 {
@@ -37,49 +40,51 @@
   color: var(--text);
   font-size: clamp(92px, 22vw, 180px);
   line-height: 0.86;
-  letter-spacing: 0;
-  font-weight: 940;
+  letter-spacing: -0.022em;
+  font-weight: var(--fw-display);
   text-shadow:
-    0 10px 24px oklch(79% 0.17 152 / 0.2),
-    0 24px 68px oklch(70% 0.14 230 / 0.16),
-    0 46px 110px oklch(67% 0.18 292 / 0.1);
+    0 10px 24px oklch(79% 0.17 152 / 0.22),
+    0 24px 68px oklch(70% 0.14 230 / 0.18),
+    0 46px 110px oklch(67% 0.18 292 / 0.12);
 }
 
 .roast,
 .pending p {
   margin: 0;
   color: oklch(24% 0.035 150);
-  font-size: clamp(22px, 4vw, 36px);
+  font-size: clamp(22px, 4vw, 34px);
   line-height: 1.24;
-  font-weight: 840;
+  font-weight: var(--fw-headline);
+  text-wrap: balance;
+  word-break: keep-all;
 }
 
 .questionBlock {
   display: grid;
   gap: 8px;
-  padding: 16px;
+  padding: 18px;
   border-left: 4px solid oklch(58% 0.19 25);
-  border-radius: 0 var(--radius) var(--radius) 0;
-  background:
-    linear-gradient(135deg, oklch(100% 0 0 / 0.62), oklch(94% 0.03 25 / 0.38));
+  border-radius: 0 calc(var(--radius) * 1.6) calc(var(--radius) * 1.6) 0;
+  background: linear-gradient(135deg, oklch(100% 0 0 / 0.68), oklch(94% 0.03 25 / 0.4));
   box-shadow:
-    0 1px 0 oklch(100% 0 0 / 0.82) inset,
-    0 12px 30px oklch(58% 0.19 25 / 0.12),
+    0 1px 0 oklch(100% 0 0 / 0.86) inset,
+    0 12px 30px oklch(58% 0.19 25 / 0.14),
     0 28px 68px oklch(67% 0.18 292 / 0.1);
+  backdrop-filter: blur(18px) saturate(1.4);
 }
 
 .questionBlock span {
   color: var(--muted-text);
   font-size: 13px;
-  font-weight: 780;
+  font-weight: var(--fw-body-strong);
 }
 
 .questionBlock p {
   margin: 0;
   color: var(--text);
-  font-size: clamp(18px, 3vw, 25px);
+  font-size: clamp(18px, 3vw, 24px);
   line-height: 1.35;
-  font-weight: 820;
+  font-weight: var(--fw-title);
 }
 
 .actions {
@@ -95,15 +100,20 @@
   justify-content: center;
   gap: 8px;
   min-height: 50px;
-  border: 0;
-  border-radius: var(--radius);
+  border: 1px solid var(--glass-edge);
+  border-radius: calc(var(--radius) * 1.6);
   color: var(--foreground);
-  background: linear-gradient(135deg, oklch(100% 0 0 / 0.82), oklch(95% 0.025 230 / 0.58));
-  box-shadow:
-    0 1px 0 oklch(100% 0 0 / 0.8) inset,
-    0 10px 26px oklch(70% 0.14 230 / 0.16),
-    0 22px 54px oklch(67% 0.18 292 / 0.1);
-  font-weight: 820;
+  background: linear-gradient(135deg, var(--glass-strong), oklch(95% 0.025 230 / 0.6));
+  box-shadow: var(--shadow-soft);
+  font-weight: var(--fw-action);
+  letter-spacing: -0.005em;
+  transition: transform 200ms ease, box-shadow 240ms ease;
+}
+
+.actions button:hover:not(:disabled),
+.actions a:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card);
 }
 
 .actions button:disabled {
@@ -116,7 +126,7 @@
   margin: 0;
   color: var(--muted-text);
   font-size: 14px;
-  font-weight: 520;
+  font-weight: var(--fw-body-soft);
 }
 
 @media (max-width: 620px) {
