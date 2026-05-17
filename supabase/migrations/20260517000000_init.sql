@@ -274,7 +274,7 @@ begin
     raise exception 'Session not found';
   end if;
 
-  if session_row.status not in ('created', 'recording', 'uploaded') then
+  if session_row.status not in ('created', 'recording') then
     raise exception 'Session cannot accept upload in current status';
   end if;
 

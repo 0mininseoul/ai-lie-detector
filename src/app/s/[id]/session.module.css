@@ -1,0 +1,236 @@
+.shell {
+  min-height: 100vh;
+  padding: 24px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    radial-gradient(circle at 75% 8%, rgba(255, 209, 102, 0.14), transparent 28%),
+    radial-gradient(circle at 10% 88%, rgba(255, 59, 95, 0.16), transparent 30%),
+    #050507;
+  background-size: 44px 44px, 44px 44px, auto, auto, auto;
+}
+
+.stage {
+  width: min(1280px, 100%);
+  min-height: calc(100vh - 48px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+  gap: clamp(18px, 4vw, 46px);
+  align-items: center;
+}
+
+.videoColumn,
+.controlColumn {
+  display: grid;
+  gap: 16px;
+}
+
+.videoFrame {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  aspect-ratio: 4 / 3;
+  background:
+    linear-gradient(135deg, rgba(100, 216, 255, 0.08), rgba(255, 59, 95, 0.08)),
+    #08080b;
+}
+
+.videoFrame[data-recording="true"] {
+  border-color: rgba(255, 59, 95, 0.7);
+  box-shadow: 0 0 0 4px rgba(255, 59, 95, 0.1);
+}
+
+.videoFrame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.videoHud {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.videoHud span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.58);
+  color: #f6f0e6;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.checkGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.checkGrid div {
+  min-height: 78px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.checkGrid strong,
+.checkGrid span {
+  display: block;
+}
+
+.checkGrid strong {
+  color: #ffffff;
+  font-size: 15px;
+}
+
+.checkGrid span {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.titleBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.titleBlock span {
+  color: #64d8ff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.titleBlock h1 {
+  margin: 0;
+  font-size: clamp(42px, 7vw, 86px);
+  line-height: 0.95;
+  letter-spacing: 0;
+}
+
+.panel,
+.questionPanel {
+  display: grid;
+  gap: 16px;
+  padding: clamp(18px, 3vw, 26px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: rgba(7, 8, 11, 0.88);
+}
+
+.panel p {
+  margin: 0;
+  color: #f0e9dc;
+  font-size: clamp(17px, 2vw, 21px);
+  line-height: 1.55;
+  font-weight: 800;
+}
+
+.questionPanel span {
+  color: #ffd166;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.questionPanel h2 {
+  margin: 0;
+  color: #fff7e8;
+  font-size: clamp(28px, 4.6vw, 56px);
+  line-height: 1.12;
+  letter-spacing: 0;
+}
+
+.primaryButton,
+.startButton,
+.stopButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 50px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 18px;
+  font-weight: 900;
+}
+
+.primaryButton {
+  color: #050507;
+  background: #f6f0e6;
+}
+
+.startButton {
+  color: #04130a;
+  background: #32d583;
+}
+
+.stopButton {
+  color: #fff4f6;
+  background: #ff3b5f;
+}
+
+.secondaryButton {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.startButton:disabled,
+.stopButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.error {
+  margin: 0;
+  color: #ff9bae;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@media (max-width: 920px) {
+  .shell {
+    padding: 14px;
+  }
+
+  .stage {
+    min-height: auto;
+    grid-template-columns: 1fr;
+    align-items: start;
+    padding: 18px 0;
+  }
+
+  .videoFrame {
+    aspect-ratio: 3 / 4;
+  }
+
+  .checkGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .titleBlock h1 {
+    font-size: clamp(44px, 15vw, 68px);
+  }
+
+  .primaryButton,
+  .startButton,
+  .stopButton,
+  .secondaryButton {
+    width: 100%;
+  }
+}
