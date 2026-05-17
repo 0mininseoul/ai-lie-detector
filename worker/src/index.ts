@@ -1,6 +1,7 @@
 import { GoogleGenAI, type File as GeminiFile } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
 import { parseGeminiResult } from "../../src/lib/gemini/schema";
+import { maxWorkerUploadByteSize, verifyWorkerUploadToken } from "../../src/lib/uploads/worker-token";
 
 type R2ObjectBody = {
   arrayBuffer(): Promise<ArrayBuffer>;
@@ -8,6 +9,15 @@ type R2ObjectBody = {
 
 type R2Bucket = {
   get(key: string): Promise<R2ObjectBody | null>;
+  put(
+    key: string,
+    value: ReadableStream | ArrayBuffer | ArrayBufferView | string | null,
+    options?: {
+      httpMetadata?: {
+        contentType?: string;
+      };
+    }
+  ): Promise<unknown>;
 };
 
 type WorkerContext = {
@@ -87,6 +97,16 @@ export default {
       return Response.json({ ok: true });
     }
 
+    if (url.pathname === "/upload") {
+      if (request.method === "OPTIONS") {
+        return new Response(null, { status: 204, headers: uploadCorsHeaders(request) });
+      }
+
+      if (request.method === "PUT") {
+        return handleUpload(request, env, url);
+      }
+    }
+
     if (request.method !== "POST" || url.pathname !== "/analyze") {
       return Response.json({ error: "Not found" }, { status: 404 });
     }
@@ -113,6 +133,48 @@ export default {
     return Response.json({ status: "queued", sessionId });
   }
 };
+
+async function handleUpload(request: Request, env: Env, url: URL) {
+  const corsHeaders = uploadCorsHeaders(request);
+  const token = url.searchParams.get("token");
+
+  if (!env.WORKER_SHARED_SECRET) {
+    return Response.json({ error: "Upload is not configured" }, { status: 503, headers: corsHeaders });
+  }
+
+  const verification = await verifyWorkerUploadToken(token, env.WORKER_SHARED_SECRET);
+  if (!verification.valid) {
+    return Response.json({ error: verification.error }, { status: 401, headers: corsHeaders });
+  }
+
+  const { payload } = verification;
+  const contentType = request.headers.get("content-type") ?? "";
+  if (contentType !== payload.mimeType) {
+    return Response.json({ error: "Upload content type mismatch" }, { status: 400, headers: corsHeaders });
+  }
+
+  const contentLengthHeader = request.headers.get("content-length");
+  const contentLength = Number(contentLengthHeader);
+  if (!contentLengthHeader || !Number.isFinite(contentLength) || contentLength <= 0) {
+    return Response.json({ error: "Upload content length is required" }, { status: 411, headers: corsHeaders });
+  }
+
+  if (payload.byteSize > maxWorkerUploadByteSize || contentLength > payload.byteSize) {
+    return Response.json({ error: "Upload body is larger than expected" }, { status: 413, headers: corsHeaders });
+  }
+
+  if (!request.body) {
+    return Response.json({ error: "Upload body is required" }, { status: 400, headers: corsHeaders });
+  }
+
+  await env.RECORDINGS.put(payload.r2Key, request.body, {
+    httpMetadata: {
+      contentType: payload.mimeType
+    }
+  });
+
+  return Response.json({ ok: true, r2Key: payload.r2Key }, { headers: corsHeaders });
+}
 
 async function analyzeSession(sessionId: string, env: Env) {
   const supabase = createSupabase(env);
@@ -360,6 +422,33 @@ function isAuthorized(request: Request, env: Env) {
   }
 
   return request.headers.get("authorization") === `Bearer ${env.WORKER_SHARED_SECRET}`;
+}
+
+function uploadCorsHeaders(request: Request) {
+  const origin = request.headers.get("origin") ?? "";
+  const headers = new Headers({
+    "access-control-allow-methods": "PUT, OPTIONS",
+    "access-control-allow-headers": "content-type",
+    "access-control-max-age": "300"
+  });
+
+  if (isAllowedUploadOrigin(origin)) {
+    headers.set("access-control-allow-origin", origin);
+    headers.set("vary", "Origin");
+  }
+
+  return headers;
+}
+
+function isAllowedUploadOrigin(origin: string) {
+  if (origin === "http://localhost:3000") return true;
+
+  try {
+    const url = new URL(origin);
+    return url.protocol === "https:" && url.hostname.endsWith(".vercel.app");
+  } catch {
+    return false;
+  }
 }
 
 function isUuid(value: string) {

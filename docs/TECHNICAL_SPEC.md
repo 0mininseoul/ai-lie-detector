@@ -2,7 +2,7 @@
 
 ## 1. 시스템 개요
 
-AI 거짓말탐지기는 브라우저에서 카메라/마이크 입력을 받고, 로컬 feature를 추출하며, 전체 영상을 Cloudflare R2에 임시 저장한 뒤 Gemini에 분석 요청을 보내는 웹 서비스다.
+AI 거짓말탐지기는 브라우저에서 카메라/마이크 입력을 받고, 로컬 feature를 추출하며, 전체 영상을 Cloudflare Worker를 통해 Cloudflare R2에 임시 저장한 뒤 Gemini에 분석 요청을 보내는 웹 서비스다.
 
 MVP는 결제 없이 동작한다. 단, entitlement와 payment adapter를 처음부터 분리해 추후 Polar와 앱인토스 IAP를 붙일 수 있게 한다.
 
@@ -13,17 +13,19 @@ Browser
   - camera/mic capture
   - local feature extraction
   - recording/export canvas
-  - direct upload to R2
+  - signed upload to Cloudflare Worker
 
 Next.js on Vercel
   - page rendering
   - session API
   - Supabase DB access
-  - signed upload request orchestration
+  - signed Worker upload request orchestration
   - result page
 
 Cloudflare Worker
-  - create R2 presigned upload URL
+  - accept signed browser upload
+  - enforce upload size/content guardrails
+  - write upload to R2
   - read R2 object
   - upload video to Gemini Files API
   - call Gemini generateContent
@@ -51,9 +53,9 @@ Gemini API
 
 ## 3. 주요 설계 결정
 
-### 3.1 Vercel로 영상 업로드 금지
+### 3.1 Vercel로 영상 본문 업로드 금지
 
-Vercel Hobby는 큰 request body와 긴 작업에 약하다. 브라우저는 R2 presigned URL로 직접 업로드한다.
+Vercel Hobby는 큰 request body와 긴 작업에 약하다. Vercel은 5분짜리 업로드 토큰만 발급하고, 브라우저는 Cloudflare Worker `/upload`로 영상을 전송한다. Worker는 R2 binding으로 저장하므로 Vercel request body 제한과 R2 S3 access key 노출을 피한다.
 
 ### 3.2 Supabase Storage 미사용
 
@@ -261,7 +263,7 @@ UI 문구:
 
 ### 6.1 파일 업로드
 
-1. 브라우저가 R2로 원본 영상을 직접 업로드한다.
+1. 브라우저가 Worker `/upload`로 원본 영상을 업로드한다.
 2. Next.js가 Supabase에 recording row를 만든다.
 3. Cloudflare Worker가 R2 object를 읽는다.
 4. Worker가 Gemini Files API로 영상을 업로드한다.
@@ -417,9 +419,11 @@ MVP 기본값은 전체 1 FPS + 진짜 질문 5 FPS다.
 ## 11. 보안/운영
 
 - Gemini API key는 Cloudflare Worker secret으로 둔다.
-- R2 upload URL은 짧은 TTL로 발급한다.
+- Worker upload token은 짧은 TTL로 발급한다.
 - R2 object key는 session id 기반으로 예측 어렵게 만든다.
-- 영상은 기본 24~48시간 후 삭제한다.
+- 영상은 R2 lifecycle로 1일 후 삭제한다.
+- 브라우저 업로드는 95MB 이하만 허용한다.
+- Supabase row는 새 세션 생성 시 `cleanup_expired_sessions` RPC로 만료분을 점진 삭제한다.
 - Supabase public anon key는 RLS 정책으로 제한한다.
 - 결과 페이지는 UUID 기반 URL로 접근한다.
 

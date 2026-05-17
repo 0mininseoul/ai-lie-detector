@@ -1,6 +1,6 @@
 # Deployment Auth Checklist
 
-이 문서는 UI 작업과 분리된 배포/인증 체크리스트다. 아래 항목이 끝나야 실제 녹화 → R2 업로드 → Worker 분석 → Gemini 결과 저장까지 자동으로 돈다.
+이 문서는 UI 작업과 분리된 배포/인증 체크리스트다. 아래 항목이 끝나야 실제 녹화 → Worker 업로드 → R2 임시 저장 → Worker 분석 → Gemini 결과 저장까지 자동으로 돈다.
 
 ## 1. Supabase
 
@@ -60,19 +60,19 @@ https://<VERCEL_DOMAIN>/auth/callback
 필요 작업:
 
 1. R2 bucket을 만든다.
-2. R2 API token 또는 S3-compatible access key를 만든다.
-3. bucket CORS에 Vercel 도메인과 로컬 도메인을 허용한다.
+2. bucket lifecycle rule을 넣어 `recordings/` object를 1일 후 삭제한다.
+3. Worker R2 binding이 이 bucket을 바라보게 한다.
+4. 브라우저가 Worker를 거쳐 업로드하므로 Vercel에는 R2 access key를 넣지 않는다.
 
-Vercel env:
+현재 MVP 비용 가드레일:
 
-```bash
-CLOUDFLARE_R2_ACCOUNT_ID=
-CLOUDFLARE_R2_ACCESS_KEY_ID=
-CLOUDFLARE_R2_SECRET_ACCESS_KEY=
-CLOUDFLARE_R2_BUCKET_NAME=
-```
+- bucket: `ai-lie-detector-recordings`
+- prefix: `recordings/`
+- lifecycle: 1일 후 자동 삭제
+- 앱 업로드 제한: 95MB
+- R2 S3 access key: 사용 안 함
 
-CORS 예시:
+Worker 업로드를 쓰므로 R2 CORS는 필수 경로가 아니다. 직접 업로드 테스트가 필요할 때만 아래처럼 제한적으로 둔다.
 
 ```json
 [
@@ -116,6 +116,9 @@ WORKER_SHARED_SECRET=<same value as worker secret>
 
 동작 방식:
 
+- `/api/sessions/[id]/upload-url`이 5분짜리 Worker 업로드 토큰을 발급한다.
+- 브라우저는 Worker `/upload`로 영상 파일을 보낸다.
+- Worker는 Content-Type, Content-Length, 토큰 서명, 95MB 상한을 확인한 뒤 R2에 저장한다.
 - `/api/sessions/[id]/complete-upload`가 업로드 완료 후 Worker `/analyze`를 호출한다.
 - Worker 호출이 실패하면 API가 `502` 또는 `503`으로 실패해 사용자가 무한 대기하지 않는다.
 
@@ -139,7 +142,7 @@ WORKER_SHARED_SECRET=<same value as worker secret>
 1. `vercel login`을 완료한다.
 2. 프로젝트를 Vercel에 연결한다.
 3. 위의 Vercel env를 모두 넣는다.
-4. 배포 후 Supabase Auth Redirect URLs와 R2 CORS에 최종 도메인을 추가한다.
+4. 배포 후 Supabase Auth Redirect URLs에 최종 도메인을 추가한다.
 
 검증 순서:
 
@@ -155,7 +158,7 @@ pnpm build
 Claude로 UI를 다시 작업해도 아래 계약은 유지해야 한다.
 
 - 세션 생성: `POST /api/sessions`
-- 녹화 업로드 URL: `POST /api/sessions/[id]/upload-url`
+- 녹화 업로드 URL: `POST /api/sessions/[id]/upload-url` returns Worker `/upload` URL
 - 업로드 완료/분석 큐잉: `POST /api/sessions/[id]/complete-upload`
 - 분석 재큐잉: `POST /api/sessions/[id]/analyze`
 - 상태 조회: `GET /api/sessions/[id]/status`

@@ -135,7 +135,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
       });
 
       if (!uploadResponse.ok) {
-        throw new Error("영상 업로드가 막혔습니다. R2 CORS와 업로드 키를 확인해야 합니다.");
+        throw new Error("영상 업로드가 막혔습니다. Worker 업로드 설정을 확인해야 합니다.");
       }
 
       const response = await fetch(`/api/sessions/${session.id}/complete-upload`, {

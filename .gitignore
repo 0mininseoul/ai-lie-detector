@@ -12,3 +12,4 @@ supabase/.temp/
 .dev.vars
 *.log
 *.tsbuildinfo
+.vercel

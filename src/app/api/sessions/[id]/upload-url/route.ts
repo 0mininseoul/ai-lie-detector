@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z, ZodError } from "zod";
-import { buildRecordingObjectKey, getR2UploadConfig, presignR2PutUrl } from "@/lib/r2/presign";
+import { buildRecordingObjectKey } from "@/lib/r2/presign";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { createWorkerUploadToken, maxWorkerUploadByteSize } from "@/lib/uploads/worker-token";
 
 type RouteContext = {
   params: Promise<{
@@ -15,7 +16,7 @@ const uploadUrlSchema = z.object({
     (mimeType) => mimeType.startsWith("video/webm") || mimeType.startsWith("video/mp4"),
     "mimeType must be a supported video MIME type"
   ),
-  byteSize: z.number().int().positive().max(150 * 1024 * 1024)
+  byteSize: z.number().int().positive().max(maxWorkerUploadByteSize)
 }).strict();
 
 const uploadUrlExpiresInSeconds = 300;
@@ -64,18 +65,31 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Session cannot accept a new recording" }, { status: 409 });
   }
 
+  const workerUrl = process.env.ANALYSIS_WORKER_URL?.trim();
+  const sharedSecret = process.env.WORKER_SHARED_SECRET?.trim();
+
+  if (!workerUrl || !sharedSecret) {
+    return NextResponse.json({ error: "Worker upload environment is not configured" }, { status: 503 });
+  }
+
   try {
-    const r2 = getR2UploadConfig();
     const r2Key = buildRecordingObjectKey(sessionId.data, input.mimeType);
-    const uploadUrl = presignR2PutUrl({
-      ...r2,
-      key: r2Key,
-      contentType: input.mimeType,
-      expiresInSeconds: uploadUrlExpiresInSeconds
-    });
+    const expiresAtMs = Date.now() + uploadUrlExpiresInSeconds * 1000;
+    const token = await createWorkerUploadToken(
+      {
+        sessionId: sessionId.data,
+        r2Key,
+        mimeType: input.mimeType,
+        byteSize: input.byteSize,
+        expiresAtMs
+      },
+      sharedSecret
+    );
+    const uploadUrl = new URL("/upload", workerUrl);
+    uploadUrl.searchParams.set("token", token);
 
     return NextResponse.json({
-      uploadUrl,
+      uploadUrl: uploadUrl.toString(),
       r2Key,
       expiresInSeconds: uploadUrlExpiresInSeconds,
       requiredHeaders: {

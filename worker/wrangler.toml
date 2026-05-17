@@ -1,6 +1,8 @@
 name = "ai-lie-detector-worker"
 main = "src/index.ts"
 compatibility_date = "2026-05-17"
+workers_dev = true
+preview_urls = false
 
 [[r2_buckets]]
 binding = "RECORDINGS"
