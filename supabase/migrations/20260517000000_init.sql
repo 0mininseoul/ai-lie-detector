@@ -245,3 +245,98 @@ revoke all on function grant_entitlement_credits(text, integer, text, text, text
 
 grant execute on function consume_analysis_credit(text) to service_role;
 grant execute on function grant_entitlement_credits(text, integer, text, text, text) to service_role;
+
+create or replace function complete_session_upload(
+  p_session_id uuid,
+  p_r2_key text,
+  p_mime_type text,
+  p_byte_size integer,
+  p_duration_ms integer,
+  p_warmup_start_ms integer,
+  p_warmup_end_ms integer,
+  p_target_start_ms integer,
+  p_target_end_ms integer,
+  p_feature_payload jsonb,
+  p_schema_version integer,
+  p_expires_at timestamptz
+)
+returns sessions
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  session_row sessions;
+begin
+  select * into session_row from sessions where id = p_session_id for update;
+
+  if session_row.id is null then
+    raise exception 'Session not found';
+  end if;
+
+  if session_row.status not in ('created', 'recording', 'uploaded') then
+    raise exception 'Session cannot accept upload in current status';
+  end if;
+
+  insert into recordings (
+    session_id,
+    r2_key,
+    mime_type,
+    byte_size,
+    duration_ms,
+    warmup_start_ms,
+    warmup_end_ms,
+    target_start_ms,
+    target_end_ms,
+    expires_at
+  )
+  values (
+    p_session_id,
+    p_r2_key,
+    p_mime_type,
+    p_byte_size,
+    p_duration_ms,
+    p_warmup_start_ms,
+    p_warmup_end_ms,
+    p_target_start_ms,
+    p_target_end_ms,
+    p_expires_at
+  )
+  on conflict (session_id) do update
+  set
+    r2_key = excluded.r2_key,
+    mime_type = excluded.mime_type,
+    byte_size = excluded.byte_size,
+    duration_ms = excluded.duration_ms,
+    warmup_start_ms = excluded.warmup_start_ms,
+    warmup_end_ms = excluded.warmup_end_ms,
+    target_start_ms = excluded.target_start_ms,
+    target_end_ms = excluded.target_end_ms,
+    expires_at = excluded.expires_at;
+
+  insert into feature_payloads (
+    session_id,
+    payload_json,
+    schema_version
+  )
+  values (
+    p_session_id,
+    p_feature_payload,
+    p_schema_version
+  )
+  on conflict (session_id) do update
+  set
+    payload_json = excluded.payload_json,
+    schema_version = excluded.schema_version;
+
+  update sessions
+  set status = 'uploaded', updated_at = now()
+  where id = p_session_id
+  returning * into session_row;
+
+  return session_row;
+end;
+$$;
+
+revoke all on function complete_session_upload(uuid, text, text, integer, integer, integer, integer, integer, integer, jsonb, integer, timestamptz) from public, anon, authenticated;
+grant execute on function complete_session_upload(uuid, text, text, integer, integer, integer, integer, integer, integer, jsonb, integer, timestamptz) to service_role;
