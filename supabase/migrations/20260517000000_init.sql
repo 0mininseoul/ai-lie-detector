@@ -340,3 +340,25 @@ $$;
 
 revoke all on function complete_session_upload(uuid, text, text, integer, integer, integer, integer, integer, integer, jsonb, integer, timestamptz) from public, anon, authenticated;
 grant execute on function complete_session_upload(uuid, text, text, integer, integer, integer, integer, integer, integer, jsonb, integer, timestamptz) to service_role;
+
+create or replace function claim_session_for_analysis(p_session_id uuid)
+returns sessions
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  session_row sessions;
+begin
+  update sessions
+  set status = 'analyzing', updated_at = now()
+  where id = p_session_id
+    and status = 'uploaded'
+  returning * into session_row;
+
+  return session_row;
+end;
+$$;
+
+revoke all on function claim_session_for_analysis(uuid) from public, anon, authenticated;
+grant execute on function claim_session_for_analysis(uuid) to service_role;
