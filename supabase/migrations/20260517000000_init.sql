@@ -85,6 +85,19 @@ create table entitlements (
   source text not null default 'mvp'
 );
 
+create table entitlement_events (
+  id uuid primary key default gen_random_uuid(),
+  device_id text not null,
+  user_id text,
+  kakao_user_id text,
+  provider text not null,
+  provider_event_id text not null,
+  credits integer not null check (credits > 0),
+  source text not null,
+  created_at timestamptz not null default now(),
+  unique (provider, provider_event_id)
+);
+
 create index sessions_creator_device_id_idx on sessions (creator_device_id);
 create index sessions_respondent_device_id_idx on sessions (respondent_device_id);
 create index sessions_user_id_idx on sessions (user_id);
@@ -112,6 +125,7 @@ create index entitlements_user_id_idx on entitlements (user_id);
 create index entitlements_kakao_user_id_idx on entitlements (kakao_user_id);
 create unique index entitlements_user_id_unique_idx on entitlements (user_id) where user_id is not null;
 create unique index entitlements_kakao_user_id_unique_idx on entitlements (kakao_user_id) where kakao_user_id is not null;
+create index entitlement_events_device_id_idx on entitlement_events (device_id);
 
 create trigger entitlements_set_updated_at
 before update on entitlements
@@ -123,9 +137,111 @@ alter table recordings enable row level security;
 alter table feature_payloads enable row level security;
 alter table analysis_results enable row level security;
 alter table entitlements enable row level security;
+alter table entitlement_events enable row level security;
 
 revoke all on table sessions from anon, authenticated;
 revoke all on table recordings from anon, authenticated;
 revoke all on table feature_payloads from anon, authenticated;
 revoke all on table analysis_results from anon, authenticated;
 revoke all on table entitlements from anon, authenticated;
+revoke all on table entitlement_events from anon, authenticated;
+
+create or replace function consume_analysis_credit(p_device_id text)
+returns entitlements
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  updated_row entitlements;
+begin
+  if length(trim(p_device_id)) < 8 or length(p_device_id) > 128 then
+    raise exception 'Invalid device id';
+  end if;
+
+  insert into entitlements (device_id)
+  values (p_device_id)
+  on conflict (device_id) do nothing;
+
+  update entitlements
+  set
+    free_trials_used = case
+      when free_trials_used < 1 then free_trials_used + 1
+      else free_trials_used
+    end,
+    credits = case
+      when free_trials_used >= 1 and credits > 0 then credits - 1
+      else credits
+    end,
+    updated_at = now()
+  where device_id = p_device_id
+    and (free_trials_used < 1 or credits > 0)
+  returning * into updated_row;
+
+  if updated_row.id is null then
+    raise exception 'No analysis credits available';
+  end if;
+
+  return updated_row;
+end;
+$$;
+
+create or replace function grant_entitlement_credits(
+  p_device_id text,
+  p_credits integer,
+  p_source text,
+  p_provider text,
+  p_provider_event_id text
+)
+returns entitlements
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  updated_row entitlements;
+begin
+  if length(trim(p_device_id)) < 8 or length(p_device_id) > 128 then
+    raise exception 'Invalid device id';
+  end if;
+
+  if p_credits <= 0 then
+    raise exception 'Credits must be positive';
+  end if;
+
+  if p_source not in ('mvp', 'polar', 'toss_iap', 'toss_reward_ad') then
+    raise exception 'Invalid entitlement source';
+  end if;
+
+  insert into entitlement_events (device_id, provider, provider_event_id, credits, source)
+  values (p_device_id, p_provider, p_provider_event_id, p_credits, p_source)
+  on conflict (provider, provider_event_id) do nothing;
+
+  if not found then
+    select * into updated_row from entitlements where device_id = p_device_id;
+    if updated_row.id is null then
+      insert into entitlements (device_id)
+      values (p_device_id)
+      returning * into updated_row;
+    end if;
+    return updated_row;
+  end if;
+
+  insert into entitlements (device_id, credits, source)
+  values (p_device_id, p_credits, p_source)
+  on conflict (device_id) do update
+  set
+    credits = entitlements.credits + excluded.credits,
+    source = excluded.source,
+    updated_at = now()
+  returning * into updated_row;
+
+  return updated_row;
+end;
+$$;
+
+revoke all on function consume_analysis_credit(text) from public, anon, authenticated;
+revoke all on function grant_entitlement_credits(text, integer, text, text, text) from public, anon, authenticated;
+
+grant execute on function consume_analysis_credit(text) to service_role;
+grant execute on function grant_entitlement_credits(text, integer, text, text, text) to service_role;
