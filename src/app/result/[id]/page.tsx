@@ -57,7 +57,7 @@ export default async function ResultPage({ params }: ResultPageProps) {
       <main className={styles.shell}>
         <section className={styles.pending}>
           <span>AI 거짓말탐지기</span>
-          <p>아직 판정 중이야. AI가 지금 표정값이랑 대답 흐름 붙잡고 씨름 중.</p>
+          <p>아직 판정 중입니다. AI가 결과를 정리하고 있습니다.</p>
           <ResultActions question={session.target_question} />
         </section>
       </main>
@@ -80,7 +80,12 @@ export default async function ResultPage({ params }: ResultPageProps) {
           <p>{session.target_question}</p>
         </div>
 
-        <ResultActions question={session.target_question} headline={result.headline} shareText={shareText} />
+        <ResultActions
+          question={session.target_question}
+          headline={result.headline}
+          roastComment={result.roast_comment}
+          shareText={shareText}
+        />
       </section>
     </main>
   );

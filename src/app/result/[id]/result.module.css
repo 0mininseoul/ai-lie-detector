@@ -4,9 +4,10 @@
   place-items: center;
   padding: 22px;
   background:
-    radial-gradient(circle at 50% 0%, rgba(255, 59, 95, 0.22), transparent 30%),
-    radial-gradient(circle at 15% 100%, rgba(50, 213, 131, 0.16), transparent 28%),
-    #050507;
+    radial-gradient(circle at 50% 0%, oklch(58% 0.19 25 / 0.2), transparent 30%),
+    radial-gradient(circle at 15% 100%, oklch(79% 0.17 152 / 0.28), transparent 28%),
+    radial-gradient(circle at 86% 72%, oklch(70% 0.14 230 / 0.2), transparent 32%),
+    linear-gradient(145deg, oklch(99% 0.006 145), oklch(95% 0.026 230));
 }
 
 .result,
@@ -15,58 +16,70 @@
   display: grid;
   gap: 20px;
   padding: clamp(22px, 5vw, 42px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
-    rgba(7, 8, 11, 0.92);
-  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.48);
+    linear-gradient(145deg, oklch(100% 0 0 / 0.84), oklch(100% 0 0 / 0.44)),
+    oklch(79% 0.17 152 / 0.08);
+  box-shadow: var(--shadow-factory-card);
+  backdrop-filter: blur(34px) saturate(1.75);
 }
 
 .brand,
 .pending span {
-  color: #64d8ff;
+  color: oklch(42% 0.12 165);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 820;
 }
 
 .result h1 {
   margin: 0;
-  color: #fff7e8;
+  color: var(--text);
   font-size: clamp(92px, 22vw, 180px);
   line-height: 0.86;
   letter-spacing: 0;
+  font-weight: 940;
+  text-shadow:
+    0 10px 24px oklch(79% 0.17 152 / 0.2),
+    0 24px 68px oklch(70% 0.14 230 / 0.16),
+    0 46px 110px oklch(67% 0.18 292 / 0.1);
 }
 
 .roast,
 .pending p {
   margin: 0;
-  color: #f6f0e6;
+  color: oklch(24% 0.035 150);
   font-size: clamp(22px, 4vw, 36px);
   line-height: 1.24;
-  font-weight: 900;
+  font-weight: 840;
 }
 
 .questionBlock {
   display: grid;
   gap: 8px;
   padding: 16px;
-  border-left: 4px solid #ff3b5f;
-  background: rgba(255, 255, 255, 0.055);
+  border-left: 4px solid oklch(58% 0.19 25);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background:
+    linear-gradient(135deg, oklch(100% 0 0 / 0.62), oklch(94% 0.03 25 / 0.38));
+  box-shadow:
+    0 1px 0 oklch(100% 0 0 / 0.82) inset,
+    0 12px 30px oklch(58% 0.19 25 / 0.12),
+    0 28px 68px oklch(67% 0.18 292 / 0.1);
 }
 
 .questionBlock span {
-  color: var(--muted);
+  color: var(--muted-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 780;
 }
 
 .questionBlock p {
   margin: 0;
-  color: #fff;
+  color: var(--text);
   font-size: clamp(18px, 3vw, 25px);
   line-height: 1.35;
-  font-weight: 900;
+  font-weight: 820;
 }
 
 .actions {
@@ -75,22 +88,22 @@
   gap: 10px;
 }
 
-.actions button {
+.actions button,
+.actions a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-height: 50px;
   border: 0;
-  border-radius: 8px;
-  color: #050507;
-  background: #f6f0e6;
-  font-weight: 900;
-}
-
-.actions button:last-of-type {
-  color: #fff7e8;
-  background: #ff3b5f;
+  border-radius: var(--radius);
+  color: var(--foreground);
+  background: linear-gradient(135deg, oklch(100% 0 0 / 0.82), oklch(95% 0.025 230 / 0.58));
+  box-shadow:
+    0 1px 0 oklch(100% 0 0 / 0.8) inset,
+    0 10px 26px oklch(70% 0.14 230 / 0.16),
+    0 22px 54px oklch(67% 0.18 292 / 0.1);
+  font-weight: 820;
 }
 
 .actions button:disabled {
@@ -101,8 +114,9 @@
 .actions p {
   grid-column: 1 / -1;
   margin: 0;
-  color: var(--muted);
+  color: var(--muted-text);
   font-size: 14px;
+  font-weight: 520;
 }
 
 @media (max-width: 620px) {

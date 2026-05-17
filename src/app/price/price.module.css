@@ -1,0 +1,94 @@
+.shell {
+  min-height: 100vh;
+  padding: 32px;
+  background:
+    radial-gradient(circle at 14% 14%, oklch(79% 0.17 152 / 0.34), transparent 30%),
+    radial-gradient(circle at 88% 20%, oklch(70% 0.14 230 / 0.24), transparent 30%),
+    radial-gradient(circle at 66% 92%, oklch(67% 0.18 292 / 0.16), transparent 34%),
+    linear-gradient(135deg, oklch(99% 0.006 145), oklch(95% 0.026 230));
+}
+
+.hero {
+  width: min(1120px, 100%);
+  min-height: calc(100vh - 64px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 450px);
+  align-items: center;
+  gap: clamp(28px, 7vw, 96px);
+}
+
+.copy {
+  display: grid;
+  gap: 18px;
+}
+
+.copy span {
+  width: fit-content;
+  padding: 8px 12px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  color: oklch(36% 0.1 152);
+  background: oklch(100% 0 0 / 0.56);
+  box-shadow: var(--shadow-factory-soft);
+  backdrop-filter: blur(20px) saturate(1.45);
+  font-size: 13px;
+  font-weight: 780;
+}
+
+.copy h1 {
+  max-width: 660px;
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(48px, 7vw, 92px);
+  line-height: 0.95;
+  letter-spacing: 0;
+  font-weight: 930;
+  text-shadow:
+    0 10px 24px oklch(79% 0.17 152 / 0.18),
+    0 24px 62px oklch(70% 0.14 230 / 0.14);
+}
+
+.copy p {
+  max-width: 560px;
+  margin: 0;
+  color: var(--muted-text);
+  font-size: clamp(16px, 2vw, 20px);
+  line-height: 1.58;
+  font-weight: 540;
+}
+
+.copy a {
+  width: fit-content;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  border-radius: var(--radius);
+  color: var(--primary-foreground);
+  background: linear-gradient(135deg, oklch(84% 0.16 152), oklch(72% 0.16 165));
+  box-shadow: var(--shadow-factory-action);
+  font-weight: 820;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    padding: 18px;
+  }
+
+  .hero {
+    min-height: auto;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding: 34px 0;
+  }
+
+  .copy {
+    justify-items: start;
+  }
+
+  .copy h1 {
+    font-size: clamp(44px, 14vw, 72px);
+  }
+}

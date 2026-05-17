@@ -3,12 +3,13 @@
   gap: 14px;
   width: 100%;
   padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
-    #07080b;
-  box-shadow: inset 0 0 0 1px rgba(100, 216, 255, 0.04);
+    linear-gradient(145deg, oklch(100% 0 0 / 0.78), oklch(100% 0 0 / 0.36)),
+    linear-gradient(315deg, oklch(70% 0.14 230 / 0.12), oklch(67% 0.18 292 / 0.08));
+  box-shadow: var(--shadow-factory-card);
+  backdrop-filter: blur(34px) saturate(1.8);
 }
 
 .header {
@@ -24,24 +25,28 @@
 }
 
 .header span {
-  color: rgba(100, 216, 255, 0.86);
+  color: oklch(42% 0.12 230);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 820;
   letter-spacing: 0;
 }
 
 .header strong {
-  color: #fff7e8;
+  color: var(--text);
   font-size: clamp(17px, 2vw, 22px);
   line-height: 1.2;
+  font-weight: 860;
 }
 
 .pulse {
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  background: #32d583;
-  box-shadow: 0 0 0 8px rgba(50, 213, 131, 0.14);
+  background: var(--green);
+  box-shadow:
+    0 0 0 8px oklch(79% 0.17 152 / 0.16),
+    0 12px 28px oklch(79% 0.17 152 / 0.3),
+    0 24px 52px oklch(70% 0.14 230 / 0.12);
   animation: pulse 1.2s infinite ease-in-out;
 }
 
@@ -56,25 +61,32 @@
   gap: 10px;
   min-height: 82px;
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid oklch(100% 0 0 / 0.64);
+  border-radius: var(--radius);
+  background: oklch(100% 0 0 / 0.42);
+  box-shadow:
+    0 1px 0 oklch(100% 0 0 / 0.76) inset,
+    0 8px 22px var(--tone-shadow, oklch(79% 0.17 152 / 0.12));
 }
 
 .module[data-tone="cyan"] {
-  --tone: #64d8ff;
+  --tone: var(--cyan);
+  --tone-shadow: oklch(70% 0.14 230 / 0.18);
 }
 
 .module[data-tone="amber"] {
-  --tone: #ffd166;
+  --tone: var(--amber);
+  --tone-shadow: oklch(78% 0.16 78 / 0.18);
 }
 
 .module[data-tone="green"] {
-  --tone: #32d583;
+  --tone: var(--green);
+  --tone-shadow: oklch(79% 0.17 152 / 0.2);
 }
 
 .module[data-tone="red"] {
-  --tone: #ff3b5f;
+  --tone: var(--red);
+  --tone-shadow: oklch(58% 0.19 25 / 0.18);
 }
 
 .moduleTop {
@@ -84,29 +96,30 @@
 }
 
 .moduleTop span {
-  color: #e8e2d8;
+  color: oklch(30% 0.025 150);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 680;
   line-height: 1.35;
 }
 
 .moduleTop b {
   color: var(--tone);
   font-size: 11px;
+  font-weight: 860;
 }
 
 .meter {
   height: 7px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
+  background: oklch(82% 0.018 145 / 0.42);
 }
 
 .meter i {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--tone);
+  background: linear-gradient(90deg, var(--tone), oklch(100% 0 0 / 0.7));
   animation: scan 1.8s ease-in-out infinite alternate;
 }
 
@@ -119,13 +132,16 @@
 .scope,
 .log {
   min-height: 96px;
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  border-radius: 8px;
+  border: 1px solid oklch(100% 0 0 / 0.62);
+  border-radius: var(--radius);
   background:
-    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    rgba(0, 0, 0, 0.16);
+    linear-gradient(oklch(80% 0.025 145 / 0.28) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(80% 0.025 145 / 0.22) 1px, transparent 1px),
+    oklch(100% 0 0 / 0.36);
   background-size: 18px 18px;
+  box-shadow:
+    0 1px 0 oklch(100% 0 0 / 0.72) inset,
+    0 10px 26px oklch(70% 0.14 230 / 0.12);
 }
 
 .scope {
@@ -139,7 +155,7 @@
   flex: 1;
   min-width: 3px;
   border-radius: 999px 999px 0 0;
-  background: linear-gradient(180deg, #64d8ff, #ff3b5f);
+  background: linear-gradient(180deg, var(--cyan), var(--red));
   animation: equalize 880ms ease-in-out infinite alternate;
 }
 
@@ -151,29 +167,32 @@
 }
 
 .log span {
-  color: rgba(246, 240, 230, 0.74);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: oklch(36% 0.025 150);
+  font-family: var(--font-mono);
   font-size: 11px;
   line-height: 1.2;
+  font-weight: 650;
 }
 
 @keyframes pulse {
   50% {
     transform: scale(0.76);
-    box-shadow: 0 0 0 4px rgba(50, 213, 131, 0.1);
+    box-shadow:
+      0 0 0 4px oklch(79% 0.17 152 / 0.12),
+      0 8px 20px oklch(79% 0.17 152 / 0.24);
   }
 }
 
 @keyframes scan {
   to {
-    filter: brightness(1.35);
+    filter: brightness(1.18) saturate(1.22);
     transform: translateX(4px);
   }
 }
 
 @keyframes equalize {
   to {
-    opacity: 0.48;
+    opacity: 0.52;
     transform: scaleY(0.72);
   }
 }

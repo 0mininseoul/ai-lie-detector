@@ -2,12 +2,13 @@
   min-height: 100vh;
   padding: 24px;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    radial-gradient(circle at 75% 8%, rgba(255, 209, 102, 0.14), transparent 28%),
-    radial-gradient(circle at 10% 88%, rgba(255, 59, 95, 0.16), transparent 30%),
-    #050507;
-  background-size: 44px 44px, 44px 44px, auto, auto, auto;
+    linear-gradient(90deg, oklch(100% 0 0 / 0.34) 1px, transparent 1px),
+    linear-gradient(oklch(100% 0 0 / 0.28) 1px, transparent 1px),
+    radial-gradient(circle at 76% 10%, oklch(78% 0.16 78 / 0.28), transparent 28%),
+    radial-gradient(circle at 12% 86%, oklch(58% 0.19 25 / 0.18), transparent 32%),
+    radial-gradient(circle at 54% 48%, oklch(70% 0.14 230 / 0.18), transparent 38%),
+    linear-gradient(135deg, oklch(98% 0.012 150), oklch(95% 0.025 230));
+  background-size: 44px 44px, 44px 44px, auto, auto, auto, auto;
 }
 
 .stage {
@@ -29,17 +30,23 @@
 .videoFrame {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 8px;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius);
   aspect-ratio: 4 / 3;
   background:
-    linear-gradient(135deg, rgba(100, 216, 255, 0.08), rgba(255, 59, 95, 0.08)),
-    #08080b;
+    linear-gradient(135deg, oklch(100% 0 0 / 0.52), oklch(79% 0.17 152 / 0.12)),
+    oklch(92% 0.02 230 / 0.58);
+  box-shadow: var(--shadow-factory-card);
+  backdrop-filter: blur(28px) saturate(1.6);
 }
 
 .videoFrame[data-recording="true"] {
-  border-color: rgba(255, 59, 95, 0.7);
-  box-shadow: 0 0 0 4px rgba(255, 59, 95, 0.1);
+  border-color: oklch(58% 0.19 25 / 0.62);
+  box-shadow:
+    0 1px 0 oklch(100% 0 0 / 0.8) inset,
+    0 0 0 4px oklch(58% 0.19 25 / 0.12),
+    0 18px 46px oklch(58% 0.19 25 / 0.2),
+    0 36px 92px oklch(67% 0.18 292 / 0.12);
 }
 
 .videoFrame video {
@@ -65,12 +72,16 @@
   gap: 6px;
   min-height: 34px;
   padding: 0 10px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid oklch(100% 0 0 / 0.72);
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.58);
-  color: #f6f0e6;
+  background: oklch(100% 0 0 / 0.54);
+  color: oklch(25% 0.035 150);
+  box-shadow:
+    0 1px 0 oklch(100% 0 0 / 0.8) inset,
+    0 8px 20px oklch(70% 0.14 230 / 0.12);
+  backdrop-filter: blur(18px) saturate(1.4);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 780;
 }
 
 .checkGrid {
@@ -82,9 +93,11 @@
 .checkGrid div {
   min-height: 78px;
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius);
+  background: oklch(100% 0 0 / 0.46);
+  box-shadow: var(--shadow-factory-soft);
+  backdrop-filter: blur(18px) saturate(1.4);
 }
 
 .checkGrid strong,
@@ -93,15 +106,17 @@
 }
 
 .checkGrid strong {
-  color: #ffffff;
+  color: var(--text);
   font-size: 15px;
+  font-weight: 800;
 }
 
 .checkGrid span {
   margin-top: 6px;
-  color: var(--muted);
+  color: var(--muted-text);
   font-size: 13px;
   line-height: 1.4;
+  font-weight: 520;
 }
 
 .titleBlock {
@@ -110,16 +125,21 @@
 }
 
 .titleBlock span {
-  color: #64d8ff;
+  color: oklch(42% 0.12 165);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 820;
 }
 
 .titleBlock h1 {
   margin: 0;
+  color: var(--text);
   font-size: clamp(42px, 7vw, 86px);
   line-height: 0.95;
   letter-spacing: 0;
+  font-weight: 910;
+  text-shadow:
+    0 10px 24px oklch(79% 0.17 152 / 0.18),
+    0 24px 62px oklch(70% 0.14 230 / 0.13);
 }
 
 .panel,
@@ -127,31 +147,36 @@
   display: grid;
   gap: 16px;
   padding: clamp(18px, 3vw, 26px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  background: rgba(7, 8, 11, 0.88);
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(145deg, oklch(100% 0 0 / 0.8), oklch(100% 0 0 / 0.42)),
+    oklch(79% 0.17 152 / 0.08);
+  box-shadow: var(--shadow-factory-card);
+  backdrop-filter: blur(32px) saturate(1.65);
 }
 
 .panel p {
   margin: 0;
-  color: #f0e9dc;
+  color: oklch(28% 0.03 150);
   font-size: clamp(17px, 2vw, 21px);
   line-height: 1.55;
-  font-weight: 800;
+  font-weight: 680;
 }
 
 .questionPanel span {
-  color: #ffd166;
+  color: oklch(52% 0.14 78);
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 820;
 }
 
 .questionPanel h2 {
   margin: 0;
-  color: #fff7e8;
+  color: var(--text);
   font-size: clamp(28px, 4.6vw, 56px);
   line-height: 1.12;
   letter-spacing: 0;
+  font-weight: 900;
 }
 
 .primaryButton,
@@ -164,30 +189,35 @@
   gap: 8px;
   min-height: 50px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 0 18px;
-  font-weight: 900;
+  font-weight: 820;
+  box-shadow: var(--shadow-factory-action);
 }
 
 .primaryButton {
-  color: #050507;
-  background: #f6f0e6;
+  color: var(--foreground);
+  background: linear-gradient(135deg, oklch(100% 0 0 / 0.86), oklch(95% 0.025 230 / 0.62));
 }
 
 .startButton {
-  color: #04130a;
-  background: #32d583;
+  color: var(--primary-foreground);
+  background: linear-gradient(135deg, oklch(84% 0.16 152), oklch(72% 0.16 165));
 }
 
 .stopButton {
-  color: #fff4f6;
-  background: #ff3b5f;
+  color: var(--destructive-foreground);
+  background: linear-gradient(135deg, oklch(66% 0.19 25), oklch(55% 0.18 18));
+  box-shadow:
+    0 1px 0 oklch(100% 0 0 / 0.48) inset,
+    0 12px 30px oklch(58% 0.19 25 / 0.34),
+    0 26px 62px oklch(67% 0.18 292 / 0.14);
 }
 
 .secondaryButton {
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--glass-edge);
+  color: var(--foreground);
+  background: oklch(100% 0 0 / 0.56);
 }
 
 .startButton:disabled,
@@ -198,9 +228,10 @@
 
 .error {
   margin: 0;
-  color: #ff9bae;
+  color: var(--destructive);
   font-size: 14px;
   line-height: 1.5;
+  font-weight: 720;
 }
 
 @media (max-width: 920px) {

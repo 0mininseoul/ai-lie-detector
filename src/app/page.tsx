@@ -40,12 +40,12 @@ export default function HomePage() {
       const data = (await response.json()) as { url?: string; error?: string };
 
       if (!response.ok || !data.url) {
-        throw new Error(data.error ?? "질문 잠그기에 실패했어.");
+        throw new Error(data.error ?? "질문 잠그기에 실패했습니다.");
       }
 
       router.push(data.url);
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "잠깐 삐끗했어. 다시 눌러줘.");
+      setError(caughtError instanceof Error ? caughtError.message : "잠깐 삐끗했습니다. 다시 눌러 주세요.");
     } finally {
       setIsSubmitting(false);
     }
@@ -70,14 +70,14 @@ export default function HomePage() {
               <MessageCircle size={18} aria-hidden />
               카카오로 시작하기
             </button>
-            <span className={styles.loginHint}>MVP에선 이 기기 기준으로 바로 시작해.</span>
+            <span className={styles.loginHint}>MVP에서는 이 기기 기준으로 바로 시작합니다.</span>
           </div>
 
           <div className={styles.hideNotice}>
             <LockKeyhole size={20} aria-hidden />
             <div>
-              <strong>지금은 화면 가려.</strong>
-              <span>상대가 질문 먼저 보면 재미 반토막이야.</span>
+              <strong>지금은 화면을 가려 주세요.</strong>
+              <span>상대가 질문을 먼저 보면 재미가 반토막 납니다.</span>
             </div>
           </div>
 
@@ -110,7 +110,7 @@ export default function HomePage() {
           </div>
 
           {error ? <p className={styles.error}>{error}</p> : null}
-          <p className={styles.afterLock}>잠그면 이제 상대에게 폰 넘겨줘. 대답은 반말로 가면 돼.</p>
+          <p className={styles.afterLock}>잠그면 이제 상대에게 기기를 넘겨 주세요. 질문 문장은 그대로 보여집니다.</p>
         </form>
       </section>
     </main>

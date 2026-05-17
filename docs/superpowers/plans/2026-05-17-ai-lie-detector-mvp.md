@@ -1022,7 +1022,7 @@ export default function HomePage() {
         <h1>AI 거짓말탐지기</h1>
         <p>착한 내 남자친구, 과연 나한테 거짓말하는 게 없을까?</p>
         <button type="button">카카오로 시작하기</button>
-        <p>지금은 질문 입력 중이야. 상대가 화면 못 보게 해줘.</p>
+        <p>지금은 질문 입력 중입니다. 상대가 화면을 보지 못하게 해 주세요.</p>
         <input
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
@@ -1033,7 +1033,7 @@ export default function HomePage() {
         <button onClick={createSession} disabled={question.trim().length < 3}>
           질문 잠그기
         </button>
-        <p>질문 다 썼으면 잠가줘. 잠그면 상대에게 보여줘도 돼.</p>
+        <p>질문을 다 썼으면 잠가 주세요. 잠그면 상대에게 보여도 됩니다.</p>
       </section>
     </main>
   );
@@ -1090,7 +1090,7 @@ Required UI text:
 
 ```ts
 const warmupQuestion = "오늘 하루 중 제일 기억나는 일 뭐야?";
-const targetIntro = "이제 진짜 질문이야.";
+const targetIntro = "이제 진짜 질문입니다.";
 const analyzingText = "AI 판정 엔진 돌리는 중";
 ```
 

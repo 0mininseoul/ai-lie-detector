@@ -1,13 +1,163 @@
 :root {
+  color-scheme: light;
+  --card: #fcfcfc;
+  --ring: #72e3ad;
+  --input: #f6f6f6;
+  --muted: #ededed;
+  --accent: #ededed;
+  --border: #dfdfdf;
+  --radius: 0.5rem;
+  --chart-1: #72e3ad;
+  --chart-2: #3b82f6;
+  --chart-3: #8b5cf6;
+  --chart-4: #f59e0b;
+  --chart-5: #10b981;
+  --popover: #fcfcfc;
+  --primary: #72e3ad;
+  --sidebar: #fcfcfc;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --secondary: #fdfdfd;
+  --background: #fcfcfc;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --foreground: #171717;
+  --destructive: #ca3214;
+  --shadow-blur: 3px;
+  --shadow-color: #72e3ad;
+  --sidebar-ring: #72e3ad;
+  --shadow-spread: 0px;
+  --letter-spacing: 0;
+  --shadow-opacity: 0.17;
+  --sidebar-accent: #ededed;
+  --sidebar-border: #dfdfdf;
+  --card-foreground: #171717;
+  --shadow-offset-x: 0px;
+  --shadow-offset-y: 1px;
+  --sidebar-primary: #72e3ad;
+  --muted-foreground: #202020;
+  --accent-foreground: #202020;
+  --popover-foreground: #525252;
+  --primary-foreground: #1e2723;
+  --sidebar-foreground: #707070;
+  --secondary-foreground: #171717;
+  --destructive-foreground: #fffcfc;
+  --sidebar-accent-foreground: #202020;
+  --sidebar-primary-foreground: #1e2723;
+
+  --bg: oklch(98.7% 0.006 145);
+  --panel: oklch(100% 0 0 / 0.62);
+  --line: oklch(80% 0.018 145 / 0.52);
+  --text: oklch(18% 0.012 150);
+  --muted-text: oklch(42% 0.012 150);
+  --red: oklch(58% 0.19 25);
+  --cyan: oklch(70% 0.14 230);
+  --green: oklch(79% 0.17 152);
+  --amber: oklch(78% 0.16 78);
+  --violet: oklch(67% 0.18 292);
+  --glass: oklch(100% 0 0 / 0.58);
+  --glass-strong: oklch(100% 0 0 / 0.78);
+  --glass-edge: oklch(100% 0 0 / 0.82);
+  --liquid-highlight: oklch(100% 0 0 / 0.92);
+  --shadow-green: oklch(79% 0.17 152 / 0.36);
+  --shadow-blue: oklch(70% 0.14 230 / 0.24);
+  --shadow-violet: oklch(67% 0.18 292 / 0.18);
+  --shadow-red: oklch(58% 0.19 25 / 0.22);
+  --shadow-factory-soft:
+    0 1px 1px oklch(79% 0.17 152 / 0.16),
+    0 10px 30px oklch(70% 0.14 230 / 0.16),
+    0 28px 80px oklch(67% 0.18 292 / 0.12);
+  --shadow-factory-card:
+    0 1px 0 oklch(100% 0 0 / 0.92) inset,
+    0 0 0 1px oklch(100% 0 0 / 0.58) inset,
+    0 14px 36px oklch(79% 0.17 152 / 0.18),
+    0 34px 96px oklch(70% 0.14 230 / 0.14),
+    0 60px 140px oklch(67% 0.18 292 / 0.1);
+  --shadow-factory-action:
+    0 1px 0 oklch(100% 0 0 / 0.76) inset,
+    0 10px 26px oklch(79% 0.17 152 / 0.3),
+    0 22px 54px oklch(70% 0.14 230 / 0.16);
+}
+
+.dark {
   color-scheme: dark;
-  --bg: #050507;
-  --panel: #101116;
-  --line: rgba(255, 255, 255, 0.12);
-  --text: #f4f4f5;
-  --muted: #a1a1aa;
-  --red: #ff3b5f;
-  --cyan: #64d8ff;
-  --green: #32d583;
+  --card: #171717;
+  --ring: #4ade80;
+  --input: #242424;
+  --muted: #1f1f1f;
+  --accent: #313131;
+  --border: #292929;
+  --chart-1: #4ade80;
+  --chart-2: #60a5fa;
+  --chart-3: #a78bfa;
+  --chart-4: #fbbf24;
+  --chart-5: #2dd4bf;
+  --popover: #242424;
+  --primary: #006239;
+  --sidebar: #121212;
+  --secondary: #242424;
+  --background: #121212;
+  --foreground: #e2e8f0;
+  --destructive: #541c15;
+  --sidebar-ring: #4ade80;
+  --sidebar-accent: #313131;
+  --sidebar-border: #292929;
+  --card-foreground: #e2e8f0;
+  --sidebar-primary: #006239;
+  --muted-foreground: #a2a2a2;
+  --accent-foreground: #fafafa;
+  --popover-foreground: #a9a9a9;
+  --primary-foreground: #dde8e3;
+  --sidebar-foreground: #898989;
+  --secondary-foreground: #fafafa;
+  --destructive-foreground: #ede9e8;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-primary-foreground: #dde8e3;
+}
+
+@theme inline {
+  --color-card: var(--card);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --color-radius: var(--radius);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-popover: var(--popover);
+  --color-primary: var(--primary);
+  --color-sidebar: var(--sidebar);
+  --color-font-mono: var(--font-mono);
+  --color-font-sans: var(--font-sans);
+  --color-secondary: var(--secondary);
+  --color-background: var(--background);
+  --color-font-serif: var(--font-serif);
+  --color-foreground: var(--foreground);
+  --color-destructive: var(--destructive);
+  --color-shadow-blur: var(--shadow-blur);
+  --color-shadow-color: var(--shadow-color);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-shadow-spread: var(--shadow-spread);
+  --color-letter-spacing: var(--letter-spacing);
+  --color-shadow-opacity: var(--shadow-opacity);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-card-foreground: var(--card-foreground);
+  --color-shadow-offset-x: var(--shadow-offset-x);
+  --color-shadow-offset-y: var(--shadow-offset-y);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
 }
 
 *,
@@ -18,8 +168,8 @@
 
 html {
   min-height: 100%;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--background);
+  color: var(--foreground);
   text-size-adjust: 100%;
 }
 
@@ -27,14 +177,14 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: var(--bg);
-  color: var(--text);
-  font-family:
-    Pretendard,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  background:
+    radial-gradient(circle at 12% 8%, oklch(79% 0.17 152 / 0.32), transparent 28%),
+    radial-gradient(circle at 86% 12%, oklch(70% 0.14 230 / 0.22), transparent 30%),
+    radial-gradient(circle at 72% 88%, oklch(67% 0.18 292 / 0.16), transparent 34%),
+    linear-gradient(135deg, oklch(99% 0.01 150), oklch(96% 0.025 230));
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  letter-spacing: var(--letter-spacing);
   overflow-x: hidden;
 }
 
@@ -68,4 +218,9 @@ video,
 canvas {
   display: block;
   max-width: 100%;
+}
+
+::selection {
+  color: var(--primary-foreground);
+  background: oklch(79% 0.17 152 / 0.55);
 }
