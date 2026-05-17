@@ -13,6 +13,10 @@ export type SessionStatus =
 
 export type FeaturePayload = {
   version: 1;
+  extraction: {
+    status: "unavailable" | "partial" | "complete";
+    notes: string[];
+  };
   session: {
     durationMs: number;
     warmupStartMs: number;
