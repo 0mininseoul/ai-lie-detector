@@ -5,8 +5,8 @@
 ## Provisioned Resources
 
 - Vercel project: `0minseouls-projects/ai-lie-detector`
-- Production URL: `https://ai-lie-detector-lake.vercel.app`
-- Latest production deployment: `https://ai-lie-detector-4lrq8c65s-0minseouls-projects.vercel.app`
+- Production URL: `https://dontlie.vercel.app`
+- Latest production deployment: `https://ai-lie-detector-ccm93ma40-0minseouls-projects.vercel.app`
 - Supabase project ref: `btifyegcjbknhxynkxpl`
 - Supabase URL: `https://btifyegcjbknhxynkxpl.supabase.co`
 - Cloudflare Worker: `https://ai-lie-detector-worker.tnsb5373.workers.dev`
@@ -41,12 +41,12 @@ Set these in Supabase Dashboard → Authentication → URL Configuration:
 
 ```text
 Site URL:
-https://ai-lie-detector-lake.vercel.app
+https://dontlie.vercel.app
 
 Redirect URLs:
 http://localhost:3000/auth/callback
-https://ai-lie-detector-lake.vercel.app/auth/callback
-https://ai-lie-detector-4lrq8c65s-0minseouls-projects.vercel.app/auth/callback
+https://dontlie.vercel.app/auth/callback
+https://ai-lie-detector-ccm93ma40-0minseouls-projects.vercel.app/auth/callback
 https://*-0minseouls-projects.vercel.app/**
 ```
 
