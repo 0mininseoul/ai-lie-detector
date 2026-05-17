@@ -8,6 +8,7 @@ coverage/
 !.env.example
 .vercel/
 .wrangler/
+supabase/.temp/
 .dev.vars
 *.log
 *.tsbuildinfo

@@ -44,7 +44,9 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   const recorder = useCameraRecorder();
   const featureCollector = useFeatureCollector();
   const { stopCamera } = recorder;
+  const { stopSampling } = featureCollector;
   const stopCameraRef = useRef(stopCamera);
+  const stopSamplingRef = useRef(stopSampling);
   const [phase, setPhase] = useState<FlowPhase>(() => getInitialPhase(session.status));
   const [error, setError] = useState(() => getInitialError(session.status));
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,6 +77,10 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
     featureCollector.markRecordingStart();
     featureCollector.markWarmupStart();
+    featureCollector.startSampling({
+      stream: (recorder.videoRef.current?.srcObject as MediaStream | null) ?? recorder.stream,
+      videoElement: recorder.videoRef.current
+    });
     setPhase("warmup");
   }
 
@@ -95,6 +101,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     try {
       featureCollector.markTargetEnd();
       featureCollector.markRecordingEnd();
+      featureCollector.stopSampling();
 
       const recording = await recorder.stopRecording();
       if (!recording || recording.sizeBytes <= 0) {
@@ -175,6 +182,9 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     let cancelled = false;
     let failures = 0;
     const startedAt = Date.now();
+
+    void fetch(`/api/sessions/${session.id}/analyze`, { method: "POST" }).catch(() => undefined);
+
     const interval = window.setInterval(async () => {
       try {
         const response = await fetch(`/api/sessions/${session.id}/status`, { cache: "no-store" });
@@ -237,7 +247,12 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   }, [stopCamera]);
 
   useEffect(() => {
+    stopSamplingRef.current = stopSampling;
+  }, [stopSampling]);
+
+  useEffect(() => {
     return () => {
+      stopSamplingRef.current();
       void stopCameraRef.current();
     };
   }, []);

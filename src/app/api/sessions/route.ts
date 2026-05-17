@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { getKakaoProviderId } from "@/lib/auth/provider";
+import { getSupabaseAuthUser } from "@/lib/supabase/auth-server";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { getWarmupQuestion, parseCreateSessionInput } from "@/lib/sessions/validation";
 
@@ -19,9 +21,12 @@ export async function POST(request: Request) {
   }
 
   const supabase = getSupabaseServer();
+  const authUser = await getSupabaseAuthUser();
   const { data, error } = await supabase
     .from("sessions")
     .insert({
+      user_id: authUser?.id ?? null,
+      kakao_user_id: getKakaoProviderId(authUser),
       creator_device_id: input.creatorDeviceId,
       target_question: input.targetQuestion,
       warmup_question: getWarmupQuestion(),

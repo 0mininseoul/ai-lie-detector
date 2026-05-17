@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError, z } from "zod";
+import { triggerAnalysis } from "@/lib/analysis/trigger";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { assertR2KeyMatchesSession, parseCompleteUploadInput } from "@/lib/sessions/validation";
 
@@ -58,8 +59,20 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: message }, { status });
   }
 
+  const trigger = await triggerAnalysis(sessionId.data);
+  if (!trigger.queued) {
+    return NextResponse.json(
+      {
+        error: trigger.error ?? "Failed to queue analysis",
+        analysisQueued: false
+      },
+      { status: trigger.status === "disabled" ? 503 : 502 }
+    );
+  }
+
   return NextResponse.json({
     id: session.id,
-    status: session.status
+    status: session.status,
+    analysisQueued: true
   });
 }

@@ -423,6 +423,40 @@ MVP 기본값은 전체 1 FPS + 진짜 질문 5 FPS다.
 - Supabase public anon key는 RLS 정책으로 제한한다.
 - 결과 페이지는 UUID 기반 URL로 접근한다.
 
+### 11.1 분석 큐잉
+
+업로드 완료 API는 `complete_session_upload` RPC를 실행한 뒤 `ANALYSIS_WORKER_URL`의 `/analyze` endpoint를 호출한다.
+
+필수 env:
+
+- `ANALYSIS_WORKER_URL`
+- `WORKER_SHARED_SECRET`
+
+Worker 큐잉이 실패하면 업로드 완료 API는 실패 응답을 반환한다. 이렇게 해야 사용자가 분석 화면에서 결과 없이 기다리는 상태를 막을 수 있다.
+
+### 11.2 로컬 feature JSON
+
+브라우저는 녹화 중 250ms 간격으로 다음 feature를 수집한다.
+
+- video brightness
+- frame motion score
+- center green-channel rPPG proxy
+- audio RMS energy
+- pitch proxy
+- MediaPipe Face Landmarker가 로드되는 경우 face visible, blink blendshape, mouth movement, gaze/head proxy
+
+MediaPipe 모델 로딩이 실패해도 세션은 중단하지 않는다. 이 경우 `feature_payload.extraction.status`는 `partial`로 저장되고 영상/audio aggregate feature와 Gemini video input을 함께 사용한다.
+
+### 11.3 Kakao Login
+
+Kakao 로그인은 Supabase Auth OAuth provider를 통해 처리한다.
+
+- 브라우저 시작: `src/lib/auth/kakao.ts`
+- OAuth callback: `src/app/auth/callback/route.ts`
+- 로그인 사용자 세션 연결: `src/app/api/sessions/route.ts`
+
+로그인 사용자가 있으면 `sessions.user_id`, `sessions.kakao_user_id`를 저장한다. 로그인하지 않아도 device id 기반 MVP 플로우는 유지한다.
+
 ## 12. 참고 자료
 
 - Gemini video understanding: https://ai.google.dev/gemini-api/docs/video-understanding

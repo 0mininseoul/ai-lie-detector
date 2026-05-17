@@ -3,6 +3,7 @@
 import { LockKeyhole, MessageCircle, ShieldQuestion } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
+import { signInWithKakao } from "@/lib/auth/kakao";
 import styles from "./page.module.css";
 
 const sampleQuestions = [
@@ -51,6 +52,15 @@ export default function HomePage() {
     }
   }
 
+  async function handleKakaoLogin() {
+    try {
+      setError("");
+      await signInWithKakao("/");
+    } catch {
+      setError("카카오 로그인을 시작하지 못했습니다. Supabase/Kakao 설정을 확인해 주세요.");
+    }
+  }
+
   return (
     <main className={styles.shell}>
       <section className={styles.hero} aria-labelledby="home-title">
@@ -66,7 +76,7 @@ export default function HomePage() {
 
         <form className={styles.console} onSubmit={createSession}>
           <div className={styles.loginRow}>
-            <button className={styles.kakaoButton} type="button" aria-label="카카오 로그인 준비 중">
+            <button className={styles.kakaoButton} type="button" aria-label="카카오 로그인" onClick={handleKakaoLogin}>
               <MessageCircle size={18} aria-hidden />
               카카오로 시작하기
             </button>
