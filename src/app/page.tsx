@@ -1,4 +1,5 @@
 import { ArrowRight, Camera, Eye, LockKeyhole, Mic, ScanFace, Waves } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
 
@@ -59,14 +60,11 @@ export default function HomePage() {
       <header className={styles.nav}>
         <Link href="/" className={styles.logo}>
           <span className={styles.logoMark} aria-hidden>
-            <ScanFace size={18} />
+            <Image src="/brand/icon.svg" alt="" width={32} height={32} priority />
           </span>
           <span>AI 거짓말탐지기</span>
         </Link>
         <div className={styles.navLinks}>
-          <Link href="/price" className={styles.navLink}>
-            가격
-          </Link>
           <Link href="/new" className={styles.navCta}>
             지금 시작
             <ArrowRight size={14} aria-hidden />
@@ -202,8 +200,6 @@ export default function HomePage() {
           <Link href="/legal/terms">이용약관</Link>
         </nav>
         <div className={styles.footerLegal}>
-          <span>대표 박영민</span>
-          <span aria-hidden>·</span>
           <span>BRN 478-59-01063</span>
         </div>
       </footer>

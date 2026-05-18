@@ -50,10 +50,9 @@
 }
 
 .savingsBadge {
-  position: absolute;
-  top: -10px;
-  right: 16px;
-  padding: 4px 10px;
+  width: fit-content;
+  margin: 12px 0 0 18px;
+  padding: 4px 11px;
   border-radius: 999px;
   background: linear-gradient(135deg, var(--mint), var(--mint-deep));
   color: var(--text-on-mint);
@@ -61,8 +60,12 @@
   font-weight: var(--fw-display-on-color);
   letter-spacing: 0.005em;
   box-shadow:
-    0 1px 0 oklch(100% 0 0 / 0.36) inset,
-    0 6px 14px oklch(54% 0.16 152 / 0.36);
+    0 1px 0 oklch(100% 0 0 / 0.32) inset,
+    0 4px 12px oklch(54% 0.16 152 / 0.32);
+}
+
+.plan[data-selected="true"] > .planTop {
+  padding-top: 12px;
 }
 
 .perQuestion {

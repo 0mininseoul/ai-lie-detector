@@ -124,7 +124,6 @@ export default function PrivacyPolicyPage() {
 
       <h2>8. 개인정보보호책임자</h2>
       <ul>
-        <li><strong>책임자:</strong> 박영민</li>
         <li><strong>사업자등록번호(BRN):</strong> 478-59-01063</li>
         <li><strong>문의:</strong> 추후 서비스 정식 출시 시 공지</li>
       </ul>

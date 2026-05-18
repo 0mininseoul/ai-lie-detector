@@ -106,6 +106,10 @@ export default function PricingCard() {
               }}
               aria-pressed={isSelected}
             >
+              {plan.savingsLabel ? (
+                <div className={styles.savingsBadge}>{plan.savingsLabel}</div>
+              ) : null}
+
               <div className={styles.planTop}>
                 <span className={styles.radio} aria-hidden>
                   <i data-on={isSelected} />
@@ -119,10 +123,6 @@ export default function PricingCard() {
                   <small>{unitLabel}</small>
                 </div>
               </div>
-
-              {plan.savingsLabel ? (
-                <div className={styles.savingsBadge}>{plan.savingsLabel}</div>
-              ) : null}
 
               <div className={styles.planReveal} data-open={isSelected}>
                 <div className={styles.planRevealInner}>

@@ -145,7 +145,6 @@ export default function TermsPage() {
       <h2>제12조 (사업자 정보)</h2>
       <ul>
         <li><strong>서비스명:</strong> AI 거짓말탐지기</li>
-        <li><strong>대표:</strong> 박영민</li>
         <li><strong>사업자등록번호(BRN):</strong> 478-59-01063</li>
       </ul>
 

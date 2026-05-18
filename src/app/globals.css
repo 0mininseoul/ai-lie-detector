@@ -1,4 +1,21 @@
 /*
+ * Production font hotfix — Pretendard CDN ships its @font-face with
+ * `format('woff2-variations')` which some Chromium builds (notably the
+ * fresh-cache state on Vercel edge) treat as an unknown format and skip
+ * the source, leaving the face permanently "unloaded". Declaring our own
+ * @font-face with the standard `format('woff2')` hint *before* the CDN
+ * stylesheet is parsed guarantees the woff2 actually downloads on first
+ * paint.
+ */
+@font-face {
+  font-family: "Pretendard Variable";
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  src: url("https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/woff2/PretendardVariable.woff2") format("woff2");
+}
+
+/*
  * Design tokens — single source of truth.
  *
  *  ─ Hex tokens mirror the 21st palette contract (mint #72e3ad).

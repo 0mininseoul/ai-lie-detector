@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="AI 거짓말탐지기 logo">
+  <defs>
+    <linearGradient id="ld-frame" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3b4b6a"/>
+      <stop offset="48%" stop-color="#1c2a48"/>
+      <stop offset="100%" stop-color="#080f24"/>
+    </linearGradient>
+    <linearGradient id="ld-frame-edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5b6e8e" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0a1226" stop-opacity="0.6"/>
+    </linearGradient>
+    <linearGradient id="ld-handle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3a4a66"/>
+      <stop offset="50%" stop-color="#1d2b46"/>
+      <stop offset="100%" stop-color="#0a1226"/>
+    </linearGradient>
+    <radialGradient id="ld-lens" cx="0.28" cy="0.28" r="0.86">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.62"/>
+      <stop offset="32%" stop-color="#cbd5e1" stop-opacity="0.24"/>
+      <stop offset="72%" stop-color="#475569" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.16"/>
+    </radialGradient>
+    <radialGradient id="ld-glare" cx="0.32" cy="0.28" r="0.5">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- handle (rendered first so frame overlaps it) -->
+  <g transform="rotate(38 168 152)">
+    <rect x="158" y="138" width="104" height="32" rx="16" fill="url(#ld-handle)"/>
+    <rect x="158" y="138" width="104" height="32" rx="16" fill="none" stroke="#0a1226" stroke-width="1.5" stroke-opacity="0.6"/>
+    <rect x="166" y="146" width="86" height="3" rx="1.5" fill="#ffffff" opacity="0.06"/>
+  </g>
+
+  <!-- outer frame -->
+  <circle cx="106" cy="106" r="86" fill="url(#ld-frame)"/>
+  <circle cx="106" cy="106" r="86" fill="none" stroke="url(#ld-frame-edge)" stroke-width="2"/>
+  <!-- inner bezel ring -->
+  <circle cx="106" cy="106" r="74" fill="none" stroke="#0a1226" stroke-width="3" stroke-opacity="0.5"/>
+
+  <!-- four bezel screws at compass points -->
+  <g fill="#5b6e8e" opacity="0.7">
+    <circle cx="106" cy="32" r="3.2"/>
+    <circle cx="180" cy="106" r="3.2"/>
+    <circle cx="106" cy="180" r="3.2"/>
+    <circle cx="32" cy="106" r="3.2"/>
+  </g>
+
+  <!-- lens -->
+  <circle cx="106" cy="106" r="68" fill="url(#ld-lens)"/>
+  <ellipse cx="82" cy="84" rx="28" ry="18" fill="url(#ld-glare)"/>
+
+  <!-- subtle highlight on the outer frame -->
+  <path
+    d="M58 56 A66 66 0 0 1 152 50"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="2"
+    stroke-linecap="round"
+    opacity="0.16"
+  />
+</svg>

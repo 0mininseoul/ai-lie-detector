@@ -159,9 +159,10 @@ export default function NewQuestionPage() {
             <span className={styles.gateLockIcon} aria-hidden>
               <LockKeyhole size={26} />
             </span>
-            <h1>카카오로 1초 만에 시작하기</h1>
+            <h1>1초면 충분해요.</h1>
             <p>
               로그인하면 바로 질문 화면으로 이동합니다.
+              <br />
               결과는 본인 계정에만 저장돼요.
             </p>
             <button
