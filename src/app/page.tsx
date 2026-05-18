@@ -5,26 +5,46 @@ import styles from "./page.module.css";
 const steps = [
   {
     id: "01",
-    title: "질문 잠그기",
-    body: "물어보고 싶은 한 줄을 적어서 잠가요. 잠그는 순간 카메라가 켜집니다."
+    title: "질문하기",
+    body: "물어보고 싶은 한 줄을 적어요. 입력 즉시 상대 카메라가 켜집니다."
   },
   {
     id: "02",
     title: "상대에게 넘기기",
-    body: "기기를 상대에게 건네면 가벼운 워밍업 질문이 먼저 뜨고, 그 다음에 진짜 질문이 나타나요."
+    body: "기기를 상대에게 건네면 가벼운 워밍업 질문 한 번, 그 다음에 진짜 질문이 화면에 떠요."
   },
   {
     id: "03",
     title: "AI 판정 받기",
-    body: "표정·시선·목소리·답변 리듬을 함께 보고 한 단어로 결론을 알려드려요. 릴스용 카드도 같이 만들어 드립니다."
+    body: "표정·시선·목소리·답변 리듬을 함께 분석해 한 단어로 결론을 알려드려요. 릴스용 카드도 같이 만들어 드립니다."
   }
 ];
 
 const signals = [
-  { icon: ScanFace, label: "표정 변화", note: "눈썹·입꼬리·미세 근육의 흔들림을 잡아냅니다." },
-  { icon: Eye, label: "시선 흐름", note: "어디를 보고 어디를 피하는지, 시선의 경로를 따라가요." },
-  { icon: Waves, label: "목소리 결", note: "높낮이·떨림·호흡 간격에서 긴장의 흔적을 찾아요." },
-  { icon: Mic, label: "답변 리듬", note: "대답까지 걸린 시간과 말의 밀도를 함께 봅니다." }
+  {
+    icon: ScanFace,
+    label: "Micro-expression Analysis",
+    sub: "안면 미세 표정 분석",
+    note: "FACS 기반 안면 근육 활성 단위(AU) 변화의 빈도와 강도를 프레임 단위로 추적합니다."
+  },
+  {
+    icon: Eye,
+    label: "Gaze Tracking",
+    sub: "시선 추적",
+    note: "동공 위치와 안구 운동(saccade), 응시 회피 패턴을 좌표 시계열로 매핑합니다."
+  },
+  {
+    icon: Waves,
+    label: "Vocal Biomarker",
+    sub: "음성 바이오마커",
+    note: "기본 주파수(F0)와 진폭 변동(jitter/shimmer), 호흡 간격을 동시 분석합니다."
+  },
+  {
+    icon: Mic,
+    label: "Response Latency",
+    sub: "응답 지연 분석",
+    note: "발화 잠복기, 음절 속도, 어휘 밀도(lexical density)를 함께 계측합니다."
+  }
 ];
 
 const sampleVerdicts = [
@@ -61,18 +81,17 @@ export default function HomePage() {
             AI Vision · Multimodal Verdict
           </span>
           <h1 id="home-title">
-            <span>혹시,</span>
-            <span>거짓말</span>
-            <span className={styles.heroAccent}>하고 있어?</span>
+            <span>AI 앞에선</span>
+            <span className={styles.heroAccent}>거짓말이 안 통해요.</span>
           </h1>
           <p className={styles.heroLead}>
-            물어보고 싶은 한 줄을 잠그고 상대에게 카메라를 넘기세요. 대답하는
+            물어보고 싶은 한 줄을 적고 상대에게 카메라를 넘기세요. 대답하는
             동안 AI가 표정·시선·목소리를 함께 읽고, 진실인지 거짓인지 한 단어로
             알려드립니다.
           </p>
           <div className={styles.heroCtas}>
             <Link href="/new" className={styles.primaryCta}>
-              지금 질문 만들기
+              지금 질문하기
               <ArrowRight size={16} aria-hidden />
             </Link>
             <a href="#how" className={styles.secondaryCta}>
@@ -129,10 +148,10 @@ export default function HomePage() {
       <section className={styles.signals} aria-labelledby="signals-title">
         <header className={styles.sectionHead}>
           <span className={styles.sectionLabel}>WHAT AI READS</span>
-          <h2 id="signals-title">AI는 네 가지를 동시에 봐요.</h2>
+          <h2 id="signals-title">멀티모달 신호를 동시에 추론합니다.</h2>
           <p className={styles.sectionLead}>
-            한 가지 단서로 결정하지 않습니다. 네 신호가 같은 방향을 가리킬 때
-            판정이 굳어져요.
+            하나의 단서로 결정하지 않습니다. 네 개의 독립 신호가 같은 방향으로
+            수렴할 때 판정이 굳어져요.
           </p>
         </header>
         <div className={styles.signalGrid}>
@@ -141,7 +160,10 @@ export default function HomePage() {
               <span className={styles.signalIcon}>
                 <signal.icon size={18} aria-hidden />
               </span>
-              <strong>{signal.label}</strong>
+              <div className={styles.signalLabel}>
+                <strong>{signal.label}</strong>
+                <em>{signal.sub}</em>
+              </div>
               <p>{signal.note}</p>
             </article>
           ))}
@@ -154,11 +176,11 @@ export default function HomePage() {
             <span aria-hidden className={styles.kickerDot} data-on-mint />
             이제 당신 차례
           </span>
-          <h2 id="final-title">한 마디로 확인해 볼까요?</h2>
+          <h2 id="final-title">진실이 궁금하신가요?</h2>
           <p>첫 판은 무료입니다. 마음에 들면 묶음권으로 친구들 분량까지 챙겨가세요.</p>
           <div className={styles.heroCtas}>
             <Link href="/new" className={styles.primaryCta} data-on-mint>
-              지금 질문 만들기
+              지금 질문하기
               <ArrowRight size={16} aria-hidden />
             </Link>
             <Link href="/price" className={styles.secondaryCta} data-on-mint>
@@ -169,14 +191,21 @@ export default function HomePage() {
       </section>
 
       <footer className={styles.footer}>
-        <div>
+        <div className={styles.footerBrand}>
           <strong>AI 거짓말탐지기</strong>
-          <span>커플 전용 진위 판정 MVP</span>
+          <span>표정·시선·음성·응답 패턴을 통합 분석하는 멀티모달 진위 판정 엔진</span>
         </div>
-        <nav>
+        <nav className={styles.footerNav}>
           <Link href="/new">시작하기</Link>
           <Link href="/price">가격</Link>
+          <Link href="/legal/privacy">개인정보처리방침</Link>
+          <Link href="/legal/terms">이용약관</Link>
         </nav>
+        <div className={styles.footerLegal}>
+          <span>대표 박영민</span>
+          <span aria-hidden>·</span>
+          <span>BRN 478-59-01063</span>
+        </div>
       </footer>
     </main>
   );

@@ -170,14 +170,14 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: oklch(22% 0.05 95);
-  background: linear-gradient(135deg, var(--kakao), var(--kakao-deep));
+  color: oklch(18% 0.05 85);
+  background: linear-gradient(180deg, oklch(86% 0.16 92), oklch(80% 0.15 88));
   box-shadow:
-    0 1px 0 oklch(100% 0 0 / 0.6) inset,
-    0 12px 28px oklch(82% 0.17 98 / 0.38),
-    0 26px 56px oklch(54% 0.16 152 / 0.18);
+    0 1px 0 oklch(100% 0 0 / 0.44) inset,
+    0 10px 24px oklch(8% 0.018 230 / 0.55),
+    0 28px 60px oklch(10% 0.022 240 / 0.35);
   font-family: var(--font-sans);
-  font-size: 16px;
+  font-size: 15.5px;
   font-weight: var(--fw-action);
   letter-spacing: -0.005em;
   transition: transform 200ms var(--ease-standard), box-shadow 240ms var(--ease-standard);
@@ -186,9 +186,9 @@
 .kakaoButton:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow:
-    0 1px 0 oklch(100% 0 0 / 0.7) inset,
-    0 16px 32px oklch(82% 0.17 98 / 0.44),
-    0 36px 70px oklch(54% 0.16 152 / 0.22);
+    0 1px 0 oklch(100% 0 0 / 0.52) inset,
+    0 14px 30px oklch(8% 0.018 230 / 0.62),
+    0 36px 76px oklch(10% 0.022 240 / 0.4);
 }
 
 .kakaoButton:disabled {

@@ -314,15 +314,15 @@
   --input-glass-border: oklch(100% 0 0 / 0.12);
 
   --mint-slab-bg:
-    radial-gradient(circle at 88% 0%, oklch(100% 0 0 / 0.12), transparent 42%),
-    radial-gradient(circle at 0% 100%, oklch(34% 0.13 162 / 0.9), transparent 60%),
-    linear-gradient(135deg, oklch(48% 0.15 158), oklch(30% 0.13 168));
-  --mint-slab-foreground: oklch(98% 0 0);
+    radial-gradient(circle at 88% 0%, oklch(100% 0 0 / 0.07), transparent 42%),
+    radial-gradient(circle at 0% 100%, oklch(22% 0.1 162 / 0.86), transparent 60%),
+    linear-gradient(135deg, oklch(34% 0.12 158), oklch(20% 0.09 168));
+  --mint-slab-foreground: oklch(97% 0.012 158);
   --mint-slab-shadow:
-    0 1px 0 oklch(100% 0 0 / 0.18) inset,
-    0 22px 56px oklch(34% 0.13 162 / 0.42),
-    0 50px 110px oklch(34% 0.14 230 / 0.24),
-    0 80px 170px oklch(34% 0.18 292 / 0.18);
+    0 1px 0 oklch(100% 0 0 / 0.1) inset,
+    0 18px 44px oklch(8% 0.02 230 / 0.55),
+    0 44px 96px oklch(10% 0.024 240 / 0.38),
+    0 80px 160px oklch(22% 0.1 162 / 0.12);
 
   --text-shadow-display:
     0 10px 28px oklch(56% 0.17 152 / 0.28),

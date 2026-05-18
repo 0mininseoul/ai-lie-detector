@@ -13,12 +13,12 @@ export default function PricePage() {
       <section className={styles.hero} aria-labelledby="price-title">
         <div className={styles.copy}>
           <span className={styles.kicker}>AI 거짓말탐지기 가격</span>
-          <h1 id="price-title">한 번 찔러보는 값, 커피보다 저렴해요.</h1>
+          <h1 id="price-title">커피보다 싼 값에 진실을 마주하세요.</h1>
           <p>
             첫 판은 무료로 분위기를 보고, 다음부터는 1회권이나 묶음권으로
             결제하시면 됩니다. 결제 연결은 곧 열려요.
           </p>
-          <Link href="/new">질문 만들러 가기</Link>
+          <Link href="/new">지금 질문하기</Link>
         </div>
         <PricingCard />
       </section>

@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeft, LockKeyhole, LogOut, MessageCircle } from "lucide-react";
+import { ArrowLeft, LockKeyhole, LogOut } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
+import { KakaoIcon } from "@/components/icons/KakaoIcon";
 import { getAvatarUrl, getDisplayName, useSupabaseUser } from "@/hooks/useSupabaseUser";
 import { signInWithKakao } from "@/lib/auth/kakao";
 import styles from "./new.module.css";
@@ -107,7 +108,7 @@ export default function NewQuestionPage() {
         <section className={styles.stage}>
           <div className={styles.intro}>
             <span className={styles.step}>STEP 1 / 3</span>
-            <h1>질문을 잠가요.</h1>
+            <h1>질문해 볼까요?</h1>
             <p>이 한 줄이 상대 화면에 그대로 떠요. 짧고 또렷할수록 좋아요.</p>
           </div>
 
@@ -144,23 +145,23 @@ export default function NewQuestionPage() {
             <div className={styles.actionRow}>
               <span className={styles.counter}>{trimmedQuestion.length}/160</span>
               <button className={styles.lockButton} type="submit" disabled={!canSubmit}>
-                {isSubmitting ? "잠그는 중" : "질문 잠그기"}
+                {isSubmitting ? "준비 중" : "질문하기"}
               </button>
             </div>
 
             {error ? <p className={styles.error}>{error}</p> : null}
-            <p className={styles.afterLock}>잠그고 나면 그대로 상대에게 기기를 건네주세요.</p>
+            <p className={styles.afterLock}>질문이 등록되면 상대에게 기기를 건네주세요.</p>
           </form>
         </section>
       ) : (
         <section className={styles.gateStage}>
           <div className={styles.gateCard}>
             <span className={styles.gateLockIcon} aria-hidden>
-              <LockKeyhole size={28} />
+              <LockKeyhole size={26} />
             </span>
-            <h1>카카오로 1초 시작</h1>
+            <h1>카카오로 1초 만에 시작하기</h1>
             <p>
-              로그인하면 바로 질문 잠그기 화면으로 이동합니다.
+              로그인하면 바로 질문 화면으로 이동합니다.
               결과는 본인 계정에만 저장돼요.
             </p>
             <button
@@ -169,8 +170,8 @@ export default function NewQuestionPage() {
               onClick={handleKakaoLogin}
               disabled={isStartingLogin || auth.status === "loading"}
             >
-              <MessageCircle size={18} aria-hidden />
-              {isStartingLogin ? "카카오 여는 중" : "카카오로 시작하기"}
+              <KakaoIcon size={20} aria-hidden />
+              {isStartingLogin ? "카카오 여는 중" : "카카오로 1초 만에 시작하기"}
             </button>
             {error ? <p className={styles.gateError}>{error}</p> : null}
             {auth.error ? <p className={styles.gateError}>{auth.error}</p> : null}

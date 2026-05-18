@@ -4,45 +4,43 @@ import { Check, Minus, Plus, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import styles from "./pricing-card.module.css";
 
-type BillingMode = "single" | "bundle";
-
 type Plan = {
   id: string;
   name: string;
   description: string;
-  singlePrice: number;
-  bundlePrice: number;
-  baseQuestions: number;
+  totalPrice: number;
+  questions: number;
   features: string[];
+  savingsLabel?: string;
 };
+
+const SINGLE_PRICE = 990;
 
 const plans: Plan[] = [
   {
     id: "trial",
     name: "무료 체험",
-    description: "처음 한 번",
-    singlePrice: 0,
-    bundlePrice: 0,
-    baseQuestions: 1,
-    features: ["첫 판 무료", "결과 카드 자동 생성", "공유 문구 추천"]
+    description: "처음 한 번 무료",
+    totalPrice: 0,
+    questions: 1,
+    features: ["1회 무료 사용", "결과 카드 자동 생성", "공유 문구 추천"]
   },
   {
     id: "single",
     name: "1회권",
-    description: "딱 한 번 더",
-    singlePrice: 990,
-    bundlePrice: 790,
-    baseQuestions: 1,
-    features: ["질문 1개 추가", "AI 멀티모달 판정", "릴스용 영상 내보내기"]
+    description: "필요할 때 한 번",
+    totalPrice: SINGLE_PRICE,
+    questions: 1,
+    features: ["AI 멀티모달 판정 1회", "릴스용 결과 카드", "수량 자유 조절"]
   },
   {
     id: "pack",
-    name: "5회권",
-    description: "친구들까지",
-    singlePrice: 3900,
-    bundlePrice: 2900,
-    baseQuestions: 5,
-    features: ["질문 5개", "결과 카드 무제한 공유", "앱인토스 확장 대비"]
+    name: "5회 묶음권",
+    description: "친구들까지 함께",
+    totalPrice: 3900,
+    questions: 5,
+    savingsLabel: "1회당 780원 · 약 21% OFF",
+    features: ["AI 멀티모달 판정 5회", "결과 카드 무제한 공유", "기간 무제한 사용"]
   }
 ];
 
@@ -53,61 +51,44 @@ const formatWon = new Intl.NumberFormat("ko-KR", {
 });
 
 export default function PricingCard() {
-  const [billingMode, setBillingMode] = useState<BillingMode>("single");
-  const [selectedPlan, setSelectedPlan] = useState("single");
+  const [selectedPlan, setSelectedPlan] = useState<string>("single");
   const [questionCount, setQuestionCount] = useState(1);
 
   const activePlan = plans.find((plan) => plan.id === selectedPlan) ?? plans[1];
-  const activePrice = billingMode === "single" ? activePlan.singlePrice : activePlan.bundlePrice;
+
   const total = useMemo(() => {
     if (activePlan.id === "trial") return 0;
-    if (activePlan.id === "pack") return activePrice;
-    return activePrice * questionCount;
-  }, [activePlan.id, activePrice, questionCount]);
+    if (activePlan.id === "single") return SINGLE_PRICE * questionCount;
+    return activePlan.totalPrice;
+  }, [activePlan, questionCount]);
+
+  const perQuestion = useMemo(() => {
+    if (activePlan.id === "trial") return 0;
+    if (activePlan.id === "single") return SINGLE_PRICE;
+    return Math.round(activePlan.totalPrice / activePlan.questions);
+  }, [activePlan]);
+
+  const ctaLabel = activePlan.id === "trial" ? "무료로 시작하기" : "결제 연결은 곧 열려요";
 
   return (
     <section className={styles.card} aria-label="AI 거짓말탐지기 가격표">
       <header className={styles.header}>
         <div className={styles.badge}>Viral MVP Price</div>
         <h1>요금 고르기</h1>
-        <p>첫 판 무료 후, 1회권 또는 묶음권으로 결제할 수 있습니다.</p>
+        <p>첫 판은 무료로, 다음부터는 1회권 또는 묶음권으로 결제할 수 있어요.</p>
       </header>
-
-      <div className={styles.segmented} role="tablist" aria-label="요금 방식">
-        <div className={styles.segmentedTrack} aria-hidden data-mode={billingMode} />
-        <button
-          type="button"
-          role="tab"
-          aria-selected={billingMode === "single"}
-          className={styles.segmentedTab}
-          data-active={billingMode === "single"}
-          onClick={() => setBillingMode("single")}
-        >
-          <span>1회권</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={billingMode === "bundle"}
-          className={styles.segmentedTab}
-          data-active={billingMode === "bundle"}
-          onClick={() => setBillingMode("bundle")}
-        >
-          <span>묶음권</span>
-          <em className={styles.discountPill}>최대 30% OFF</em>
-        </button>
-      </div>
 
       <div className={styles.planList}>
         {plans.map((plan) => {
           const isSelected = selectedPlan === plan.id;
-          const planPrice = billingMode === "single" ? plan.singlePrice : plan.bundlePrice;
           const isFree = plan.id === "trial";
-          const priceLabel = isFree
-            ? "무료"
-            : plan.id === "pack"
-              ? formatWon.format(plan.bundlePrice)
-              : formatWon.format(planPrice);
+          const priceLabel = isFree ? "무료" : formatWon.format(plan.totalPrice);
+          const unitLabel =
+            plan.id === "pack"
+              ? "5회 묶음"
+              : plan.id === "single"
+                ? "질문 1개"
+                : "1회 체험";
 
           return (
             <div
@@ -135,9 +116,13 @@ export default function PricingCard() {
                 </div>
                 <div className={styles.price}>
                   <b>{priceLabel}</b>
-                  <small>{plan.id === "pack" ? "5회 묶음" : isFree ? "1회" : "질문당"}</small>
+                  <small>{unitLabel}</small>
                 </div>
               </div>
+
+              {plan.savingsLabel ? (
+                <div className={styles.savingsBadge}>{plan.savingsLabel}</div>
+              ) : null}
 
               <div className={styles.planReveal} data-open={isSelected}>
                 <div className={styles.planRevealInner}>
@@ -150,52 +135,45 @@ export default function PricingCard() {
                     ))}
                   </div>
 
-                  <div className={styles.divider} aria-hidden />
-
-                  <div className={styles.counterRow}>
-                    <div className={styles.counterCopy}>
-                      <div className={styles.avatar} aria-hidden>
-                        <Users size={20} />
+                  {plan.id === "single" ? (
+                    <>
+                      <div className={styles.divider} aria-hidden />
+                      <div className={styles.counterRow}>
+                        <div className={styles.counterCopy}>
+                          <div className={styles.avatar} aria-hidden>
+                            <Users size={20} />
+                          </div>
+                          <div>
+                            <strong>질문 수</strong>
+                            <span>{questionCount}개 · 1개당 {formatWon.format(SINGLE_PRICE)}</span>
+                          </div>
+                        </div>
+                        <div className={styles.stepper}>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setQuestionCount((count) => Math.max(1, count - 1));
+                            }}
+                            aria-label="질문 수 줄이기"
+                          >
+                            <Minus size={14} aria-hidden />
+                          </button>
+                          <span>{questionCount}</span>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setQuestionCount((count) => Math.min(20, count + 1));
+                            }}
+                            aria-label="질문 수 늘리기"
+                          >
+                            <Plus size={14} aria-hidden />
+                          </button>
+                        </div>
                       </div>
-                      <div>
-                        <strong>질문 수</strong>
-                        <span>
-                          {plan.id === "pack"
-                            ? "5회 고정"
-                            : isFree
-                              ? "1회 고정"
-                              : `${questionCount}개 기준`}
-                        </span>
-                      </div>
-                    </div>
-                    <div className={styles.stepper} aria-hidden={plan.id !== "single"}>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setQuestionCount((count) => Math.max(1, count - 1));
-                        }}
-                        disabled={plan.id !== "single"}
-                        aria-label="질문 수 줄이기"
-                      >
-                        <Minus size={14} aria-hidden />
-                      </button>
-                      <span>
-                        {plan.id === "pack" ? plan.baseQuestions : isFree ? 1 : questionCount}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setQuestionCount((count) => Math.min(20, count + 1));
-                        }}
-                        disabled={plan.id !== "single"}
-                        aria-label="질문 수 늘리기"
-                      >
-                        <Plus size={14} aria-hidden />
-                      </button>
-                    </div>
-                  </div>
+                    </>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -205,11 +183,16 @@ export default function PricingCard() {
 
       <footer className={styles.footer}>
         <div className={styles.totalRow}>
-          <span>예상 결제 금액</span>
+          <span>
+            예상 결제 금액
+            {activePlan.id !== "trial" ? (
+              <em className={styles.perQuestion}>1회당 {formatWon.format(perQuestion)}</em>
+            ) : null}
+          </span>
           <strong>{formatWon.format(total)}</strong>
         </div>
         <button className={styles.cta} type="button">
-          {activePlan.id === "trial" ? "무료로 시작하기" : "결제 연결은 곧 열려요"}
+          {ctaLabel}
         </button>
       </footer>
     </section>
