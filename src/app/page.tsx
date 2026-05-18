@@ -59,9 +59,14 @@ export default function HomePage() {
     <main className={styles.shell}>
       <header className={styles.nav}>
         <Link href="/" className={styles.logo}>
-          <span className={styles.logoMark} aria-hidden>
-            <Image src="/brand/icon.svg" alt="" width={32} height={32} priority />
-          </span>
+          <Image
+            className={styles.logoMark}
+            src="/brand/logo.png"
+            alt=""
+            width={36}
+            height={36}
+            priority
+          />
           <span>AI 거짓말탐지기</span>
         </Link>
         <div className={styles.navLinks}>

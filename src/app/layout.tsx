@@ -26,10 +26,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/woff2/PretendardVariable.woff2"
           crossOrigin=""
         />
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable.css"
-        />
       </head>
       <body>{children}</body>
     </html>

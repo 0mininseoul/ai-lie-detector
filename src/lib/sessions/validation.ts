@@ -3,6 +3,33 @@ import { assertValidSessionTimings } from "@/lib/recording/features";
 
 const warmupQuestion = "오늘 하루 중 제일 기억나는 일 뭐야?";
 
+/*
+ * Timings come from performance.now() (DOMHighResTimeStamp) which returns
+ * float values — z.number().int() rejects those at parse time. Accept any
+ * finite number and round to the nearest integer before downstream use so
+ * the DB integer columns stay safe.
+ */
+const positiveIntMsSchema = z
+  .number()
+  .finite()
+  .positive()
+  .max(2_147_483_647)
+  .transform((value) => Math.round(value));
+
+const nonnegativeIntMsSchema = z
+  .number()
+  .finite()
+  .nonnegative()
+  .max(2_147_483_647)
+  .transform((value) => Math.round(value));
+
+const positiveIntBytesSchema = z
+  .number()
+  .finite()
+  .positive()
+  .max(2_147_483_647)
+  .transform((value) => Math.round(value));
+
 const segmentSchema = z.object({
   segment: z.enum(["warmup", "target"]),
   value: z.number().finite()
@@ -14,11 +41,11 @@ const questionValueSchema = z.object({
 }).strict();
 
 const sessionTimingsSchema = z.object({
-  durationMs: z.number().int().positive(),
-  warmupStartMs: z.number().int().nonnegative(),
-  warmupEndMs: z.number().int().nonnegative(),
-  targetStartMs: z.number().int().nonnegative(),
-  targetEndMs: z.number().int().nonnegative()
+  durationMs: positiveIntMsSchema,
+  warmupStartMs: nonnegativeIntMsSchema,
+  warmupEndMs: nonnegativeIntMsSchema,
+  targetStartMs: nonnegativeIntMsSchema,
+  targetEndMs: nonnegativeIntMsSchema
 }).strict();
 
 export const featurePayloadSchema = z.object({
@@ -71,12 +98,12 @@ export const completeUploadSchema = z.object({
     (mimeType) => mimeType.startsWith("video/webm") || mimeType.startsWith("video/mp4"),
     "mimeType must be a supported video MIME type"
   ),
-  byteSize: z.number().int().positive().max(2_147_483_647),
-  durationMs: z.number().int().positive().max(2_147_483_647),
-  warmupStartMs: z.number().int().nonnegative().max(2_147_483_647),
-  warmupEndMs: z.number().int().nonnegative().max(2_147_483_647),
-  targetStartMs: z.number().int().nonnegative().max(2_147_483_647),
-  targetEndMs: z.number().int().nonnegative().max(2_147_483_647),
+  byteSize: positiveIntBytesSchema,
+  durationMs: positiveIntMsSchema,
+  warmupStartMs: nonnegativeIntMsSchema,
+  warmupEndMs: nonnegativeIntMsSchema,
+  targetStartMs: nonnegativeIntMsSchema,
+  targetEndMs: nonnegativeIntMsSchema,
   featurePayload: featurePayloadSchema
 }).strict();
 

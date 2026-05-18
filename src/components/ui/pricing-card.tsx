@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Minus, Plus, Users } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import styles from "./pricing-card.module.css";
 
 type Plan = {
@@ -15,6 +15,13 @@ type Plan = {
 };
 
 const SINGLE_PRICE = 990;
+const PACK_PRICE = 3900;
+const PACK_SIZE = 5;
+
+const SINGLE_MIN = 1;
+const SINGLE_MAX = 100;
+const PACK_MIN = 1;
+const PACK_MAX = 20;
 
 const plans: Plan[] = [
   {
@@ -37,8 +44,8 @@ const plans: Plan[] = [
     id: "pack",
     name: "5회 묶음권",
     description: "친구들까지 함께",
-    totalPrice: 3900,
-    questions: 5,
+    totalPrice: PACK_PRICE,
+    questions: PACK_SIZE,
     savingsLabel: "1회당 780원 · 약 21% OFF",
     features: ["AI 멀티모달 판정 5회", "결과 카드 무제한 공유", "기간 무제한 사용"]
   }
@@ -50,23 +57,129 @@ const formatWon = new Intl.NumberFormat("ko-KR", {
   maximumFractionDigits: 0
 });
 
+function clamp(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) return min;
+  return Math.max(min, Math.min(max, Math.trunc(value)));
+}
+
+type CounterProps = {
+  label: string;
+  helper: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+  ariaPrefix: string;
+};
+
+function Counter({ label, helper, value, min, max, onChange, ariaPrefix }: CounterProps) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const display = draft ?? String(value);
+
+  function commit(next: string) {
+    const parsed = Number.parseInt(next, 10);
+    onChange(clamp(parsed, min, max));
+    setDraft(null);
+  }
+
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
+    const raw = event.target.value.replace(/[^0-9]/g, "");
+    if (raw === "") {
+      setDraft("");
+      return;
+    }
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isFinite(parsed)) return;
+    if (parsed > max) {
+      setDraft(String(max));
+      onChange(max);
+      return;
+    }
+    setDraft(raw);
+    onChange(clamp(parsed, min, max));
+  }
+
+  return (
+    <div className={styles.counterRow}>
+      <div className={styles.counterCopy}>
+        <div className={styles.avatar} aria-hidden>
+          <Users size={20} />
+        </div>
+        <div>
+          <strong>{label}</strong>
+          <span>{helper}</span>
+        </div>
+      </div>
+      <div className={styles.stepper}>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onChange(clamp(value - 1, min, max));
+          }}
+          disabled={value <= min}
+          aria-label={`${ariaPrefix} 줄이기`}
+        >
+          <Minus size={14} aria-hidden />
+        </button>
+        <input
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value={display}
+          maxLength={String(max).length}
+          aria-label={`${ariaPrefix} 입력`}
+          onClick={(event) => event.stopPropagation()}
+          onFocus={(event) => event.currentTarget.select()}
+          onChange={handleChange}
+          onBlur={(event) => commit(event.target.value)}
+          onKeyDown={(event) => {
+            event.stopPropagation();
+            if (event.key === "Enter") {
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onChange(clamp(value + 1, min, max));
+          }}
+          disabled={value >= max}
+          aria-label={`${ariaPrefix} 늘리기`}
+        >
+          <Plus size={14} aria-hidden />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function PricingCard() {
   const [selectedPlan, setSelectedPlan] = useState<string>("single");
-  const [questionCount, setQuestionCount] = useState(1);
+  const [singleCount, setSingleCount] = useState(1);
+  const [packCount, setPackCount] = useState(1);
 
   const activePlan = plans.find((plan) => plan.id === selectedPlan) ?? plans[1];
 
   const total = useMemo(() => {
     if (activePlan.id === "trial") return 0;
-    if (activePlan.id === "single") return SINGLE_PRICE * questionCount;
-    return activePlan.totalPrice;
-  }, [activePlan, questionCount]);
+    if (activePlan.id === "single") return SINGLE_PRICE * singleCount;
+    return PACK_PRICE * packCount;
+  }, [activePlan.id, packCount, singleCount]);
+
+  const totalQuestions = useMemo(() => {
+    if (activePlan.id === "trial") return 1;
+    if (activePlan.id === "single") return singleCount;
+    return PACK_SIZE * packCount;
+  }, [activePlan.id, packCount, singleCount]);
 
   const perQuestion = useMemo(() => {
     if (activePlan.id === "trial") return 0;
-    if (activePlan.id === "single") return SINGLE_PRICE;
-    return Math.round(activePlan.totalPrice / activePlan.questions);
-  }, [activePlan]);
+    if (totalQuestions === 0) return 0;
+    return Math.round(total / totalQuestions);
+  }, [activePlan.id, total, totalQuestions]);
 
   const ctaLabel = activePlan.id === "trial" ? "무료로 시작하기" : "결제 연결은 곧 열려요";
 
@@ -138,40 +251,30 @@ export default function PricingCard() {
                   {plan.id === "single" ? (
                     <>
                       <div className={styles.divider} aria-hidden />
-                      <div className={styles.counterRow}>
-                        <div className={styles.counterCopy}>
-                          <div className={styles.avatar} aria-hidden>
-                            <Users size={20} />
-                          </div>
-                          <div>
-                            <strong>질문 수</strong>
-                            <span>{questionCount}개 · 1개당 {formatWon.format(SINGLE_PRICE)}</span>
-                          </div>
-                        </div>
-                        <div className={styles.stepper}>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setQuestionCount((count) => Math.max(1, count - 1));
-                            }}
-                            aria-label="질문 수 줄이기"
-                          >
-                            <Minus size={14} aria-hidden />
-                          </button>
-                          <span>{questionCount}</span>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setQuestionCount((count) => Math.min(20, count + 1));
-                            }}
-                            aria-label="질문 수 늘리기"
-                          >
-                            <Plus size={14} aria-hidden />
-                          </button>
-                        </div>
-                      </div>
+                      <Counter
+                        label="질문 수"
+                        helper={`총 ${singleCount}개 · 1개당 ${formatWon.format(SINGLE_PRICE)}`}
+                        value={singleCount}
+                        min={SINGLE_MIN}
+                        max={SINGLE_MAX}
+                        onChange={setSingleCount}
+                        ariaPrefix="질문 수"
+                      />
+                    </>
+                  ) : null}
+
+                  {plan.id === "pack" ? (
+                    <>
+                      <div className={styles.divider} aria-hidden />
+                      <Counter
+                        label="묶음 수"
+                        helper={`총 ${PACK_SIZE * packCount}회 · 묶음당 ${formatWon.format(PACK_PRICE)}`}
+                        value={packCount}
+                        min={PACK_MIN}
+                        max={PACK_MAX}
+                        onChange={setPackCount}
+                        ariaPrefix="묶음 수"
+                      />
                     </>
                   ) : null}
                 </div>
@@ -186,7 +289,9 @@ export default function PricingCard() {
           <span>
             예상 결제 금액
             {activePlan.id !== "trial" ? (
-              <em className={styles.perQuestion}>1회당 {formatWon.format(perQuestion)}</em>
+              <em className={styles.perQuestion}>
+                총 {totalQuestions}회 · 1회당 {formatWon.format(perQuestion)}
+              </em>
             ) : null}
           </span>
           <strong>{formatWon.format(total)}</strong>
