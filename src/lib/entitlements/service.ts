@@ -43,12 +43,16 @@ export async function getEntitlementState(deviceId: string): Promise<Entitlement
   return buildEntitlementState(record);
 }
 
-export async function consumeAnalysisCredit(deviceId: string): Promise<EntitlementState> {
+export async function consumeAnalysisCredit(
+  deviceId: string,
+  userId: string | null = null
+): Promise<EntitlementState> {
   const normalizedDeviceId = normalizeDeviceId(deviceId);
   const { getSupabaseServer } = await import("@/lib/supabase/server");
   const supabase = getSupabaseServer();
   const { data, error } = await supabase.rpc("consume_analysis_credit", {
-    p_device_id: normalizedDeviceId
+    p_device_id: normalizedDeviceId,
+    p_user_id: userId
   });
 
   if (error) {

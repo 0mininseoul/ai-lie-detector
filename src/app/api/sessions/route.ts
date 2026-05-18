@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   await cleanupExpiredSessions(supabase);
 
   try {
-    await consumeAnalysisCredit(input.creatorDeviceId);
+    await consumeAnalysisCredit(input.creatorDeviceId, authUser?.id ?? null);
   } catch {
     return NextResponse.json(
       { error: "무료 체험 1회를 이미 사용했습니다. 결제 기능이 열리면 다시 가보겠습니다." },
