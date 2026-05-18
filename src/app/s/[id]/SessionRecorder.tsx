@@ -3,6 +3,7 @@
 import { Camera, Check, CircleStop, Gift, Mic, Play, RotateCcw, ScanFace } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { LiveAnalysisHud } from "@/components/analysis/LiveAnalysisHud";
 import { ProfessionalOverlay } from "@/components/analysis/ProfessionalOverlay";
 import { useCameraRecorder } from "@/hooks/useCameraRecorder";
 import { useFeatureCollector } from "@/hooks/useFeatureCollector";
@@ -222,7 +223,12 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     const interval = window.setInterval(async () => {
       try {
         const response = await fetch(`/api/sessions/${session.id}/status`, { cache: "no-store" });
-        const data = (await response.json()) as { status?: string; result?: unknown };
+        const data = (await response.json()) as {
+          status?: string;
+          result?: unknown;
+          errorCode?: string | null;
+          errorDetail?: string | null;
+        };
 
         if (!response.ok) {
           failures += 1;
@@ -243,7 +249,12 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
         }
 
         if (!cancelled && (data.status === "failed" || data.status === "expired")) {
-          setError(data.status === "failed" ? "분석이 실패했습니다. 이번 판은 다시 진행해 주세요." : "이번 판은 시간이 지나 만료되었습니다.");
+          const detail = data.errorDetail ? ` (${data.errorCode ?? "error"}: ${data.errorDetail})` : "";
+          setError(
+            data.status === "failed"
+              ? `분석이 실패했습니다.${detail} 이번 판은 다시 진행해 주세요.`
+              : "이번 판은 시간이 지나 만료되었습니다."
+          );
           setRequiresNewSession(true);
           setPhase("error");
           return;
@@ -297,16 +308,20 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
         <div className={styles.videoColumn}>
           <div className={styles.videoFrame} data-recording={recorder.isRecording}>
             <video ref={recorder.videoRef} autoPlay muted playsInline />
-            <div className={styles.videoHud}>
-              <span>
-                <Camera size={14} aria-hidden />
-                {recorder.cameraStatus === "ready" ? "카메라 OK" : "카메라 대기"}
-              </span>
-              <span>
-                <Mic size={14} aria-hidden />
-                마이크 체크
-              </span>
-            </div>
+            {phase === "target" || phase === "analyzing" ? (
+              <LiveAnalysisHud active={phase === "target"} />
+            ) : (
+              <div className={styles.videoHud}>
+                <span>
+                  <Camera size={14} aria-hidden />
+                  {recorder.cameraStatus === "ready" ? "카메라 OK" : "카메라 대기"}
+                </span>
+                <span>
+                  <Mic size={14} aria-hidden />
+                  마이크 체크
+                </span>
+              </div>
+            )}
           </div>
 
           <div className={styles.checkGrid}>
@@ -345,15 +360,39 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
             </div>
           ) : null}
 
-          {phase === "warmup" || phase === "target" ? (
+          {phase === "warmup" ? (
             <div className={styles.questionPanel}>
-              <span>{phase === "target" ? "이제 진짜 질문입니다." : "먼저 가볍게 하나만 답해 주세요."}</span>
+              <span>먼저 가볍게 하나만 답해 주세요.</span>
               <h2>{currentQuestion}</h2>
-              <button className={styles.stopButton} type="button" onClick={phase === "warmup" ? finishWarmup : finishTarget} disabled={isSubmitting}>
+              <button
+                className={styles.stopButton}
+                type="button"
+                onClick={finishWarmup}
+                disabled={isSubmitting}
+              >
                 <CircleStop size={18} aria-hidden />
-                {phase === "warmup" ? "대답 완료" : "판정 시작하기"}
+                대답 완료
               </button>
             </div>
+          ) : null}
+
+          {phase === "target" ? (
+            <>
+              <div className={styles.questionBar}>
+                <span>진짜 질문</span>
+                <h2>{currentQuestion}</h2>
+              </div>
+              <ProfessionalOverlay />
+              <button
+                className={styles.stopButton}
+                type="button"
+                onClick={finishTarget}
+                disabled={isSubmitting}
+              >
+                <CircleStop size={18} aria-hidden />
+                답변 끝내기
+              </button>
+            </>
           ) : null}
 
           {phase === "between" ? (
@@ -399,7 +438,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
               <button
                 className={styles.startButton}
                 type="button"
-                onClick={requiresNewSession ? () => router.replace("/") : restart}
+                onClick={requiresNewSession ? () => router.replace("/new") : restart}
               >
                 <RotateCcw size={18} aria-hidden />
                 {requiresNewSession ? "새 질문 만들기" : "다시 시도하기"}
@@ -408,7 +447,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
                 <button
                   className={styles.secondaryButton}
                   type="button"
-                  onClick={() => router.replace("/")}
+                  onClick={() => router.replace("/new")}
                 >
                   랜딩으로
                 </button>

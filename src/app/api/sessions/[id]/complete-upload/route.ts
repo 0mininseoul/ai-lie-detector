@@ -13,9 +13,13 @@ type RouteContext = {
 const sessionIdSchema = z.uuid();
 const recordingExpiresInMs = 24 * 60 * 60 * 1000;
 
-function badRequest(error: unknown) {
+function badRequest(error: unknown, sessionId?: string) {
   const message = error instanceof ZodError ? error.issues[0]?.message : error instanceof Error ? error.message : "Invalid request";
-
+  console.error("[complete-upload] bad request", {
+    sessionId,
+    issues: error instanceof ZodError ? error.issues : undefined,
+    message
+  });
   return NextResponse.json({ error: message ?? "Invalid request" }, { status: 400 });
 }
 
@@ -33,7 +37,7 @@ export async function POST(request: Request, context: RouteContext) {
     input = parseCompleteUploadInput(await request.json());
     assertR2KeyMatchesSession(input.r2Key, sessionId.data);
   } catch (error) {
-    return badRequest(error);
+    return badRequest(error, sessionId.data);
   }
 
   const supabase = getSupabaseServer();
@@ -56,11 +60,25 @@ export async function POST(request: Request, context: RouteContext) {
   if (error) {
     const message = error.message.includes("Session not found") ? "Session not found" : "Failed to complete upload";
     const status = error.message.includes("Session not found") ? 404 : 500;
+    console.error("[complete-upload] rpc error", {
+      sessionId: sessionId.data,
+      r2Key: input.r2Key,
+      byteSize: input.byteSize,
+      durationMs: input.durationMs,
+      message: error.message,
+      hint: error.hint,
+      code: error.code
+    });
     return NextResponse.json({ error: message }, { status });
   }
 
   const trigger = await triggerAnalysis(sessionId.data);
   if (!trigger.queued) {
+    console.error("[complete-upload] trigger failed", {
+      sessionId: sessionId.data,
+      status: trigger.status,
+      error: trigger.error
+    });
     return NextResponse.json(
       {
         error: trigger.error ?? "Failed to queue analysis",

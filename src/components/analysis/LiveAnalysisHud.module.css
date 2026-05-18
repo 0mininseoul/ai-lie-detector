@@ -1,0 +1,201 @@
+/*
+ * Heads-up display overlay rendered absolutely over the video frame.
+ * All values are read-only / aria-hidden — the overlay is decorative.
+ */
+
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--mint);
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  z-index: 4;
+}
+
+/* ─ Corner brackets ─ */
+.cornerTl,
+.cornerTr,
+.cornerBl,
+.cornerBr {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-color: oklch(74% 0.16 158 / 0.7);
+  border-style: solid;
+  border-width: 0;
+}
+.cornerTl { top: 14px; left: 14px; border-top-width: 2px; border-left-width: 2px; }
+.cornerTr { top: 14px; right: 14px; border-top-width: 2px; border-right-width: 2px; }
+.cornerBl { bottom: 14px; left: 14px; border-bottom-width: 2px; border-left-width: 2px; }
+.cornerBr { bottom: 14px; right: 14px; border-bottom-width: 2px; border-right-width: 2px; }
+
+/* ─ Top bar ─ */
+.topBar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  z-index: 2;
+}
+
+.topChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border: 1px solid oklch(74% 0.16 158 / 0.4);
+  border-radius: 4px;
+  background: oklch(6% 0.014 230 / 0.46);
+  backdrop-filter: blur(10px) saturate(1.4);
+  color: oklch(82% 0.16 158);
+  font-size: 10px;
+  font-weight: var(--fw-display-on-color);
+}
+
+.topChip[data-live] {
+  border-color: oklch(72% 0.18 25 / 0.7);
+  color: oklch(86% 0.18 25);
+}
+
+.liveDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: oklch(72% 0.18 25);
+  box-shadow: 0 0 0 4px oklch(72% 0.18 25 / 0.22);
+  animation: liveBlink 800ms infinite;
+}
+
+@keyframes liveBlink {
+  50% { opacity: 0.3; }
+}
+
+/* ─ Face mesh ghost ─ */
+.faceMesh {
+  position: absolute;
+  inset: 8% 18% 12% 18%;
+  color: oklch(78% 0.16 158 / 0.78);
+  filter: drop-shadow(0 0 12px oklch(74% 0.16 158 / 0.36));
+  animation: meshPulse 3.6s ease-in-out infinite;
+}
+
+@keyframes meshPulse {
+  50% { opacity: 0.55; }
+}
+
+.scanline {
+  animation: scanlineSweep 2.6s linear infinite;
+}
+
+@keyframes scanlineSweep {
+  0% { transform: translateY(20px); opacity: 0.7; }
+  50% { transform: translateY(60px); opacity: 0.9; }
+  100% { transform: translateY(110px); opacity: 0; }
+}
+
+/* ─ Side metrics ─ */
+.sideMetrics {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  z-index: 2;
+}
+
+.sideMetrics li {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 9px;
+  border: 1px solid oklch(74% 0.16 158 / 0.36);
+  border-radius: 4px;
+  background: oklch(6% 0.014 230 / 0.5);
+  backdrop-filter: blur(8px) saturate(1.4);
+  font-size: 10px;
+}
+
+.sideMetrics span {
+  color: oklch(78% 0.16 158 / 0.8);
+  letter-spacing: 0.08em;
+}
+
+.sideMetrics b {
+  color: oklch(94% 0.04 158);
+  font-weight: var(--fw-display-on-color);
+  font-variant-numeric: tabular-nums;
+  font-style: normal;
+}
+
+/* ─ Bottom waveform + latency ─ */
+.bottomBar {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 2;
+}
+
+.waveform {
+  flex: 1;
+  height: 36px;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 4px 10px;
+  border: 1px solid oklch(74% 0.16 158 / 0.34);
+  border-radius: 5px;
+  background: oklch(6% 0.014 230 / 0.5);
+  backdrop-filter: blur(8px) saturate(1.4);
+}
+
+.waveform i {
+  flex: 1;
+  height: 30%;
+  border-radius: 1px;
+  background: linear-gradient(180deg, oklch(72% 0.18 158), oklch(50% 0.14 230));
+  animation: waveBar 880ms ease-in-out infinite alternate;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes waveBar {
+  to { height: 96%; }
+}
+
+.latency {
+  padding: 4px 9px;
+  border: 1px solid oklch(74% 0.16 158 / 0.34);
+  border-radius: 4px;
+  background: oklch(6% 0.014 230 / 0.5);
+  backdrop-filter: blur(8px);
+  color: oklch(86% 0.04 158);
+  font-size: 10px;
+  font-weight: var(--fw-display-on-color);
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─ Mobile tightening ─ */
+@media (max-width: 720px) {
+  .cornerTl, .cornerTr, .cornerBl, .cornerBr { width: 22px; height: 22px; }
+  .topChip { font-size: 9px; padding: 3px 7px; }
+  .sideMetrics { right: 10px; gap: 4px; }
+  .sideMetrics li { padding: 4px 7px; font-size: 9px; }
+  .waveform { height: 30px; padding: 3px 8px; }
+  .latency { font-size: 9px; padding: 3px 7px; }
+  .topBar > :nth-child(3) { display: none; }
+  .sideMetrics li:nth-child(n+5) { display: none; }
+}

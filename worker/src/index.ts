@@ -338,10 +338,44 @@ async function waitForGeminiFile(ai: GoogleGenAI, file: GeminiFile) {
   throw new Error("Gemini file processing timed out");
 }
 
+function classifyError(error: unknown): { code: string; message: string } {
+  const raw = error instanceof Error ? error.message : String(error ?? "");
+  const lower = raw.toLowerCase();
+
+  let code = "worker_unknown";
+  if (lower.includes("session not found")) code = "session_not_found";
+  else if (lower.includes("session cannot be analyzed")) code = "session_state_invalid";
+  else if (lower.includes("recording not found")) code = "recording_missing";
+  else if (lower.includes("feature payload not found")) code = "feature_payload_missing";
+  else if (lower.includes("r2 recording object")) code = "r2_object_missing";
+  else if (lower.includes("gemini file uri")) code = "gemini_file_uri_missing";
+  else if (lower.includes("gemini returned empty")) code = "gemini_empty_response";
+  else if (lower.includes("gemini file processing failed")) code = "gemini_processing_failed";
+  else if (lower.includes("gemini file processing timed out")) code = "gemini_timeout";
+  else if (lower.includes("invalid input") || lower.includes("expected int")) code = "validation_failed";
+
+  return { code, message: raw.slice(0, 800) };
+}
+
 async function markSessionFailed(sessionId: string, env: Env, error: unknown) {
-  console.error("analyzeSession failed", { sessionId, error });
+  const { code, message } = classifyError(error);
+  console.error("analyzeSession failed", {
+    sessionId,
+    code,
+    message,
+    error: error instanceof Error ? { name: error.name, stack: error.stack } : error
+  });
   const supabase = createSupabase(env);
-  await supabase.from("sessions").update({ status: "failed" }).eq("id", sessionId).neq("status", "complete");
+  await supabase
+    .from("sessions")
+    .update({
+      status: "failed",
+      error_code: code,
+      error_detail: message,
+      error_at: new Date().toISOString()
+    })
+    .eq("id", sessionId)
+    .neq("status", "complete");
 }
 
 function createSupabase(env: Env) {

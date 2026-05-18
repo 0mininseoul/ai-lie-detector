@@ -21,11 +21,15 @@ export async function GET(_request: Request, context: RouteContext) {
   const supabase = getSupabaseServer();
   const { data: session, error: sessionError } = await supabase
     .from("sessions")
-    .select("id, status")
+    .select("id, status, error_code, error_detail, error_at")
     .eq("id", sessionId.data)
     .single();
 
   if (sessionError || !session) {
+    console.error("[status] session not found", {
+      sessionId: sessionId.data,
+      error: sessionError?.message
+    });
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
 
@@ -36,12 +40,27 @@ export async function GET(_request: Request, context: RouteContext) {
     .maybeSingle();
 
   if (resultError) {
+    console.error("[status] failed to load result", {
+      sessionId: sessionId.data,
+      error: resultError.message
+    });
     return NextResponse.json({ error: "Failed to load session result" }, { status: 500 });
+  }
+
+  if (session.status === "failed") {
+    console.error("[status] session failed", {
+      sessionId: session.id,
+      errorCode: session.error_code,
+      errorDetail: session.error_detail,
+      errorAt: session.error_at
+    });
   }
 
   return NextResponse.json({
     id: session.id,
     status: session.status,
+    errorCode: session.error_code ?? null,
+    errorDetail: session.error_detail ?? null,
     result: result
       ? {
           verdict: result.verdict,
