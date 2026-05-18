@@ -1,12 +1,14 @@
 "use client";
 
-import { Camera, Check, CircleStop, Mic, Play, RotateCcw, ScanFace } from "lucide-react";
+import { Camera, Check, CircleStop, Gift, Mic, Play, RotateCcw, ScanFace } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProfessionalOverlay } from "@/components/analysis/ProfessionalOverlay";
 import { useCameraRecorder } from "@/hooks/useCameraRecorder";
 import { useFeatureCollector } from "@/hooks/useFeatureCollector";
 import styles from "./session.module.css";
+
+type RefundState = "idle" | "pending" | "granted" | "failed";
 
 type SessionRecorderProps = {
   session: {
@@ -51,6 +53,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   const [error, setError] = useState(() => getInitialError(session.status));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requiresNewSession, setRequiresNewSession] = useState(() => ["failed", "expired"].includes(session.status));
+  const [refundState, setRefundState] = useState<RefundState>("idle");
 
   const currentQuestion = useMemo(() => {
     if (phase === "warmup") return session.warmupQuestion;
@@ -173,8 +176,39 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     featureCollector.reset();
     setError("");
     setRequiresNewSession(false);
+    setRefundState("idle");
     setPhase("setup");
   }
+
+  /*
+   * Refund one free trial whenever the session lands in an error state.
+   * The server-side function is idempotent per session (sessions.refunded_at),
+   * so re-fires from retries or stale state don't double-grant.
+   */
+  useEffect(() => {
+    if (phase !== "error") return;
+    if (refundState !== "idle") return;
+
+    let cancelled = false;
+    setRefundState("pending");
+    void fetch(`/api/sessions/${session.id}/refund-trial`, { method: "POST" })
+      .then(async (response) => {
+        if (cancelled) return;
+        if (!response.ok) {
+          setRefundState("failed");
+          return;
+        }
+        setRefundState("granted");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setRefundState("failed");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, refundState, session.id]);
 
   useEffect(() => {
     if (phase !== "analyzing") return;
@@ -335,23 +369,54 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
           {phase === "analyzing" ? <ProfessionalOverlay /> : null}
 
-          {phase === "error" ? (
-            <div className={styles.panel}>
-              <p>{error || "진행 중 문제가 생겼습니다. 다시 한 번 진행해 주세요."}</p>
+          {phase !== "error" && error ? <p className={styles.error}>{error}</p> : null}
+        </div>
+      </section>
+
+      {phase === "error" ? (
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="error-modal-title">
+          <div className={styles.modalCard}>
+            <span className={styles.modalGift} aria-hidden>
+              <Gift size={26} />
+            </span>
+            <h2 id="error-modal-title">죄송합니다.</h2>
+            <p className={styles.modalLead}>
+              분석 중에 문제가 발생했어요.
+              <br />
+              사과의 의미로 무료 체험권 1회를 추가로 드릴게요.
+            </p>
+            <p className={styles.modalDetail}>{error || "잠시 후 다시 시도해 주세요."}</p>
+            <p className={styles.modalStatus} data-state={refundState}>
+              {refundState === "granted"
+                ? "✓ 무료 체험권 1회가 추가됐어요"
+                : refundState === "pending"
+                  ? "체험권을 추가하는 중…"
+                  : refundState === "failed"
+                    ? "체험권 추가에 실패했어요. 잠시 후 다시 시도해 주세요."
+                    : ""}
+            </p>
+            <div className={styles.modalActions}>
               <button
-                className={styles.secondaryButton}
+                className={styles.startButton}
                 type="button"
                 onClick={requiresNewSession ? () => router.replace("/") : restart}
               >
                 <RotateCcw size={18} aria-hidden />
-                {requiresNewSession ? "새 질문 만들기" : "다시 하기"}
+                {requiresNewSession ? "새 질문 만들기" : "다시 시도하기"}
               </button>
+              {!requiresNewSession ? (
+                <button
+                  className={styles.secondaryButton}
+                  type="button"
+                  onClick={() => router.replace("/")}
+                >
+                  랜딩으로
+                </button>
+              ) : null}
             </div>
-          ) : null}
-
-          {phase !== "error" && error ? <p className={styles.error}>{error}</p> : null}
+          </div>
         </div>
-      </section>
+      ) : null}
     </main>
   );
 }

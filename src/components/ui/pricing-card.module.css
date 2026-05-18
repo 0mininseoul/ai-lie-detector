@@ -338,12 +338,12 @@
 }
 
 .stepper input {
-  width: 38px;
+  width: 36px;
   height: 28px;
   padding: 0;
-  border: 1px solid var(--glass-edge);
-  border-radius: 8px;
-  background: var(--glass);
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
   color: var(--text);
   text-align: center;
   font-family: var(--font-sans);
@@ -351,12 +351,11 @@
   font-weight: var(--fw-body-strong);
   font-variant-numeric: tabular-nums;
   outline: none;
-  transition: border-color 200ms var(--ease-standard), box-shadow 200ms var(--ease-standard);
+  transition: color 200ms var(--ease-standard);
 }
 
 .stepper input:focus {
-  border-color: var(--mint-line);
-  box-shadow: 0 0 0 3px oklch(74% 0.16 158 / 0.22);
+  color: var(--mint);
 }
 
 .stepper input::-webkit-outer-spin-button,

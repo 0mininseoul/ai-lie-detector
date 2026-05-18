@@ -246,6 +246,130 @@
   font-weight: var(--fw-body-strong);
 }
 
+/* ─── Error modal (refund popup) ──────── */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: oklch(6% 0.014 230 / 0.7);
+  backdrop-filter: blur(14px);
+  animation: modalFadeIn 220ms var(--ease-standard);
+}
+
+.modalCard {
+  width: 100%;
+  max-width: 460px;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 32px 26px 26px;
+  border: 1px solid var(--glass-edge);
+  border-radius: calc(var(--radius) * 2.4);
+  background: var(--card-glass-bg);
+  box-shadow:
+    0 1px 0 oklch(100% 0 0 / 0.1) inset,
+    0 24px 60px oklch(8% 0.018 230 / 0.68),
+    0 56px 120px oklch(10% 0.024 240 / 0.46);
+  text-align: center;
+  animation: modalRise 320ms var(--ease-out-glass);
+}
+
+.modalGift {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--mint);
+  background: oklch(28% 0.05 152 / 0.36);
+  box-shadow:
+    0 1px 0 oklch(100% 0 0 / 0.08) inset,
+    0 0 0 1px oklch(74% 0.16 158 / 0.18) inset;
+}
+
+.modalCard h2 {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: clamp(24px, 6vw, 30px);
+  line-height: 1.1;
+  letter-spacing: -0.012em;
+  font-weight: var(--fw-display);
+}
+
+.modalLead {
+  margin: 0;
+  max-width: 360px;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: var(--fw-body);
+  word-break: keep-all;
+}
+
+.modalDetail {
+  margin: 0;
+  max-width: 360px;
+  color: var(--muted-text);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: var(--fw-body-soft);
+  word-break: keep-all;
+}
+
+.modalStatus {
+  margin: 4px 0 0;
+  min-height: 18px;
+  font-size: 13px;
+  font-weight: var(--fw-body-strong);
+  letter-spacing: -0.005em;
+}
+
+.modalStatus[data-state="granted"] {
+  color: var(--mint);
+}
+
+.modalStatus[data-state="pending"] {
+  color: var(--muted-text);
+}
+
+.modalStatus[data-state="failed"] {
+  color: oklch(78% 0.18 25);
+}
+
+.modalActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 12px;
+  width: 100%;
+}
+
+.modalActions button {
+  flex: 1;
+  min-width: 160px;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @media (max-width: 920px) {
   .shell {
     padding: 14px;

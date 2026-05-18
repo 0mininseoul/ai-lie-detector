@@ -58,6 +58,20 @@ export async function consumeAnalysisCredit(deviceId: string): Promise<Entitleme
   return buildEntitlementState(toRecord(data));
 }
 
+export async function refundFreeTrialForSession(sessionId: string): Promise<EntitlementState> {
+  const { getSupabaseServer } = await import("@/lib/supabase/server");
+  const supabase = getSupabaseServer();
+  const { data, error } = await supabase.rpc("refund_free_trial", {
+    p_session_id: sessionId
+  });
+
+  if (error) {
+    throw new Error(`Failed to refund free trial: ${error.message}`);
+  }
+
+  return buildEntitlementState(toRecord(data));
+}
+
 export async function grantCredits(
   deviceId: string,
   credits: number,
