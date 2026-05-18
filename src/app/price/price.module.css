@@ -1,12 +1,6 @@
 .shell {
   min-height: 100vh;
   padding: clamp(22px, 3vw, 42px);
-  background:
-    radial-gradient(circle at 14% 14%, oklch(79% 0.17 152 / 0.34), transparent 30%),
-    radial-gradient(circle at 88% 20%, oklch(70% 0.14 230 / 0.26), transparent 30%),
-    radial-gradient(circle at 66% 92%, oklch(67% 0.18 292 / 0.18), transparent 36%),
-    radial-gradient(circle at 36% 60%, oklch(78% 0.16 78 / 0.12), transparent 30%),
-    linear-gradient(135deg, oklch(99% 0.006 145), oklch(95% 0.026 230));
 }
 
 .hero {
@@ -32,13 +26,14 @@
   padding: 8px 13px;
   border: 1px solid var(--glass-edge);
   border-radius: 999px;
-  color: oklch(36% 0.1 152);
-  background: linear-gradient(135deg, var(--glass-strong), var(--glass-tint-mint));
+  color: var(--mint);
+  background: var(--chip-glass-bg);
   box-shadow: var(--shadow-chip);
   backdrop-filter: blur(20px) saturate(1.5);
-  font-size: 13px;
-  font-weight: var(--fw-body-strong);
-  letter-spacing: 0.005em;
+  font-size: 12px;
+  font-weight: var(--fw-display-on-color);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .copy h1 {
@@ -49,10 +44,7 @@
   line-height: 0.94;
   letter-spacing: -0.014em;
   font-weight: var(--fw-display);
-  text-shadow:
-    0 10px 24px oklch(79% 0.17 152 / 0.2),
-    0 24px 62px oklch(70% 0.14 230 / 0.14),
-    0 46px 110px oklch(67% 0.18 292 / 0.1);
+  text-shadow: var(--text-shadow-display);
   text-wrap: balance;
   word-break: keep-all;
 }
@@ -76,12 +68,12 @@
   gap: 8px;
   padding: 0 18px;
   border-radius: calc(var(--radius) * 1.6);
-  color: var(--primary-foreground);
+  color: var(--text-on-mint);
   background: linear-gradient(135deg, var(--mint), var(--mint-deep));
   box-shadow: var(--shadow-action);
   font-weight: var(--fw-action);
   letter-spacing: -0.005em;
-  transition: transform 220ms ease, box-shadow 240ms ease;
+  transition: transform 220ms var(--ease-standard), box-shadow 240ms var(--ease-standard);
 }
 
 .copy a:hover {

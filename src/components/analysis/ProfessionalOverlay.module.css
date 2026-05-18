@@ -5,9 +5,7 @@
   padding: 18px;
   border: 1px solid var(--glass-edge);
   border-radius: calc(var(--radius) * 2);
-  background:
-    linear-gradient(145deg, oklch(100% 0 0 / 0.82), oklch(100% 0 0 / 0.4)),
-    linear-gradient(315deg, oklch(70% 0.14 230 / 0.14), oklch(67% 0.18 292 / 0.1));
+  background: var(--card-glass-bg);
   box-shadow: var(--shadow-card);
   backdrop-filter: blur(34px) saturate(1.8);
 }
@@ -25,10 +23,11 @@
 }
 
 .header span {
-  color: oklch(42% 0.12 230);
+  color: var(--cyan);
   font-size: 11px;
-  font-weight: var(--fw-headline);
-  letter-spacing: 0.025em;
+  font-weight: var(--fw-display-on-color);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .header strong {
@@ -45,10 +44,10 @@
   border-radius: 999px;
   background: var(--mint);
   box-shadow:
-    0 0 0 8px oklch(79% 0.17 152 / 0.16),
-    0 12px 28px oklch(79% 0.17 152 / 0.34),
-    0 24px 52px oklch(70% 0.14 230 / 0.14);
-  animation: pulse 1.2s infinite ease-in-out;
+    0 0 0 8px oklch(72% 0.16 158 / 0.22),
+    0 12px 28px oklch(58% 0.18 152 / 0.42),
+    0 24px 52px oklch(50% 0.14 230 / 0.2);
+  animation: pulse 1.2s infinite var(--ease-standard);
 }
 
 .matrix {
@@ -64,31 +63,31 @@
   padding: 12px;
   border: 1px solid var(--glass-edge);
   border-radius: calc(var(--radius) * 1.4);
-  background: var(--glass);
+  background: var(--signal-glass-bg);
   box-shadow:
-    0 1px 0 oklch(100% 0 0 / 0.8) inset,
-    0 8px 22px var(--tone-shadow, oklch(79% 0.17 152 / 0.14));
+    0 1px 0 var(--liquid-highlight) inset,
+    0 8px 22px var(--tone-shadow, oklch(58% 0.18 152 / 0.2));
   backdrop-filter: blur(14px) saturate(1.4);
 }
 
 .module[data-tone="cyan"] {
   --tone: var(--cyan);
-  --tone-shadow: oklch(70% 0.14 230 / 0.2);
+  --tone-shadow: oklch(50% 0.14 230 / 0.32);
 }
 
 .module[data-tone="amber"] {
   --tone: var(--amber);
-  --tone-shadow: oklch(78% 0.16 78 / 0.18);
+  --tone-shadow: oklch(58% 0.16 78 / 0.3);
 }
 
 .module[data-tone="green"] {
-  --tone: var(--green);
-  --tone-shadow: oklch(79% 0.17 152 / 0.22);
+  --tone: var(--mint);
+  --tone-shadow: oklch(58% 0.18 152 / 0.36);
 }
 
 .module[data-tone="red"] {
-  --tone: var(--red);
-  --tone-shadow: oklch(58% 0.19 25 / 0.2);
+  --tone: oklch(72% 0.18 25);
+  --tone-shadow: oklch(58% 0.19 25 / 0.34);
 }
 
 .moduleTop {
@@ -98,7 +97,7 @@
 }
 
 .moduleTop span {
-  color: oklch(30% 0.025 150);
+  color: var(--text);
   font-size: 12px;
   font-weight: var(--fw-body);
   line-height: 1.35;
@@ -108,14 +107,14 @@
   color: var(--tone);
   font-size: 11px;
   font-weight: var(--fw-display-on-color);
-  letter-spacing: 0.025em;
+  letter-spacing: 0.04em;
 }
 
 .meter {
   height: 7px;
   overflow: hidden;
   border-radius: 999px;
-  background: oklch(82% 0.018 145 / 0.42);
+  background: oklch(40% 0.018 230 / 0.5);
 }
 
 .meter i {
@@ -123,7 +122,7 @@
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--tone), oklch(100% 0 0 / 0.72));
-  animation: scan 1.8s ease-in-out infinite alternate;
+  animation: scan 1.8s var(--ease-standard) infinite alternate;
 }
 
 .telemetry {
@@ -138,13 +137,13 @@
   border: 1px solid var(--glass-edge);
   border-radius: calc(var(--radius) * 1.4);
   background:
-    linear-gradient(oklch(80% 0.025 145 / 0.28) 1px, transparent 1px),
-    linear-gradient(90deg, oklch(80% 0.025 145 / 0.22) 1px, transparent 1px),
-    oklch(100% 0 0 / 0.38);
-  background-size: 18px 18px;
+    linear-gradient(oklch(100% 0 0 / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(100% 0 0 / 0.06) 1px, transparent 1px),
+    var(--signal-glass-bg);
+  background-size: 18px 18px, 18px 18px, auto;
   box-shadow:
-    0 1px 0 oklch(100% 0 0 / 0.74) inset,
-    0 10px 26px oklch(70% 0.14 230 / 0.14);
+    0 1px 0 var(--liquid-highlight) inset,
+    0 10px 26px oklch(50% 0.14 230 / 0.22);
   backdrop-filter: blur(14px) saturate(1.4);
 }
 
@@ -159,8 +158,8 @@
   flex: 1;
   min-width: 3px;
   border-radius: 999px 999px 0 0;
-  background: linear-gradient(180deg, var(--cyan), var(--red));
-  animation: equalize 880ms ease-in-out infinite alternate;
+  background: linear-gradient(180deg, var(--cyan), oklch(72% 0.18 25));
+  animation: equalize 880ms var(--ease-standard) infinite alternate;
 }
 
 .log {
@@ -171,26 +170,26 @@
 }
 
 .log span {
-  color: oklch(36% 0.025 150);
+  color: var(--muted-text);
   font-family: var(--font-mono);
   font-size: 11px;
   line-height: 1.2;
   font-weight: var(--fw-body);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
 }
 
 @keyframes pulse {
   50% {
     transform: scale(0.78);
     box-shadow:
-      0 0 0 4px oklch(79% 0.17 152 / 0.14),
-      0 8px 20px oklch(79% 0.17 152 / 0.28);
+      0 0 0 4px oklch(72% 0.16 158 / 0.16),
+      0 8px 20px oklch(58% 0.18 152 / 0.32);
   }
 }
 
 @keyframes scan {
   to {
-    filter: brightness(1.2) saturate(1.22);
+    filter: brightness(1.18) saturate(1.22);
     transform: translateX(4px);
   }
 }

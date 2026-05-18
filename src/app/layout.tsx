@@ -8,14 +8,29 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#72e3ad",
+  themeColor: "#0c0f14",
+  colorScheme: "dark",
   width: "device-width",
   initialScale: 1
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ko" data-theme="liquid-glass">
+    <html lang="ko" data-theme="liquid-glass" className="dark">
+      <head>
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="" />
+        <link
+          rel="preload"
+          as="font"
+          type="font/woff2"
+          href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/woff2/PretendardVariable.woff2"
+          crossOrigin=""
+        />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable.css"
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

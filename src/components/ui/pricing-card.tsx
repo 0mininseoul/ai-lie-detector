@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Minus, Plus, Sparkles, Users } from "lucide-react";
+import { Check, Minus, Plus, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import styles from "./pricing-card.module.css";
 
@@ -68,10 +68,7 @@ export default function PricingCard() {
   return (
     <section className={styles.card} aria-label="AI 거짓말탐지기 가격표">
       <header className={styles.header}>
-        <div className={styles.badge}>
-          <Sparkles size={14} aria-hidden />
-          Viral MVP Price
-        </div>
+        <div className={styles.badge}>Viral MVP Price</div>
         <h1>요금 고르기</h1>
         <p>무료 1회 사용 후, 1회권으로 진행하거나 묶음권으로 한꺼번에 결제할 수 있습니다.</p>
       </header>
@@ -113,12 +110,19 @@ export default function PricingCard() {
               : formatWon.format(planPrice);
 
           return (
-            <button
+            <div
               key={plan.id}
-              type="button"
+              role="button"
+              tabIndex={0}
               className={styles.plan}
               data-selected={isSelected}
               onClick={() => setSelectedPlan(plan.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setSelectedPlan(plan.id);
+                }
+              }}
               aria-pressed={isSelected}
             >
               <div className={styles.planTop}>
@@ -194,7 +198,7 @@ export default function PricingCard() {
                   </div>
                 </div>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
