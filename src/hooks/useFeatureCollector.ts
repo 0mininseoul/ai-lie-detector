@@ -21,6 +21,22 @@ export type FeaturePayloadBuildResult = {
   error: string | null;
 };
 
+export type LiveFaceBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  centerX: number;
+  centerY: number;
+  leftEyeX: number;
+  leftEyeY: number;
+  rightEyeX: number;
+  rightEyeY: number;
+  mouthX: number;
+  mouthY: number;
+  updatedAt: number;
+};
+
 type FeatureSamplerInput = {
   stream: MediaStream | null;
   videoElement: HTMLVideoElement | null;
@@ -117,6 +133,7 @@ export function useFeatureCollector() {
   const mediaSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const faceLandmarkerRef = useRef<FaceLandmarkerInstance | null>(null);
   const faceLandmarkerPromiseRef = useRef<Promise<FaceLandmarkerInstance | null> | null>(null);
+  const liveFaceBoxRef = useRef<LiveFaceBox | null>(null);
   const [marks, setMarks] = useState<FeatureTimingMarks>(emptyMarks);
   const [phase, setPhase] = useState<FeatureCollectorPhase>("idle");
   const [status, setStatus] = useState<FeatureCollectorStatus>("idle");
@@ -203,13 +220,13 @@ export function useFeatureCollector() {
       previousFrameRef.current = null;
 
       setupAudioSampler(stream, audioContextRef, mediaSourceRef, audioAnalyserRef, audioBufferRef);
-      void getFaceLandmarker(faceLandmarkerRef, faceLandmarkerPromiseRef);
+      void getFaceLandmarker(faceLandmarkerRef, faceLandmarkerPromiseRef, liveFaceBoxRef);
 
       samplerIntervalRef.current = window.setInterval(() => {
         const sample: FeatureSample = { timestampMs: nowMs() };
         Object.assign(sample, sampleVideoFrame(videoElement, sampleCanvasRef, previousFrameRef));
         Object.assign(sample, sampleAudioFrame(audioAnalyserRef.current, audioBufferRef.current, audioContextRef.current?.sampleRate ?? 44_100));
-        Object.assign(sample, sampleFace(videoElement, faceLandmarkerRef.current));
+        Object.assign(sample, sampleFace(videoElement, faceLandmarkerRef.current, liveFaceBoxRef));
 
         if (Object.keys(sample).length > 1) {
           samplesRef.current.push(sample);
@@ -251,6 +268,7 @@ export function useFeatureCollector() {
     payload,
     latestError,
     canBuildPayload,
+    liveFaceBoxRef,
     markRecordingStart,
     markRecordingEnd,
     markWarmupStart,
@@ -380,20 +398,57 @@ function sampleAudioFrame(
 
 function sampleFace(
   videoElement: HTMLVideoElement | null,
-  faceLandmarker: FaceLandmarkerInstance | null
+  faceLandmarker: FaceLandmarkerInstance | null,
+  liveFaceBoxRef: MutableRefObject<LiveFaceBox | null>
 ): Partial<FeatureSample> {
   if (!videoElement || !faceLandmarker) return {};
 
   try {
     const result = faceLandmarker.detectForVideo(videoElement, performance.now());
     const landmarks = result.faceLandmarks?.[0];
-    if (!landmarks?.length) return { faceVisible: false };
+    if (!landmarks?.length) {
+      liveFaceBoxRef.current = null;
+      return { faceVisible: false };
+    }
 
     const xs = landmarks.map((point) => point.x);
     const ys = landmarks.map((point) => point.y);
     const centerX = average(xs);
     const centerY = average(ys);
     const blendshapeCategories = result.faceBlendshapes?.[0]?.categories ?? [];
+
+    // Live bounding box for the HUD overlay. Coords are 0..1 normalized in the
+    // *unmirrored* camera frame — the HUD flips X to match the mirrored video.
+    let minX = 1;
+    let minY = 1;
+    let maxX = 0;
+    let maxY = 0;
+    for (const point of landmarks) {
+      if (point.x < minX) minX = point.x;
+      if (point.x > maxX) maxX = point.x;
+      if (point.y < minY) minY = point.y;
+      if (point.y > maxY) maxY = point.y;
+    }
+
+    const leftEye = landmarks[468] ?? landmarks[33];
+    const rightEye = landmarks[473] ?? landmarks[263];
+    const mouthTop = landmarks[13];
+
+    liveFaceBoxRef.current = {
+      x: minX,
+      y: minY,
+      width: Math.max(0.01, maxX - minX),
+      height: Math.max(0.01, maxY - minY),
+      centerX,
+      centerY,
+      leftEyeX: leftEye?.x ?? centerX - 0.05,
+      leftEyeY: leftEye?.y ?? centerY - 0.06,
+      rightEyeX: rightEye?.x ?? centerX + 0.05,
+      rightEyeY: rightEye?.y ?? centerY - 0.06,
+      mouthX: mouthTop?.x ?? centerX,
+      mouthY: mouthTop?.y ?? centerY + 0.06,
+      updatedAt: performance.now()
+    };
 
     return {
       faceVisible: true,
@@ -409,8 +464,10 @@ function sampleFace(
 
 async function getFaceLandmarker(
   faceLandmarkerRef: MutableRefObject<FaceLandmarkerInstance | null>,
-  faceLandmarkerPromiseRef: MutableRefObject<Promise<FaceLandmarkerInstance | null> | null>
+  faceLandmarkerPromiseRef: MutableRefObject<Promise<FaceLandmarkerInstance | null> | null>,
+  _liveFaceBoxRef: MutableRefObject<LiveFaceBox | null>
 ) {
+  void _liveFaceBoxRef;
   if (faceLandmarkerRef.current) return faceLandmarkerRef.current;
   if (faceLandmarkerPromiseRef.current) return faceLandmarkerPromiseRef.current;
 

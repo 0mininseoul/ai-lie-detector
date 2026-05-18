@@ -211,7 +211,7 @@ function buildExtractionNotes({
   if (videoSamples.length === 0) notes.push("Video sample metrics were unavailable.");
   if (audioSamples.length === 0) notes.push("Audio energy metrics were unavailable.");
   if (!faceSamples.some((sample) => sample.faceVisible)) {
-    notes.push("MediaPipe face metrics were unavailable or weak; aggregate video/audio proxies are still included.");
+    notes.push("Face landmark metrics were unavailable or weak; aggregate video/audio proxies are still included.");
   }
   return notes;
 }

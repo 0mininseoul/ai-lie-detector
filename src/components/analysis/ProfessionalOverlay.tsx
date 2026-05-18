@@ -29,14 +29,14 @@ const modules: ModuleSeed[] = [
 ];
 
 const logLines = [
-  { tag: "FRAME_SYNC",     code: "MP_FACE_LANDMARKER_V2",  status: "ok"   },
-  { tag: "AUDIO_WINDOW",   code: "16kHz · STFT 512",       status: "ok"   },
-  { tag: "TXT_ALIGNMENT",  code: "VAD_ONSET 312ms",        status: "warn" },
-  { tag: "GAZE_TRACK",     code: "pupil_xy locked",        status: "ok"   },
-  { tag: "AU_MATRIX",      code: "12/45 active",           status: "ok"   },
-  { tag: "F0_ESTIMATOR",   code: "YIN · stable",           status: "ok"   },
-  { tag: "FUSION_PASS",    code: "weights · loaded",       status: "ok"   },
-  { tag: "VERDICT_GATE",   code: "awaiting target window", status: "wait" }
+  { tag: "FRAME_SYNC",     code: "FACE_LANDMARKER_V2",      status: "ok"   },
+  { tag: "AUDIO_WINDOW",   code: "16kHz · STFT 512",        status: "ok"   },
+  { tag: "TXT_ALIGNMENT",  code: "VAD_ONSET 312ms",         status: "warn" },
+  { tag: "GAZE_TRACK",     code: "pupil_xy locked",         status: "ok"   },
+  { tag: "AU_MATRIX",      code: "12/45 active",            status: "ok"   },
+  { tag: "F0_ESTIMATOR",   code: "YIN · stable",            status: "ok"   },
+  { tag: "FUSION_PASS",    code: "weights · loaded",        status: "ok"   },
+  { tag: "VERDICT_GATE",   code: "awaiting target window",  status: "wait" }
 ];
 
 function fmt(value: number, seed: ModuleSeed): string {
@@ -55,7 +55,7 @@ function ratio(value: number, seed: ModuleSeed): number {
 export function ProfessionalOverlay() {
   const [tick, setTick] = useState(0);
   const [logOffset, setLogOffset] = useState(0);
-  const [confidence, setConfidence] = useState(0.62);
+  const [streamSec, setStreamSec] = useState(0);
 
   useEffect(() => {
     const id = window.setInterval(() => setTick((t) => t + 1), 820);
@@ -65,7 +65,7 @@ export function ProfessionalOverlay() {
   useEffect(() => {
     const id = window.setInterval(() => {
       setLogOffset((prev) => (prev + 1) % logLines.length);
-      setConfidence(() => 0.42 + Math.random() * 0.5);
+      setStreamSec((sec) => sec + 1);
     }, 1400);
     return () => window.clearInterval(id);
   }, []);
@@ -87,8 +87,6 @@ export function ProfessionalOverlay() {
     return [...logLines.slice(logOffset), ...logLines.slice(0, logOffset)];
   }, [logOffset]);
 
-  const confidencePct = Math.round(confidence * 100);
-
   return (
     <section className={styles.overlay} aria-label="AI 분석 진행 상태">
       <header className={styles.header}>
@@ -96,29 +94,13 @@ export function ProfessionalOverlay() {
           <span className={styles.kicker}>LIVE MULTIMODAL ANALYSIS</span>
           <strong>판정 엔진 가동 중</strong>
           <em className={styles.engineMeta}>
-            neural_engine · vision-2.6.1 ↦ gemini-2.5-flash
+            neural_engine · vision-2.6.1 · dontlie-core
           </em>
         </div>
-        <div className={styles.gauge} role="img" aria-label={`현재 추론 신뢰도 ${confidencePct} %`}>
-          <svg viewBox="0 0 60 60">
-            <circle cx="30" cy="30" r="26" fill="none" stroke="oklch(46% 0.13 230 / 0.32)" strokeWidth="4" />
-            <circle
-              cx="30"
-              cy="30"
-              r="26"
-              fill="none"
-              stroke="oklch(82% 0.16 158)"
-              strokeWidth="4"
-              strokeLinecap="round"
-              transform="rotate(-90 30 30)"
-              strokeDasharray={`${163 * confidence} 163`}
-              style={{ transition: "stroke-dasharray 600ms ease" }}
-            />
-          </svg>
-          <div className={styles.gaugeValue}>
-            <strong>{confidencePct}</strong>
-            <small>signal</small>
-          </div>
+        <div className={styles.headerStream} aria-hidden>
+          <span>STREAM</span>
+          <b>{String(streamSec).padStart(2, "0")}s</b>
+          <em>· 12 channels active</em>
         </div>
       </header>
 

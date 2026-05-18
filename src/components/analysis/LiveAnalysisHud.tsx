@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
+import type { LiveFaceBox } from "@/hooks/useFeatureCollector";
 import styles from "./LiveAnalysisHud.module.css";
 
 /*
- * Mediapipe-style heads-up display rendered as an absolute overlay over
- * the video frame. Nothing here drives real analysis — the actual signal
- * extraction happens in useFeatureCollector. This is a *visual* layer that
- * makes the experience feel forensic while the user answers the target
- * question. Numbers drift smoothly so the panel feels alive.
+ * Forensic-style heads-up display. The face mesh container is positioned
+ * over the actual detected face in real time — useFeatureCollector writes
+ * the latest bounding box to `liveFaceBoxRef`, and we use a single
+ * requestAnimationFrame loop to project it onto the mirrored video frame.
+ * Side metrics + waveform are decorative and update on a slow timer.
  */
 
 type Metric = {
@@ -30,11 +31,21 @@ function randomInRange(min: number, max: number) {
   return min + Math.random() * (max - min);
 }
 
-export function LiveAnalysisHud({ active = true }: { active?: boolean }) {
+type HudProps = {
+  active?: boolean;
+  faceBoxRef?: MutableRefObject<LiveFaceBox | null>;
+  mirrored?: boolean;
+};
+
+export function LiveAnalysisHud({ active = true, faceBoxRef, mirrored = true }: HudProps) {
   const [tick, setTick] = useState(0);
   const [latencyMs, setLatencyMs] = useState(48);
   const [frameIndex, setFrameIndex] = useState(0);
 
+  const meshTrackerRef = useRef<HTMLDivElement | null>(null);
+  const meshFoundRef = useRef(false);
+
+  // Slow metrics + latency tick
   useEffect(() => {
     if (!active) return;
     const id = window.setInterval(() => setTick((t) => t + 1), 720);
@@ -50,6 +61,36 @@ export function LiveAnalysisHud({ active = true }: { active?: boolean }) {
     return () => window.clearInterval(id);
   }, [active]);
 
+  // Per-frame: move the face mesh container to track the detected face box.
+  useEffect(() => {
+    if (!active || !faceBoxRef) return;
+    let raf = 0;
+    const loop = () => {
+      const el = meshTrackerRef.current;
+      const box = faceBoxRef.current;
+      if (el) {
+        if (box) {
+          meshFoundRef.current = true;
+          // Camera frame is shown mirrored (transform: scaleX(-1)). The
+          // landmarks are in the *unmirrored* coordinate system, so flip X
+          // for visual placement.
+          const x = mirrored ? 1 - box.x - box.width : box.x;
+          el.style.left = `${(x * 100).toFixed(2)}%`;
+          el.style.top = `${(box.y * 100).toFixed(2)}%`;
+          el.style.width = `${(box.width * 100).toFixed(2)}%`;
+          el.style.height = `${(box.height * 100).toFixed(2)}%`;
+          el.style.opacity = "1";
+        } else if (meshFoundRef.current) {
+          // Hide the mesh when we lose tracking instead of leaving it stuck.
+          el.style.opacity = "0";
+        }
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [active, faceBoxRef, mirrored]);
+
   const metrics: Metric[] = useMemo(() => {
     void tick;
     return SIDE_METRICS_SEED.map((m) => ({
@@ -57,6 +98,8 @@ export function LiveAnalysisHud({ active = true }: { active?: boolean }) {
       value: m.format(randomInRange(m.min, m.max))
     }));
   }, [tick]);
+
+  const hasTracking = Boolean(faceBoxRef);
 
   return (
     <div className={styles.hud} aria-hidden>
@@ -74,71 +117,67 @@ export function LiveAnalysisHud({ active = true }: { active?: boolean }) {
         <span className={styles.topChip}>FRAME · {String(frameIndex).padStart(5, "0")}</span>
       </div>
 
-      <svg
-        className={styles.faceMesh}
-        viewBox="0 0 100 130"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        <defs>
-          <radialGradient id="hud-eye-glow" cx="0.5" cy="0.5" r="0.6">
-            <stop offset="0%" stopColor="currentColor" stopOpacity="0.45" />
-            <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
-          </radialGradient>
-        </defs>
+      {hasTracking ? (
+        <div ref={meshTrackerRef} className={styles.meshTracker} style={{ opacity: 0 }}>
+          <svg
+            className={styles.faceMesh}
+            viewBox="0 0 100 130"
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <radialGradient id="hud-eye-glow" cx="0.5" cy="0.5" r="0.6">
+                <stop offset="0%" stopColor="currentColor" stopOpacity="0.45" />
+                <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+              </radialGradient>
+            </defs>
 
-        {/* skull oval */}
-        <ellipse cx="50" cy="68" rx="34" ry="48" fill="none" stroke="currentColor" strokeWidth="0.45" opacity="0.5" />
-        {/* jaw arc */}
-        <path d="M16 68 Q 50 124 84 68" fill="none" stroke="currentColor" strokeWidth="0.35" opacity="0.4" />
-        {/* forehead arc */}
-        <path d="M22 38 Q 50 24 78 38" fill="none" stroke="currentColor" strokeWidth="0.35" opacity="0.32" />
-        {/* vertical center axis */}
-        <line x1="50" y1="32" x2="50" y2="108" stroke="currentColor" strokeWidth="0.28" opacity="0.3" />
-        {/* eye horizon */}
-        <line x1="20" y1="56" x2="80" y2="56" stroke="currentColor" strokeWidth="0.28" opacity="0.28" />
+            {/* face outline + grid */}
+            <ellipse cx="50" cy="65" rx="49" ry="63" fill="none" stroke="currentColor" strokeWidth="0.6" opacity="0.55" />
+            <path d="M2 65 Q 50 130 98 65" fill="none" stroke="currentColor" strokeWidth="0.4" opacity="0.35" />
+            <path d="M8 30 Q 50 6 92 30" fill="none" stroke="currentColor" strokeWidth="0.4" opacity="0.28" />
+            <line x1="50" y1="6" x2="50" y2="124" stroke="currentColor" strokeWidth="0.3" opacity="0.28" />
+            <line x1="4" y1="48" x2="96" y2="48" stroke="currentColor" strokeWidth="0.3" opacity="0.24" />
 
-        {/* eyes */}
-        <rect x="28" y="51" width="14" height="9" fill="none" stroke="currentColor" strokeWidth="0.55" opacity="0.85" />
-        <rect x="58" y="51" width="14" height="9" fill="none" stroke="currentColor" strokeWidth="0.55" opacity="0.85" />
-        <circle cx="35" cy="55.5" r="2.2" fill="url(#hud-eye-glow)" />
-        <circle cx="65" cy="55.5" r="2.2" fill="url(#hud-eye-glow)" />
-        <circle cx="35" cy="55.5" r="0.9" fill="currentColor" opacity="0.95" />
-        <circle cx="65" cy="55.5" r="0.9" fill="currentColor" opacity="0.95" />
+            {/* eye tracking boxes */}
+            <rect x="18" y="40" width="22" height="14" fill="none" stroke="currentColor" strokeWidth="0.7" opacity="0.85" />
+            <rect x="60" y="40" width="22" height="14" fill="none" stroke="currentColor" strokeWidth="0.7" opacity="0.85" />
+            <circle cx="29" cy="47" r="4" fill="url(#hud-eye-glow)" />
+            <circle cx="71" cy="47" r="4" fill="url(#hud-eye-glow)" />
+            <circle cx="29" cy="47" r="1.1" fill="currentColor" />
+            <circle cx="71" cy="47" r="1.1" fill="currentColor" />
 
-        {/* nose markers */}
-        <circle cx="50" cy="65" r="0.6" fill="currentColor" opacity="0.7" />
-        <circle cx="50" cy="74" r="0.6" fill="currentColor" opacity="0.7" />
+            {/* nose + mouth */}
+            <circle cx="50" cy="62" r="0.7" fill="currentColor" opacity="0.7" />
+            <circle cx="50" cy="72" r="0.7" fill="currentColor" opacity="0.7" />
+            <rect x="32" y="84" width="36" height="12" fill="none" stroke="currentColor" strokeWidth="0.55" opacity="0.7" />
+            <line x1="32" y1="90" x2="68" y2="90" stroke="currentColor" strokeWidth="0.35" opacity="0.4" />
 
-        {/* mouth tracker */}
-        <rect x="38" y="84" width="24" height="9" fill="none" stroke="currentColor" strokeWidth="0.45" opacity="0.7" />
-        <line x1="38" y1="88.5" x2="62" y2="88.5" stroke="currentColor" strokeWidth="0.3" opacity="0.4" />
+            {/* landmark cloud */}
+            <g fill="currentColor" opacity="0.85">
+              <circle cx="26" cy="18" r="0.5" />
+              <circle cx="40" cy="12" r="0.5" />
+              <circle cx="60" cy="12" r="0.5" />
+              <circle cx="74" cy="18" r="0.5" />
+              <circle cx="10" cy="56" r="0.5" />
+              <circle cx="90" cy="56" r="0.5" />
+              <circle cx="14" cy="80" r="0.5" />
+              <circle cx="86" cy="80" r="0.5" />
+              <circle cx="20" cy="104" r="0.5" />
+              <circle cx="34" cy="116" r="0.5" />
+              <circle cx="50" cy="120" r="0.5" />
+              <circle cx="66" cy="116" r="0.5" />
+              <circle cx="80" cy="104" r="0.5" />
+              <circle cx="50" cy="40" r="0.4" />
+              <circle cx="50" cy="55" r="0.4" />
+              <circle cx="38" cy="98" r="0.4" />
+              <circle cx="62" cy="98" r="0.4" />
+            </g>
 
-        {/* landmark cloud (subset of 478) */}
-        <g fill="currentColor" opacity="0.85">
-          {/* forehead */}
-          <circle cx="38" cy="34" r="0.45" />
-          <circle cx="46" cy="30" r="0.45" />
-          <circle cx="54" cy="30" r="0.45" />
-          <circle cx="62" cy="34" r="0.45" />
-          {/* cheek bones */}
-          <circle cx="26" cy="62" r="0.5" />
-          <circle cx="74" cy="62" r="0.5" />
-          <circle cx="30" cy="78" r="0.45" />
-          <circle cx="70" cy="78" r="0.45" />
-          {/* nose ridge */}
-          <circle cx="50" cy="46" r="0.4" />
-          <circle cx="50" cy="54" r="0.4" />
-          {/* jaw */}
-          <circle cx="34" cy="98" r="0.45" />
-          <circle cx="42" cy="104" r="0.45" />
-          <circle cx="50" cy="106" r="0.5" />
-          <circle cx="58" cy="104" r="0.45" />
-          <circle cx="66" cy="98" r="0.45" />
-        </g>
-
-        {/* scanline */}
-        <rect className={styles.scanline} x="14" y="0" width="72" height="1.4" fill="currentColor" opacity="0.55" />
-      </svg>
+            {/* scanline */}
+            <rect className={styles.scanline} x="0" y="0" width="100" height="1.4" fill="currentColor" opacity="0.5" />
+          </svg>
+        </div>
+      ) : null}
 
       <ul className={styles.sideMetrics}>
         {metrics.map((m) => (

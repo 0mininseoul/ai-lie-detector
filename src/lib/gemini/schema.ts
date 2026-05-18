@@ -2,19 +2,33 @@ import { z } from "zod";
 
 const publicTextFields = ["roast_comment", "share_question", "share_text", "result_card_lines", "export_final_frame.question"] as const;
 
+/*
+ * Gemini sometimes drops or guesses fields when it isn't given a strict
+ * response schema. We pin its output with `responseSchema` on the worker
+ * AND tolerate small drift here (default retry_message, normalize unknown
+ * retry_reason to "none") so a single bad token doesn't kill the analysis.
+ */
+const RETRY_REASONS = [
+  "none",
+  "face_not_visible",
+  "audio_missing",
+  "answer_too_short",
+  "lighting_too_poor",
+  "recording_corrupted"
+] as const;
+
 export const geminiResultSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.coerce.number().int().refine((v) => v === 1, { message: "schema_version must be 1" }).transform(() => 1 as const),
   quality_gate: z.object({
     status: z.enum(["pass", "retry"]),
-    retry_reason: z.enum([
-      "none",
-      "face_not_visible",
-      "audio_missing",
-      "answer_too_short",
-      "lighting_too_poor",
-      "recording_corrupted"
-    ]),
-    retry_message: z.string()
+    retry_reason: z
+      .string()
+      .transform((value): (typeof RETRY_REASONS)[number] =>
+        (RETRY_REASONS as readonly string[]).includes(value)
+          ? (value as (typeof RETRY_REASONS)[number])
+          : "none"
+      ),
+    retry_message: z.string().optional().default("")
   }).strict(),
   public_result: z.object({
     headline: z.enum(["진실", "거짓"]),
@@ -56,6 +70,119 @@ export const geminiResultSchema = z.object({
 }).strict();
 
 export type GeminiResult = z.infer<typeof geminiResultSchema>;
+
+/*
+ * OpenAPI 3 response schema pinned on Gemini's generateContent call so the
+ * model returns *exactly* this shape. Kept in sync with `geminiResultSchema`
+ * above. Worker uses this via config.responseSchema.
+ */
+export const geminiResponseSchema = {
+  type: "object",
+  properties: {
+    schema_version: { type: "integer", enum: [1] },
+    quality_gate: {
+      type: "object",
+      properties: {
+        status: { type: "string", enum: ["pass", "retry"] },
+        retry_reason: { type: "string", enum: RETRY_REASONS as unknown as string[] },
+        retry_message: { type: "string" }
+      },
+      required: ["status", "retry_reason", "retry_message"]
+    },
+    public_result: {
+      type: "object",
+      properties: {
+        headline: { type: "string", enum: ["진실", "거짓"] },
+        verdict: { type: "string", enum: ["truth", "lie"] },
+        roast_comment: { type: "string" },
+        share_question: { type: "string" },
+        share_text: { type: "string" },
+        result_card_lines: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 3,
+          maxItems: 3
+        },
+        export_final_frame: {
+          type: "object",
+          properties: {
+            title: { type: "string", enum: ["AI 거짓말탐지기"] },
+            question: { type: "string" },
+            headline: { type: "string", enum: ["진실", "거짓"] }
+          },
+          required: ["title", "question", "headline"]
+        }
+      },
+      required: [
+        "headline",
+        "verdict",
+        "roast_comment",
+        "share_question",
+        "share_text",
+        "result_card_lines",
+        "export_final_frame"
+      ]
+    },
+    private_diagnostics: {
+      type: "object",
+      properties: {
+        internal_score: { type: "integer" },
+        internal_confidence: { type: "string", enum: ["low", "medium", "high"] },
+        model_reasoning_summary: { type: "string" },
+        quality: {
+          type: "object",
+          properties: {
+            camera: { type: "string", enum: ["poor", "usable", "good"] },
+            audio: { type: "string", enum: ["poor", "usable", "good"] },
+            face_visible: { type: "boolean" },
+            answer_detected: { type: "boolean" },
+            feature_payload_usable: { type: "boolean" }
+          },
+          required: [
+            "camera",
+            "audio",
+            "face_visible",
+            "answer_detected",
+            "feature_payload_usable"
+          ]
+        },
+        segment_judgments: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              segment: { type: "string", enum: ["warmup", "target"] },
+              usable: { type: "boolean" },
+              internal_notes: { type: "string" }
+            },
+            required: ["segment", "usable", "internal_notes"]
+          }
+        }
+      },
+      required: [
+        "internal_score",
+        "internal_confidence",
+        "model_reasoning_summary",
+        "quality",
+        "segment_judgments"
+      ]
+    },
+    policy_flags: {
+      type: "object",
+      properties: {
+        contains_probability_in_public_text: { type: "boolean" },
+        contains_detection_signal_in_public_text: { type: "boolean" },
+        headline_is_exact: { type: "boolean" }
+      },
+      required: [
+        "contains_probability_in_public_text",
+        "contains_detection_signal_in_public_text",
+        "headline_is_exact"
+      ]
+    }
+  },
+  required: ["schema_version", "quality_gate", "public_result", "private_diagnostics", "policy_flags"]
+} as const;
 
 export function parseGeminiResult(input: unknown): GeminiResult {
   const parsed = geminiResultSchema.parse(input);

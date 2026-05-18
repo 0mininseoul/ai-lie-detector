@@ -1,6 +1,6 @@
 import { GoogleGenAI, type File as GeminiFile } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
-import { parseGeminiResult } from "../../src/lib/gemini/schema";
+import { geminiResponseSchema, parseGeminiResult } from "../../src/lib/gemini/schema";
 import { maxWorkerUploadByteSize, verifyWorkerUploadToken } from "../../src/lib/uploads/worker-token";
 
 type R2ObjectBody = {
@@ -281,7 +281,10 @@ async function analyzeSession(sessionId: string, env: Env) {
     ],
     config: {
       systemInstruction: systemPrompt,
-      responseMimeType: "application/json"
+      responseMimeType: "application/json",
+      // Force exact JSON structure; Gemini sometimes omits or guesses
+      // optional-looking fields when only given a text prompt.
+      responseSchema: geminiResponseSchema as unknown as Record<string, unknown>
     }
   });
 

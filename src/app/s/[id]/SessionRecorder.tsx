@@ -2,10 +2,11 @@
 
 import { Camera, Check, CircleStop, Gift, Mic, Play, RotateCcw, ScanFace } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LiveAnalysisHud } from "@/components/analysis/LiveAnalysisHud";
 import { ProfessionalOverlay } from "@/components/analysis/ProfessionalOverlay";
 import { useCameraRecorder } from "@/hooks/useCameraRecorder";
+import { useEndOfSpeechDetector } from "@/hooks/useEndOfSpeechDetector";
 import { useFeatureCollector } from "@/hooks/useFeatureCollector";
 import styles from "./session.module.css";
 
@@ -98,6 +99,8 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     setPhase("target");
   }
 
+  const finishTargetRef = useRef<() => void>(() => undefined);
+
   async function finishTarget() {
     setError("");
     setIsSubmitting(true);
@@ -171,6 +174,21 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
       setIsSubmitting(false);
     }
   }
+
+  const handleAutoFinish = useCallback(() => {
+    if (isSubmitting) return;
+    void finishTargetRef.current();
+  }, [isSubmitting]);
+
+  useEffect(() => {
+    finishTargetRef.current = finishTarget;
+  });
+
+  const speechDetector = useEndOfSpeechDetector({
+    stream: recorder.stream,
+    active: phase === "target" && !isSubmitting,
+    onSpeechEnd: handleAutoFinish
+  });
 
   async function restart() {
     await recorder.resetRecording();
@@ -309,7 +327,10 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
           <div className={styles.videoFrame} data-recording={recorder.isRecording}>
             <video ref={recorder.videoRef} autoPlay muted playsInline />
             {phase === "target" || phase === "analyzing" ? (
-              <LiveAnalysisHud active={phase === "target"} />
+              <LiveAnalysisHud
+                active={phase === "target"}
+                faceBoxRef={featureCollector.liveFaceBoxRef}
+              />
             ) : (
               <div className={styles.videoHud}>
                 <span>
@@ -383,15 +404,26 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
                 <h2>{currentQuestion}</h2>
               </div>
               <ProfessionalOverlay />
-              <button
-                className={styles.stopButton}
-                type="button"
-                onClick={finishTarget}
-                disabled={isSubmitting}
-              >
-                <CircleStop size={18} aria-hidden />
-                답변 끝내기
-              </button>
+              <div className={styles.autoFinishBar} data-state={speechDetector.status}>
+                <span className={styles.autoFinishDot} aria-hidden />
+                <strong>
+                  {speechDetector.status === "speaking"
+                    ? "대답 감지 중 — 끝나면 자동으로 분석을 시작해요"
+                    : speechDetector.status === "ended"
+                      ? "답변 종료 감지 — 분석 시작합니다"
+                      : "말씀하세요 — AI가 듣고 있어요"}
+                </strong>
+                <button
+                  type="button"
+                  className={styles.manualFinish}
+                  onClick={finishTarget}
+                  disabled={isSubmitting}
+                  aria-label="지금 답변 끝내기"
+                >
+                  <CircleStop size={14} aria-hidden />
+                  지금 끝내기
+                </button>
+              </div>
             </>
           ) : null}
 
