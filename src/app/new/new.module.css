@@ -1,13 +1,16 @@
+/* Mobile-first. Base ≥360px. */
+
 .shell {
   min-height: 100vh;
-  padding: clamp(20px, 3vw, 38px);
+  padding: 18px 18px 40px;
   display: grid;
   grid-template-rows: auto 1fr;
-  gap: clamp(28px, 5vw, 64px);
+  gap: 32px;
 }
 
 .topbar {
-  width: min(1120px, 100%);
+  width: 100%;
+  max-width: 1080px;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -18,9 +21,9 @@
 .back {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 14px 0 12px;
+  gap: 7px;
+  height: 36px;
+  padding: 0 13px 0 11px;
   border: 1px solid var(--glass-edge);
   border-radius: 999px;
   color: var(--muted-text);
@@ -41,7 +44,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  height: 38px;
+  height: 36px;
   padding: 4px 6px 4px 4px;
   border: 1px solid var(--glass-edge);
   border-radius: 999px;
@@ -52,26 +55,26 @@
 
 .profile img,
 .profile .avatarFallback {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
   object-fit: cover;
   background: linear-gradient(135deg, var(--mint), var(--mint-deep));
   display: grid;
   place-items: center;
   color: var(--text-on-mint);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: var(--fw-display);
   box-shadow:
     0 1px 0 var(--liquid-highlight) inset,
-    0 4px 10px oklch(58% 0.18 152 / 0.36);
+    0 4px 10px oklch(54% 0.16 152 / 0.34);
 }
 
 .profile strong {
   color: var(--text);
   font-size: 13px;
   font-weight: var(--fw-body-strong);
-  max-width: 160px;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -80,8 +83,8 @@
 .profile button {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border: 0;
   border-radius: 999px;
   color: var(--muted-text);
@@ -95,24 +98,133 @@
   background: var(--glass-strong);
 }
 
-.stage {
-  width: min(1080px, 100%);
+/* ─── Logged-out gate ───────────────────── */
+
+.gateStage {
+  width: 100%;
+  max-width: 1080px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(380px, 1.1fr);
+  place-items: center;
+  padding: 28px 0;
+}
+
+.gateCard {
+  width: 100%;
+  max-width: 440px;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 36px 26px 28px;
+  border: 1px solid var(--glass-edge);
+  border-radius: calc(var(--radius) * 2.6);
+  background: var(--card-glass-bg);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(34px) saturate(1.8);
+  text-align: center;
+}
+
+.gateLockIcon {
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--mint);
+  background: oklch(28% 0.05 152 / 0.36);
+  box-shadow:
+    0 1px 0 oklch(100% 0 0 / 0.08) inset,
+    0 0 0 1px oklch(74% 0.16 158 / 0.16) inset;
+}
+
+.gateCard h1 {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: clamp(28px, 7vw, 34px);
+  line-height: 1.12;
+  letter-spacing: -0.014em;
+  font-weight: var(--fw-display);
+  text-shadow: var(--text-shadow-strong);
+  text-wrap: balance;
+  word-break: keep-all;
+}
+
+.gateCard p {
+  margin: 0;
+  max-width: 320px;
+  color: var(--muted-text);
+  font-size: 14.5px;
+  line-height: 1.55;
+  font-weight: var(--fw-body-soft);
+  word-break: keep-all;
+}
+
+.kakaoButton {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: calc(var(--radius) * 1.6);
+  padding: 0 18px;
+  display: inline-flex;
   align-items: center;
-  gap: clamp(28px, 6vw, 72px);
+  justify-content: center;
+  gap: 8px;
+  color: oklch(22% 0.05 95);
+  background: linear-gradient(135deg, var(--kakao), var(--kakao-deep));
+  box-shadow:
+    0 1px 0 oklch(100% 0 0 / 0.6) inset,
+    0 12px 28px oklch(82% 0.17 98 / 0.38),
+    0 26px 56px oklch(54% 0.16 152 / 0.18);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: var(--fw-action);
+  letter-spacing: -0.005em;
+  transition: transform 200ms var(--ease-standard), box-shadow 240ms var(--ease-standard);
+}
+
+.kakaoButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 0 oklch(100% 0 0 / 0.7) inset,
+    0 16px 32px oklch(82% 0.17 98 / 0.44),
+    0 36px 70px oklch(54% 0.16 152 / 0.22);
+}
+
+.kakaoButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.gateError {
+  margin: 0;
+  color: oklch(78% 0.18 25);
+  font-size: 13px;
+  font-weight: var(--fw-body-strong);
+  line-height: 1.5;
+}
+
+/* ─── Logged-in form ────────────────────── */
+
+.stage {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: start;
 }
 
 .intro {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   align-content: center;
 }
 
 .step {
   width: fit-content;
-  padding: 6px 12px;
+  padding: 5px 11px;
   border: 1px solid var(--glass-edge);
   border-radius: 999px;
   background: var(--chip-glass-bg);
@@ -127,11 +239,11 @@
 .intro h1 {
   margin: 0;
   color: var(--text);
-  font-size: clamp(40px, 5.6vw, 72px);
-  line-height: 0.96;
+  font-size: clamp(36px, 9vw, 46px);
+  line-height: 1;
   letter-spacing: -0.018em;
   font-weight: var(--fw-display);
-  text-shadow: var(--text-shadow-display);
+  text-shadow: var(--text-shadow-strong);
   text-wrap: balance;
   word-break: keep-all;
 }
@@ -140,7 +252,7 @@
   margin: 0;
   max-width: 360px;
   color: var(--muted-text);
-  font-size: clamp(15px, 1.5vw, 17px);
+  font-size: 14.5px;
   line-height: 1.6;
   font-weight: var(--fw-body-soft);
   word-break: keep-all;
@@ -150,7 +262,7 @@
   position: relative;
   display: grid;
   gap: 16px;
-  padding: clamp(22px, 3vw, 30px);
+  padding: 22px;
   border: 1px solid var(--glass-edge);
   border-radius: calc(var(--radius) * 2.6);
   background: var(--card-glass-bg);
@@ -172,8 +284,8 @@
   background: var(--notice-warn-bg);
   box-shadow:
     0 1px 0 var(--liquid-highlight) inset,
-    0 12px 34px oklch(58% 0.19 25 / 0.18),
-    0 28px 64px oklch(67% 0.18 292 / 0.1);
+    0 12px 32px oklch(58% 0.19 25 / 0.18),
+    0 28px 64px oklch(46% 0.17 292 / 0.1);
 }
 
 .notice[data-tone="warn"] svg {
@@ -186,27 +298,6 @@
 
 .notice[data-tone="warn"] span {
   color: var(--notice-warn-body);
-}
-
-.notice[data-tone="login"] {
-  border: 1px solid var(--notice-mint-border);
-  background: var(--notice-mint-bg);
-  box-shadow:
-    0 1px 0 var(--liquid-highlight) inset,
-    0 12px 32px oklch(58% 0.18 152 / 0.22),
-    0 28px 60px oklch(50% 0.14 230 / 0.12);
-}
-
-.notice[data-tone="login"] svg {
-  color: var(--notice-mint-icon);
-}
-
-.notice[data-tone="login"] strong {
-  color: var(--notice-mint-title);
-}
-
-.notice[data-tone="login"] span {
-  color: var(--notice-mint-body);
 }
 
 .notice strong,
@@ -233,10 +324,6 @@
   letter-spacing: 0.005em;
 }
 
-.questionWrap {
-  position: relative;
-}
-
 .questionInput {
   width: 100%;
   min-height: 132px;
@@ -250,7 +337,7 @@
   box-shadow: var(--shadow-input);
   backdrop-filter: blur(20px) saturate(1.5);
   font-family: var(--font-sans);
-  font-size: 20px;
+  font-size: 19px;
   line-height: 1.45;
   font-weight: var(--fw-body-strong);
   transition: box-shadow 240ms var(--ease-standard), border-color 240ms var(--ease-standard);
@@ -258,40 +345,13 @@
 
 .questionInput::placeholder {
   color: var(--muted-text);
-  opacity: 0.7;
+  opacity: 0.6;
   font-weight: var(--fw-body);
 }
 
 .questionInput:focus {
   border-color: var(--mint-line);
   box-shadow: var(--shadow-input-focus);
-}
-
-.questionInput:disabled {
-  opacity: 0.62;
-  cursor: not-allowed;
-}
-
-.lockedVeil {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  border-radius: calc(var(--radius) * 1.6);
-  background: linear-gradient(135deg, oklch(26% 0.022 230 / 0.62), var(--glass-tint-mint));
-  color: var(--notice-mint-icon);
-  pointer-events: none;
-  backdrop-filter: blur(14px) saturate(1.4);
-  text-align: center;
-}
-
-.lockedVeil span {
-  font-size: 14px;
-  font-weight: var(--fw-headline);
-  letter-spacing: -0.005em;
 }
 
 .sampleRow {
@@ -301,46 +361,41 @@
 }
 
 .sampleRow button {
-  min-height: 36px;
-  padding: 0 13px;
+  min-height: 34px;
+  padding: 0 12px;
   border: 1px solid var(--glass-edge);
   border-radius: 999px;
   color: var(--text);
   background: var(--glass);
   box-shadow: var(--shadow-chip);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: var(--fw-body-strong);
   transition: transform 200ms var(--ease-standard), background 200ms var(--ease-standard);
 }
 
-.sampleRow button:hover:not(:disabled) {
+.sampleRow button:hover {
   background: var(--glass-strong);
   transform: translateY(-1px);
 }
 
-.sampleRow button:disabled {
-  cursor: not-allowed;
-  opacity: 0.48;
-}
-
 .actionRow {
   display: grid;
-  grid-template-columns: auto minmax(180px, 1fr);
+  grid-template-columns: 1fr;
   align-items: center;
   gap: 12px;
 }
 
 .counter {
   color: var(--muted-text);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: var(--fw-caption);
   font-variant-numeric: tabular-nums;
 }
 
-.lockButton,
-.kakaoButton {
-  min-height: 48px;
+.lockButton {
+  width: 100%;
+  min-height: 50px;
   border: 0;
   border-radius: calc(var(--radius) * 1.6);
   padding: 0 18px;
@@ -348,17 +403,14 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  color: var(--text-on-mint);
+  background: linear-gradient(135deg, var(--mint), var(--mint-deep));
+  box-shadow: var(--shadow-action);
   font-family: var(--font-sans);
   font-size: 16px;
   font-weight: var(--fw-action);
   letter-spacing: -0.005em;
   transition: transform 200ms var(--ease-standard), box-shadow 240ms var(--ease-standard);
-}
-
-.lockButton {
-  color: var(--text-on-mint);
-  background: linear-gradient(135deg, var(--mint), var(--mint-deep));
-  box-shadow: var(--shadow-action);
 }
 
 .lockButton:hover:not(:disabled) {
@@ -372,32 +424,10 @@
   transform: none;
 }
 
-.kakaoButton {
-  color: oklch(22% 0.05 95);
-  background: linear-gradient(135deg, var(--kakao), var(--kakao-deep));
-  box-shadow:
-    0 1px 0 oklch(100% 0 0 / 0.6) inset,
-    0 12px 28px oklch(82% 0.17 98 / 0.38),
-    0 26px 56px oklch(58% 0.18 152 / 0.18);
-}
-
-.kakaoButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow:
-    0 1px 0 oklch(100% 0 0 / 0.7) inset,
-    0 16px 32px oklch(82% 0.17 98 / 0.44),
-    0 36px 70px oklch(58% 0.18 152 / 0.24);
-}
-
-.kakaoButton:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
 .error,
 .afterLock {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -411,22 +441,50 @@
   font-weight: var(--fw-body-soft);
 }
 
-@media (max-width: 920px) {
-  .stage {
-    grid-template-columns: 1fr;
-    padding: 8px 0 32px;
+/* ─── Tablet/Desktop ───────────────────── */
+
+@media (min-width: 720px) {
+  .shell {
+    padding: 22px 28px 56px;
+    gap: 40px;
   }
 
-  .intro h1 {
-    font-size: clamp(40px, 11vw, 60px);
+  .gateCard {
+    padding: 44px 36px 32px;
+    gap: 16px;
+  }
+
+  .gateLockIcon {
+    width: 72px;
+    height: 72px;
   }
 
   .actionRow {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto 1fr;
   }
 
-  .lockButton,
-  .kakaoButton {
-    width: 100%;
+  .lockButton {
+    width: auto;
+    min-width: 200px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .stage {
+    grid-template-columns: minmax(0, 0.8fr) minmax(420px, 1.1fr);
+    gap: 56px;
+    align-items: center;
+  }
+
+  .intro h1 {
+    font-size: clamp(44px, 4.6vw, 60px);
+  }
+
+  .intro p {
+    font-size: 16px;
+  }
+
+  .console {
+    padding: 28px;
   }
 }

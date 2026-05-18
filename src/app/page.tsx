@@ -6,31 +6,31 @@ const steps = [
   {
     id: "01",
     title: "질문 잠그기",
-    body: "내가 진짜 물어보고 싶은 한 줄을 화면에 등록합니다. 잠근 순간부터 상대 카메라가 켜져요."
+    body: "물어보고 싶은 한 줄을 적어서 잠가요. 잠그는 순간 카메라가 켜집니다."
   },
   {
     id: "02",
-    title: "상대가 대답",
-    body: "상대에게 기기를 넘기면 워밍업 질문 한 번 → 진짜 질문 한 번 순서로 카메라·마이크가 같이 돌아갑니다."
+    title: "상대에게 넘기기",
+    body: "기기를 상대에게 건네면 가벼운 워밍업 질문이 먼저 뜨고, 그 다음에 진짜 질문이 나타나요."
   },
   {
     id: "03",
-    title: "AI가 판정",
-    body: "얼굴·시선·음성·답변 리듬을 동시에 보고 진실/거짓 한 단어로 답합니다. 릴스용 결과 카드도 자동."
+    title: "AI 판정 받기",
+    body: "표정·시선·목소리·답변 리듬을 함께 보고 한 단어로 결론을 알려드려요. 릴스용 카드도 같이 만들어 드립니다."
   }
 ];
 
 const signals = [
-  { icon: ScanFace, label: "얼굴 표정", note: "마이크로 표정 변화의 빈도와 강도" },
-  { icon: Eye, label: "시선 흐름", note: "시선이 머무는 위치와 회피 패턴" },
-  { icon: Waves, label: "음성 파형", note: "피치·진폭·떨림과 호흡 텀" },
-  { icon: Mic, label: "답변 리듬", note: "대답까지 걸린 시간과 단어 밀도" }
+  { icon: ScanFace, label: "표정 변화", note: "눈썹·입꼬리·미세 근육의 흔들림을 잡아냅니다." },
+  { icon: Eye, label: "시선 흐름", note: "어디를 보고 어디를 피하는지, 시선의 경로를 따라가요." },
+  { icon: Waves, label: "목소리 결", note: "높낮이·떨림·호흡 간격에서 긴장의 흔적을 찾아요." },
+  { icon: Mic, label: "답변 리듬", note: "대답까지 걸린 시간과 말의 밀도를 함께 봅니다." }
 ];
 
 const sampleVerdicts = [
-  { headline: "거짓", question: "어제 누구랑 있었어?", roast: "이미 흔들렸어요. 다시 물어보세요." },
-  { headline: "진실", question: "최근에 숨긴 거 하나라도 있어?", roast: "이번엔 깔끔합니다. 진실 80%." },
-  { headline: "거짓", question: "나 몰래 연락하는 사람 있어?", roast: "눈이 두 번이나 빠져나갔어요." }
+  { headline: "거짓", question: "어제 누구랑 있었어?", roast: "두 번 흔들렸어요. 다시 물어보셔도 될 것 같아요." },
+  { headline: "진실", question: "최근에 숨긴 거 하나라도 있어?", roast: "꽤 깔끔합니다. 이번엔 믿어줘도 괜찮아요." },
+  { headline: "거짓", question: "나 몰래 연락하는 사람 있어?", roast: "시선이 두 번이나 빠져나갔어요. 다시 한 번 더." }
 ];
 
 export default function HomePage() {
@@ -44,9 +44,11 @@ export default function HomePage() {
           <span>AI 거짓말탐지기</span>
         </Link>
         <div className={styles.navLinks}>
-          <Link href="/price">가격</Link>
+          <Link href="/price" className={styles.navLink}>
+            가격
+          </Link>
           <Link href="/new" className={styles.navCta}>
-            지금 시작하기
+            지금 시작
             <ArrowRight size={14} aria-hidden />
           </Link>
         </div>
@@ -59,13 +61,14 @@ export default function HomePage() {
             AI Vision · Multimodal Verdict
           </span>
           <h1 id="home-title">
-            <span>AI는</span>
-            <span>거짓말을</span>
-            <span className={styles.heroAccent}>알아챌까?</span>
+            <span>혹시,</span>
+            <span>거짓말</span>
+            <span className={styles.heroAccent}>하고 있어?</span>
           </h1>
           <p className={styles.heroLead}>
-            질문 한 줄을 잠그면, 상대가 대답하는 사이 AI가 얼굴·시선·음성·리듬을
-            동시에 본다. 결과는 진실 또는 거짓, 한 단어로.
+            물어보고 싶은 한 줄을 잠그고 상대에게 카메라를 넘기세요. 대답하는
+            동안 AI가 표정·시선·목소리를 함께 읽고, 진실인지 거짓인지 한 단어로
+            알려드립니다.
           </p>
           <div className={styles.heroCtas}>
             <Link href="/new" className={styles.primaryCta}>
@@ -73,15 +76,15 @@ export default function HomePage() {
               <ArrowRight size={16} aria-hidden />
             </Link>
             <a href="#how" className={styles.secondaryCta}>
-              어떻게 작동하는지 보기
+              작동 방식 보기
             </a>
           </div>
           <ul className={styles.heroMeta}>
             <li>
-              <LockKeyhole size={14} aria-hidden /> 1회 무료 · 카카오로 시작
+              <LockKeyhole size={14} aria-hidden /> 첫 판은 무료 · 카카오 1초 시작
             </li>
             <li>
-              <Camera size={14} aria-hidden /> 카메라·마이크는 그 자리에서만 사용
+              <Camera size={14} aria-hidden /> 카메라·마이크는 이 기기에서만 써요
             </li>
           </ul>
         </div>
@@ -110,26 +113,26 @@ export default function HomePage() {
       <section className={styles.how} id="how" aria-labelledby="how-title">
         <header className={styles.sectionHead}>
           <span className={styles.sectionLabel}>HOW IT WORKS</span>
-          <h2 id="how-title">잠그고, 묻고, 판정받는다. 그게 전부.</h2>
+          <h2 id="how-title">세 단계면 결론이 나와요.</h2>
         </header>
-        <div className={styles.stepGrid}>
+        <ol className={styles.stepGrid}>
           {steps.map((step) => (
-            <article key={step.id} className={styles.stepCard}>
+            <li key={step.id} className={styles.stepCard}>
               <span className={styles.stepNumber}>{step.id}</span>
               <h3>{step.title}</h3>
               <p>{step.body}</p>
-            </article>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
 
       <section className={styles.signals} aria-labelledby="signals-title">
         <header className={styles.sectionHead}>
           <span className={styles.sectionLabel}>WHAT AI READS</span>
-          <h2 id="signals-title">AI가 동시에 보는 네 가지 신호.</h2>
+          <h2 id="signals-title">AI는 네 가지를 동시에 봐요.</h2>
           <p className={styles.sectionLead}>
-            한 가지 단서가 결정하지 않아요. 얼굴·시선·음성·리듬이 같은 방향으로
-            기울 때 판정이 굳어집니다.
+            한 가지 단서로 결정하지 않습니다. 네 신호가 같은 방향을 가리킬 때
+            판정이 굳어져요.
           </p>
         </header>
         <div className={styles.signalGrid}>
@@ -149,10 +152,10 @@ export default function HomePage() {
         <div className={styles.finalCard}>
           <span className={styles.kicker} data-on-mint>
             <span aria-hidden className={styles.kickerDot} data-on-mint />
-            지금 당신 차례
+            이제 당신 차례
           </span>
-          <h2 id="final-title">한 마디면 알 수 있어요. 지금 묻자.</h2>
-          <p>1회는 무료. 결과가 마음에 들면 묶음권으로 친구 자리까지 사세요.</p>
+          <h2 id="final-title">한 마디로 확인해 볼까요?</h2>
+          <p>첫 판은 무료입니다. 마음에 들면 묶음권으로 친구들 분량까지 챙겨가세요.</p>
           <div className={styles.heroCtas}>
             <Link href="/new" className={styles.primaryCta} data-on-mint>
               지금 질문 만들기

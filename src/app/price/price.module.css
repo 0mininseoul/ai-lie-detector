@@ -1,21 +1,23 @@
+/* Mobile-first. */
+
 .shell {
   min-height: 100vh;
-  padding: clamp(22px, 3vw, 42px);
+  padding: 22px 18px 40px;
 }
 
 .hero {
-  width: min(1120px, 100%);
-  min-height: calc(100vh - clamp(44px, 6vw, 84px));
+  width: 100%;
+  max-width: 1120px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(380px, 470px);
-  align-items: center;
-  gap: clamp(28px, 7vw, 96px);
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: start;
 }
 
 .copy {
   display: grid;
-  gap: 20px;
+  gap: 18px;
 }
 
 .kicker {
@@ -23,16 +25,16 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 13px;
+  padding: 7px 13px;
   border: 1px solid var(--glass-edge);
   border-radius: 999px;
   color: var(--mint);
   background: var(--chip-glass-bg);
   box-shadow: var(--shadow-chip);
-  backdrop-filter: blur(20px) saturate(1.5);
-  font-size: 12px;
+  backdrop-filter: blur(20px) saturate(1.4);
+  font-size: 11px;
   font-weight: var(--fw-display-on-color);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
@@ -40,9 +42,9 @@
   max-width: 660px;
   margin: 0;
   color: var(--text);
-  font-size: clamp(48px, 7vw, 92px);
-  line-height: 0.94;
-  letter-spacing: -0.014em;
+  font-size: clamp(38px, 9vw, 52px);
+  line-height: 1;
+  letter-spacing: -0.018em;
   font-weight: var(--fw-display);
   text-shadow: var(--text-shadow-display);
   text-wrap: balance;
@@ -50,10 +52,10 @@
 }
 
 .copy p {
-  max-width: 560px;
+  max-width: 540px;
   margin: 0;
   color: var(--muted-text);
-  font-size: clamp(16px, 2vw, 19px);
+  font-size: 15px;
   line-height: 1.6;
   font-weight: var(--fw-body-soft);
   word-break: keep-all;
@@ -71,6 +73,7 @@
   color: var(--text-on-mint);
   background: linear-gradient(135deg, var(--mint), var(--mint-deep));
   box-shadow: var(--shadow-action);
+  font-size: 15px;
   font-weight: var(--fw-action);
   letter-spacing: -0.005em;
   transition: transform 220ms var(--ease-standard), box-shadow 240ms var(--ease-standard);
@@ -81,23 +84,33 @@
   box-shadow: var(--shadow-action-hover);
 }
 
-@media (max-width: 900px) {
+@media (min-width: 720px) {
   .shell {
-    padding: 18px;
-  }
-
-  .hero {
-    min-height: auto;
-    grid-template-columns: 1fr;
-    justify-items: center;
-    padding: 34px 0;
-  }
-
-  .copy {
-    justify-items: start;
+    padding: 32px 28px 60px;
   }
 
   .copy h1 {
-    font-size: clamp(44px, 14vw, 72px);
+    font-size: clamp(48px, 6vw, 64px);
+  }
+
+  .copy p {
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr) minmax(380px, 470px);
+    gap: clamp(40px, 6vw, 96px);
+    align-items: center;
+    min-height: calc(100vh - 100px);
+  }
+
+  .copy h1 {
+    font-size: clamp(56px, 5.6vw, 88px);
+  }
+
+  .copy p {
+    font-size: 18px;
   }
 }

@@ -24,16 +24,16 @@ const plans: Plan[] = [
     singlePrice: 0,
     bundlePrice: 0,
     baseQuestions: 1,
-    features: ["첫 판은 무료", "질문 공개 결과 카드", "공유 문구 자동 생성"]
+    features: ["첫 판 무료", "결과 카드 자동 생성", "공유 문구 추천"]
   },
   {
     id: "single",
     name: "1회권",
-    description: "바로 추궁",
+    description: "딱 한 번 더",
     singlePrice: 990,
     bundlePrice: 790,
     baseQuestions: 1,
-    features: ["원하는 질문 1개", "AI 멀티모달 판정", "릴스용 영상 내보내기"]
+    features: ["질문 1개 추가", "AI 멀티모달 판정", "릴스용 영상 내보내기"]
   },
   {
     id: "pack",
@@ -42,7 +42,7 @@ const plans: Plan[] = [
     singlePrice: 3900,
     bundlePrice: 2900,
     baseQuestions: 5,
-    features: ["질문 5개까지 사용", "결과 카드 무제한 공유", "앱인토스 확장 대비"]
+    features: ["질문 5개", "결과 카드 무제한 공유", "앱인토스 확장 대비"]
   }
 ];
 
@@ -70,7 +70,7 @@ export default function PricingCard() {
       <header className={styles.header}>
         <div className={styles.badge}>Viral MVP Price</div>
         <h1>요금 고르기</h1>
-        <p>무료 1회 사용 후, 1회권으로 진행하거나 묶음권으로 한꺼번에 결제할 수 있습니다.</p>
+        <p>첫 판 무료 후, 1회권 또는 묶음권으로 결제할 수 있습니다.</p>
       </header>
 
       <div className={styles.segmented} role="tablist" aria-label="요금 방식">
@@ -161,10 +161,10 @@ export default function PricingCard() {
                         <strong>질문 수</strong>
                         <span>
                           {plan.id === "pack"
-                            ? "5회권은 고정입니다"
+                            ? "5회 고정"
                             : isFree
-                              ? "체험은 1회 고정"
-                              : `${questionCount}개로 계산 중`}
+                              ? "1회 고정"
+                              : `${questionCount}개 기준`}
                         </span>
                       </div>
                     </div>
@@ -209,7 +209,7 @@ export default function PricingCard() {
           <strong>{formatWon.format(total)}</strong>
         </div>
         <button className={styles.cta} type="button">
-          {activePlan.id === "trial" ? "무료로 1회 시작하기" : "결제는 곧 연결될 예정입니다"}
+          {activePlan.id === "trial" ? "무료로 시작하기" : "결제 연결은 곧 열려요"}
         </button>
       </footer>
     </section>
