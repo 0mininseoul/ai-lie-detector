@@ -3,10 +3,11 @@
 import { Camera, Check, CircleStop, Gift, Mic, Play, RotateCcw, ScanFace } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CountdownRing } from "@/components/analysis/CountdownRing";
 import { LiveAnalysisHud } from "@/components/analysis/LiveAnalysisHud";
 import { ProfessionalOverlay } from "@/components/analysis/ProfessionalOverlay";
+import { TelemetryStrip } from "@/components/analysis/TelemetryStrip";
 import { useCameraRecorder } from "@/hooks/useCameraRecorder";
-import { useEndOfSpeechDetector } from "@/hooks/useEndOfSpeechDetector";
 import { useFeatureCollector } from "@/hooks/useFeatureCollector";
 import styles from "./session.module.css";
 
@@ -182,12 +183,6 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
   useEffect(() => {
     finishTargetRef.current = finishTarget;
-  });
-
-  const speechDetector = useEndOfSpeechDetector({
-    stream: recorder.stream,
-    active: phase === "target" && !isSubmitting,
-    onSpeechEnd: handleAutoFinish
   });
 
   async function restart() {
@@ -398,33 +393,30 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
           ) : null}
 
           {phase === "target" ? (
-            <>
-              <div className={styles.questionBar}>
-                <span>진짜 질문</span>
-                <h2>{currentQuestion}</h2>
+            <section className={styles.targetPanel}>
+              <span className={styles.questionLabel}>REAL QUESTION</span>
+              <h2 className={styles.questionText}>{currentQuestion}</h2>
+              <div className={styles.countdownRow}>
+                <CountdownRing
+                  durationMs={5000}
+                  active={!isSubmitting}
+                  onComplete={handleAutoFinish}
+                />
+                <div className={styles.countdownCopy}>
+                  <strong>5초 안에 답해 주세요.</strong>
+                  <span>0초가 되는 순간 자동으로 분석이 시작됩니다.</span>
+                  <button
+                    type="button"
+                    className={styles.manualFinish}
+                    onClick={finishTarget}
+                    disabled={isSubmitting}
+                  >
+                    <CircleStop size={14} aria-hidden />
+                    지금 끝내기
+                  </button>
+                </div>
               </div>
-              <ProfessionalOverlay />
-              <div className={styles.autoFinishBar} data-state={speechDetector.status}>
-                <span className={styles.autoFinishDot} aria-hidden />
-                <strong>
-                  {speechDetector.status === "speaking"
-                    ? "대답 감지 중 — 끝나면 자동으로 분석을 시작해요"
-                    : speechDetector.status === "ended"
-                      ? "답변 종료 감지 — 분석 시작합니다"
-                      : "말씀하세요 — AI가 듣고 있어요"}
-                </strong>
-                <button
-                  type="button"
-                  className={styles.manualFinish}
-                  onClick={finishTarget}
-                  disabled={isSubmitting}
-                  aria-label="지금 답변 끝내기"
-                >
-                  <CircleStop size={14} aria-hidden />
-                  지금 끝내기
-                </button>
-              </div>
-            </>
+            </section>
           ) : null}
 
           {phase === "between" ? (
@@ -443,6 +435,12 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
           {phase !== "error" && error ? <p className={styles.error}>{error}</p> : null}
         </div>
       </section>
+
+      {phase === "target" ? (
+        <div className={styles.telemetryWrap}>
+          <TelemetryStrip />
+        </div>
+      ) : null}
 
       {phase === "error" ? (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="error-modal-title">

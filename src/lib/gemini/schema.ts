@@ -79,7 +79,9 @@ export type GeminiResult = z.infer<typeof geminiResultSchema>;
 export const geminiResponseSchema = {
   type: "object",
   properties: {
-    schema_version: { type: "integer", enum: [1] },
+    // Gemini API rejects enum on integer types — keep the schema constraint
+    // open here and let our zod parser enforce `schema_version === 1`.
+    schema_version: { type: "integer" },
     quality_gate: {
       type: "object",
       properties: {

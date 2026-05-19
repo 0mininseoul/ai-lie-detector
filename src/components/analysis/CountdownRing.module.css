@@ -1,0 +1,81 @@
+.ring {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+  --ring-tone: var(--mint);
+}
+
+.ring[data-tone="warn"] {
+  --ring-tone: oklch(82% 0.16 78);
+}
+
+.ring[data-tone="danger"] {
+  --ring-tone: oklch(72% 0.18 25);
+  animation: ringPulse 380ms steps(2, end) infinite;
+}
+
+.ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.track {
+  fill: none;
+  stroke: oklch(46% 0.13 230 / 0.22);
+  stroke-width: 6;
+}
+
+.progress {
+  fill: none;
+  stroke: var(--ring-tone);
+  stroke-width: 6;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 16px var(--ring-tone));
+  transition: stroke 220ms ease;
+}
+
+.center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  gap: 0;
+  font-family: var(--font-mono);
+  pointer-events: none;
+}
+
+.center strong {
+  color: var(--ring-tone);
+  font-size: 56px;
+  line-height: 1;
+  font-weight: var(--fw-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 24px var(--ring-tone);
+  transition: color 220ms ease;
+}
+
+.center span {
+  color: var(--muted-text);
+  font-size: 10px;
+  font-weight: var(--fw-body-strong);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+@keyframes ringPulse {
+  50% { opacity: 0.72; }
+}
+
+@media (max-width: 720px) {
+  .ring {
+    width: 116px;
+    height: 116px;
+  }
+  .center strong {
+    font-size: 46px;
+  }
+}

@@ -78,12 +78,10 @@
 .meshTracker {
   position: absolute;
   pointer-events: none;
-  transition:
-    left 80ms linear,
-    top 80ms linear,
-    width 80ms linear,
-    height 80ms linear,
-    opacity 160ms ease;
+  /* No layout transition — we want the mesh to *snap* to the latest
+     detected face box on every animation frame so the overlay doesn't
+     visibly lag the head movement. Opacity is the only thing that fades. */
+  transition: opacity 140ms ease;
   will-change: left, top, width, height, opacity;
 }
 
