@@ -174,9 +174,6 @@ export default function NewQuestionPage() {
               <KakaoIcon size={20} aria-hidden />
               {isStartingLogin ? "카카오 여는 중" : "카카오로 1초 만에 시작하기"}
             </button>
-            <Link href="/signup" className={styles.emailButton}>
-              이메일로 로그인
-            </Link>
             {error ? <p className={styles.gateError}>{error}</p> : null}
             {auth.error ? <p className={styles.gateError}>{auth.error}</p> : null}
           </div>
