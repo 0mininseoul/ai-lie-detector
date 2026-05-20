@@ -1,0 +1,47 @@
+.composer {
+  display: inline-flex;
+  align-items: center;
+}
+
+.canvas {
+  display: none;
+}
+
+.hiddenVideo {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  left: -9999px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 14px;
+  text-decoration: none;
+  background: oklch(8% 0.018 230 / 0.6);
+  color: oklch(94% 0.04 158);
+  border: 1px solid oklch(74% 0.16 158 / 0.5);
+  backdrop-filter: blur(14px) saturate(1.5);
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

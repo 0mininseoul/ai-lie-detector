@@ -1,49 +1,72 @@
 "use client";
 
-import { Share2 } from "lucide-react";
+import { Plus, Share2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ExportRecorder } from "@/components/export/ExportRecorder";
-import styles from "./result.module.css";
+import dynamic from "next/dynamic";
 import type { Headline } from "@/types/domain";
+import styles from "./ResultExperience.module.css";
 
-type ResultActionsProps = {
+const ReelsComposer = dynamic(
+  () => import("@/components/export/ReelsComposer").then((m) => m.ReelsComposer),
+  { ssr: false }
+);
+
+type Props = {
   question: string;
-  headline?: Headline;
-  roastComment?: string;
-  shareText?: string;
+  videoSrc: string | null;
+  headline: Headline | null;
+  roastComment: string;
+  shareText: string;
+  disabled: boolean;
 };
 
-export function ResultActions({ question, headline, roastComment = "", shareText }: ResultActionsProps) {
-  const [message, setMessage] = useState("");
+export function ResultActions({ question, videoSrc, headline, roastComment, shareText, disabled }: Props) {
+  const router = useRouter();
+  const [toast, setToast] = useState("");
 
-  async function shareResult() {
-    const text = shareText ?? `질문: ${question}`;
-
+  async function share() {
     try {
-      if (navigator.share) {
+      if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share({
           title: "AI 거짓말탐지기",
-          text
+          text: shareText,
+          url: window.location.href
         });
-        setMessage("공유창을 띄웠습니다.");
         return;
       }
-
-      await navigator.clipboard.writeText(text);
-      setMessage("공유 문구를 복사했습니다.");
+      await navigator.clipboard.writeText(`${shareText}\n${window.location.href}`);
+      setToast("공유 문구를 복사했어요.");
+      window.setTimeout(() => setToast(""), 1800);
     } catch {
-      setMessage("공유가 튕겼습니다. 다시 눌러 주세요.");
+      setToast("공유가 막혔어요. 다시 눌러 주세요.");
+      window.setTimeout(() => setToast(""), 1800);
     }
   }
 
   return (
-    <div className={styles.actions}>
-      <button type="button" onClick={shareResult}>
+    <div className={styles.actionBar} data-disabled={disabled} aria-hidden={disabled}>
+      <button type="button" onClick={share} className={styles.primaryAction} disabled={disabled}>
         <Share2 size={18} aria-hidden />
         공유하기
       </button>
-      {headline ? <ExportRecorder question={question} headline={headline} roastComment={roastComment} /> : null}
-      {message ? <p>{message}</p> : null}
+      {headline && videoSrc ? (
+        <ReelsComposer
+          videoSrc={videoSrc}
+          question={question}
+          headline={headline}
+          roastComment={roastComment}
+        />
+      ) : null}
+      <button
+        type="button"
+        onClick={() => router.replace("/new")}
+        className={styles.secondaryAction}
+      >
+        <Plus size={16} aria-hidden />
+        새 질문
+      </button>
+      {toast ? <p className={styles.toast}>{toast}</p> : null}
     </div>
   );
 }

@@ -1,8 +1,6 @@
 import { notFound } from "next/navigation";
-import { ResultActions } from "./ResultActions";
-import styles from "./result.module.css";
 import { getSupabaseServer } from "@/lib/supabase/server";
-import type { Headline } from "@/types/domain";
+import { ResultExperience } from "./ResultExperience";
 
 export const dynamic = "force-dynamic";
 
@@ -17,76 +15,18 @@ type SessionRecord = {
   target_question: string;
 };
 
-type ResultRecord = {
-  headline: Headline;
-  roast_comment: string;
-  public_json: {
-    share_text?: string;
-  } | null;
-};
-
 export default async function ResultPage({ params }: ResultPageProps) {
   const { id } = await params;
   const supabase = getSupabaseServer();
-  const [{ data: session, error: sessionError }, { data: result, error: resultError }] = await Promise.all([
-    supabase.from("sessions").select("id, target_question").eq("id", id).single<SessionRecord>(),
-    supabase
-      .from("analysis_results")
-      .select("headline, roast_comment, public_json")
-      .eq("session_id", id)
-      .maybeSingle<ResultRecord>()
-  ]);
+  const { data: session, error } = await supabase
+    .from("sessions")
+    .select("id, target_question")
+    .eq("id", id)
+    .single<SessionRecord>();
 
-  if (sessionError) {
-    if (sessionError.code !== "PGRST116") {
-      throw new Error("Failed to load session");
-    }
+  if (error || !session) {
     notFound();
   }
 
-  if (!session) {
-    notFound();
-  }
-
-  if (resultError) {
-    throw new Error("Failed to load result");
-  }
-
-  if (!result) {
-    return (
-      <main className={styles.shell}>
-        <section className={styles.pending}>
-          <span>AI 거짓말탐지기</span>
-          <p>아직 판정 중입니다. AI가 결과를 정리하고 있습니다.</p>
-          <ResultActions question={session.target_question} />
-        </section>
-      </main>
-    );
-  }
-
-  const shareText =
-    result.public_json?.share_text ??
-    `질문: ${session.target_question} / 판정: ${result.headline} / ${result.roast_comment}`;
-
-  return (
-    <main className={styles.shell}>
-      <section className={styles.result} aria-label="거짓말탐지기 결과">
-        <div className={styles.brand}>AI 거짓말탐지기</div>
-        <h1>{result.headline}</h1>
-        <p className={styles.roast}>{result.roast_comment}</p>
-
-        <div className={styles.questionBlock}>
-          <span>질문</span>
-          <p>{session.target_question}</p>
-        </div>
-
-        <ResultActions
-          question={session.target_question}
-          headline={result.headline}
-          roastComment={result.roast_comment}
-          shareText={shareText}
-        />
-      </section>
-    </main>
-  );
+  return <ResultExperience sessionId={session.id} question={session.target_question} />;
 }
