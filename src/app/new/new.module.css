@@ -5,7 +5,7 @@
   padding: 14px 18px 20px;
   display: grid;
   grid-template-rows: auto 1fr;
-  gap: 16px;
+  gap: 22px;
 }
 
 .topbar {
@@ -105,8 +105,8 @@
   max-width: 1080px;
   margin: 0 auto;
   display: grid;
-  place-items: start center;
-  padding: 8px 0 0;
+  place-items: center;
+  padding: 0;
 }
 
 .gateCard {
@@ -218,8 +218,9 @@
 
 .intro {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   align-content: center;
+  padding-block: 4px;
 }
 
 .step {
