@@ -519,11 +519,12 @@ html {
   min-height: 100%;
   background: var(--background);
   color: var(--foreground);
+  /* html 에도 font-family 를 박는다. 한국어 lang 의 UA stylesheet 가 일부
+   * 브라우저에서 h1/h2 등에 시스템 한국어 폰트 (Apple SD Gothic Neo 등) 를
+   * 직접 박는 경우가 있어 body 만 설정하면 상속이 끊긴다. */
+  font-family: var(--font-sans);
   text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
-  /* font-synthesis 는 weight/style 자동 합성을 끄는 옵션이라 variable axis
-   * 가 실패한 Safari 에서 weight 600+ 요청이 system fallback 으로 떨어지는
-   * 원인이 됐다. 정적 fallback 이 매칭되도록 합성을 허용한다. */
   text-rendering: geometricPrecision;
 }
 
@@ -556,12 +557,26 @@ body > * {
   z-index: 1;
 }
 
-body,
+/* body 를 이 selector 에서 제외. shorthand `font: inherit` 가 font-family
+ * 까지 리셋해버려서 body 가 html 의 UA default 폰트 (한국어 환경에선
+ * Apple SD Gothic Neo) 를 상속하게 되어 모든 자식 element 에 그게 전파됨.
+ * form control 들이 부모 폰트를 받는 본래 의도는 그대로 유지. */
 button,
 input,
 textarea,
 select {
   font: inherit;
+}
+
+/* heading 들은 일부 브라우저의 lang-aware UA stylesheet 가 직접 폰트를
+ * 박는 경우가 있어 명시적으로 한 번 더 못박는다. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-sans);
 }
 
 button,
