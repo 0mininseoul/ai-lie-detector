@@ -5,6 +5,7 @@ import { maxWorkerUploadByteSize, verifyWorkerUploadToken } from "../../src/lib/
 
 type R2ObjectBody = {
   arrayBuffer(): Promise<ArrayBuffer>;
+  body: ReadableStream;
 };
 
 type R2Bucket = {
@@ -107,6 +108,15 @@ export default {
       }
     }
 
+    if (url.pathname.startsWith("/recording/")) {
+      if (request.method === "OPTIONS") {
+        return new Response(null, { status: 204, headers: downloadCorsHeaders(request) });
+      }
+      if (request.method === "GET") {
+        return handleRecordingDownload(request, env, url);
+      }
+    }
+
     if (request.method !== "POST" || url.pathname !== "/analyze") {
       return Response.json({ error: "Not found" }, { status: 404 });
     }
@@ -174,6 +184,49 @@ async function handleUpload(request: Request, env: Env, url: URL) {
   });
 
   return Response.json({ ok: true, r2Key: payload.r2Key }, { headers: corsHeaders });
+}
+
+async function handleRecordingDownload(request: Request, env: Env, url: URL) {
+  const corsHeaders = downloadCorsHeaders(request);
+  const sessionId = url.pathname.slice("/recording/".length);
+  if (!isUuid(sessionId)) {
+    return Response.json({ error: "Invalid session id" }, { status: 400, headers: corsHeaders });
+  }
+
+  const supabase = createSupabase(env);
+  const { data: recording, error } = await supabase
+    .from("recordings")
+    .select("r2_key, mime_type")
+    .eq("session_id", sessionId)
+    .maybeSingle<{ r2_key: string; mime_type: string }>();
+
+  if (error || !recording) {
+    return Response.json({ error: "Recording not ready" }, { status: 404, headers: corsHeaders });
+  }
+
+  const object = await env.RECORDINGS.get(recording.r2_key);
+  if (!object) {
+    return Response.json({ error: "R2 object missing" }, { status: 404, headers: corsHeaders });
+  }
+
+  const headers = new Headers(corsHeaders);
+  headers.set("content-type", recording.mime_type);
+  headers.set("cache-control", "private, max-age=3600");
+  return new Response(object.body, { headers });
+}
+
+function downloadCorsHeaders(request: Request) {
+  const origin = request.headers.get("origin") ?? "";
+  const headers = new Headers({
+    "access-control-allow-methods": "GET, OPTIONS",
+    "access-control-allow-headers": "content-type",
+    "access-control-max-age": "300"
+  });
+  if (isAllowedUploadOrigin(origin)) {
+    headers.set("access-control-allow-origin", origin);
+    headers.set("vary", "Origin");
+  }
+  return headers;
 }
 
 async function analyzeSession(sessionId: string, env: Env) {
