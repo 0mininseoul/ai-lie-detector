@@ -62,11 +62,31 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     return "";
   }, [phase, session.targetQuestion, session.warmupQuestion]);
 
-  async function prepareCamera() {
+  const startCameraRef = useRef(recorder.startCamera);
+  useEffect(() => {
+    startCameraRef.current = recorder.startCamera;
+  }, [recorder.startCamera]);
+
+  /*
+   * Auto-request camera + mic the moment the user lands on this page in the
+   * setup phase. The browser's native permission dialog is the right UI for
+   * granting access — a separate "확인하기" button just adds a click that
+   * everyone has to make anyway. iOS/Android both honor a fresh getUserMedia
+   * call on page load over HTTPS, and if the user previously denied the
+   * permission the call rejects immediately so we can surface the retry
+   * affordance on the same screen.
+   */
+  useEffect(() => {
+    if (phase !== "setup") return;
+    if (recorder.cameraStatus === "ready" || recorder.cameraStatus === "starting") return;
+    void startCameraRef.current();
+  }, [phase, recorder.cameraStatus]);
+
+  async function retryCamera() {
     setError("");
     const stream = await recorder.startCamera();
     if (!stream) {
-      setError(recorder.latestError ?? "카메라와 마이크가 잡히지 않았습니다. 권한을 다시 확인해 주세요.");
+      setError(recorder.latestError ?? "카메라와 마이크 권한을 켜 주세요. iOS는 설정 → Safari, 안드로이드는 주소창 자물쇠에서 다시 허용할 수 있어요.");
     }
   }
 
@@ -272,15 +292,15 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
           <div className={styles.checkGrid}>
             <div>
               <strong>얼굴</strong>
-              <span>화면 중앙에 맞춰 주세요</span>
+              <span>화면 정중앙에</span>
             </div>
             <div>
               <strong>조명</strong>
-              <span>너무 어둡지만 않으면 괜찮습니다</span>
+              <span>어둡지 않게</span>
             </div>
             <div>
               <strong>목소리</strong>
-              <span>대답은 또렷하게 해 주세요</span>
+              <span>또렷한 발음으로</span>
             </div>
           </div>
         </div>
@@ -288,15 +308,30 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
         <div className={styles.controlColumn}>
           {phase === "setup" ? (
             <div className={styles.panel}>
-              <ScanFace size={28} aria-hidden />
-              <p>카메라와 마이크를 허용하고 얼굴을 화면에 맞춰 주세요. 준비되면 가볍게 하나 물어보고 진짜 질문으로 들어갑니다.</p>
-              <button className={styles.primaryButton} type="button" onClick={prepareCamera}>
-                카메라/마이크 확인하기
-              </button>
-              <button className={styles.startButton} type="button" onClick={startWarmup} disabled={!recorder.isCameraReady}>
-                <Play size={18} aria-hidden />
-                시작하기
-              </button>
+              <ScanFace size={26} aria-hidden />
+              <p>
+                {recorder.cameraStatus === "error"
+                  ? "카메라/마이크 권한이 막혔어요. 브라우저에서 권한을 다시 켠 뒤 아래 버튼을 눌러 주세요."
+                  : recorder.cameraStatus === "ready"
+                    ? "얼굴이 화면 중앙에 들어오면 가볍게 하나 물어보고 진짜 질문으로 들어갑니다."
+                    : "카메라와 마이크 권한을 허용해 주세요. 허용 즉시 자동으로 켜져요."}
+              </p>
+              {recorder.cameraStatus === "error" ? (
+                <button className={styles.startButton} type="button" onClick={retryCamera}>
+                  <RotateCcw size={18} aria-hidden />
+                  권한 다시 요청
+                </button>
+              ) : (
+                <button
+                  className={styles.startButton}
+                  type="button"
+                  onClick={startWarmup}
+                  disabled={!recorder.isCameraReady}
+                >
+                  <Play size={18} aria-hidden />
+                  {recorder.cameraStatus === "ready" ? "시작하기" : "카메라 켜는 중…"}
+                </button>
+              )}
             </div>
           ) : null}
 
