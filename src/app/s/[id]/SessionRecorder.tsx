@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CountdownRing } from "@/components/analysis/CountdownRing";
 import { LiveAnalysisHud } from "@/components/analysis/LiveAnalysisHud";
-import { ProfessionalOverlay } from "@/components/analysis/ProfessionalOverlay";
 import { TelemetryStrip } from "@/components/analysis/TelemetryStrip";
 import { useCameraRecorder } from "@/hooks/useCameraRecorder";
 import { useFeatureCollector } from "@/hooks/useFeatureCollector";
+import { recordingLocalStore } from "@/lib/recording/local-store";
 import styles from "./session.module.css";
 
 type RefundState = "idle" | "pending" | "granted" | "failed";
@@ -22,7 +22,7 @@ type SessionRecorderProps = {
   };
 };
 
-type FlowPhase = "setup" | "warmup" | "between" | "target" | "analyzing" | "complete" | "error";
+type FlowPhase = "setup" | "warmup" | "between" | "target" | "error";
 
 type UploadUrlResponse = {
   uploadUrl?: string;
@@ -32,8 +32,6 @@ type UploadUrlResponse = {
 };
 
 function getInitialPhase(status: string): FlowPhase {
-  if (status === "uploaded" || status === "analyzing") return "analyzing";
-  if (status === "complete") return "complete";
   if (status === "failed" || status === "expired") return "error";
   return "setup";
 }
@@ -167,7 +165,9 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
         throw new Error(data.error ?? "분석 요청을 넘기지 못했습니다.");
       }
 
-      setPhase("analyzing");
+      recordingLocalStore.set(session.id, recording.blob);
+      router.replace(`/result/${session.id}`);
+      return;
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "대답을 저장하다가 삐끗했습니다.");
       setPhase("error");
@@ -225,82 +225,6 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   }, [phase, refundState, session.id]);
 
   useEffect(() => {
-    if (phase !== "analyzing") return;
-
-    let cancelled = false;
-    let failures = 0;
-    const startedAt = Date.now();
-
-    void fetch(`/api/sessions/${session.id}/analyze`, { method: "POST" }).catch(() => undefined);
-
-    const interval = window.setInterval(async () => {
-      try {
-        const response = await fetch(`/api/sessions/${session.id}/status`, { cache: "no-store" });
-        const data = (await response.json()) as {
-          status?: string;
-          result?: unknown;
-          errorCode?: string | null;
-          errorDetail?: string | null;
-        };
-
-        if (!response.ok) {
-          failures += 1;
-          if (!cancelled && failures >= 5) {
-            setError("분석 상태 확인이 계속 실패했습니다. 잠깐 후 다시 들어와 주세요.");
-            setRequiresNewSession(true);
-            setPhase("error");
-          }
-          return;
-        }
-
-        failures = 0;
-
-        if (!cancelled && response.ok && data.status === "complete" && data.result) {
-          setPhase("complete");
-          router.push(`/result/${session.id}`);
-          return;
-        }
-
-        if (!cancelled && (data.status === "failed" || data.status === "expired")) {
-          const detail = data.errorDetail ? ` (${data.errorCode ?? "error"}: ${data.errorDetail})` : "";
-          setError(
-            data.status === "failed"
-              ? `분석이 실패했습니다.${detail} 이번 판은 다시 진행해 주세요.`
-              : "이번 판은 시간이 지나 만료되었습니다."
-          );
-          setRequiresNewSession(true);
-          setPhase("error");
-          return;
-        }
-
-        if (!cancelled && Date.now() - startedAt > 180_000) {
-          setError("분석이 너무 오래 걸리고 있습니다. 결과 화면을 새로 열어 보고, 계속 안 뜨면 다시 진행해 주세요.");
-          setRequiresNewSession(true);
-          setPhase("error");
-        }
-      } catch {
-        failures += 1;
-        if (!cancelled && failures >= 5) {
-          setError("분석 상태 확인이 계속 실패했습니다. 잠깐 후 다시 들어와 주세요.");
-          setRequiresNewSession(true);
-          setPhase("error");
-        }
-      }
-    }, 2200);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [phase, router, session.id]);
-
-  useEffect(() => {
-    if (phase === "complete") {
-      router.replace(`/result/${session.id}`);
-    }
-  }, [phase, router, session.id]);
-
-  useEffect(() => {
     stopCameraRef.current = stopCamera;
   }, [stopCamera]);
 
@@ -321,9 +245,9 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
         <div className={styles.videoColumn}>
           <div className={styles.videoFrame} data-recording={recorder.isRecording}>
             <video ref={recorder.videoRef} autoPlay muted playsInline />
-            {phase === "target" || phase === "analyzing" ? (
+            {phase === "target" ? (
               <LiveAnalysisHud
-                active={phase === "target"}
+                active
                 faceBoxRef={featureCollector.liveFaceBoxRef}
               />
             ) : (
@@ -429,8 +353,6 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
               </button>
             </div>
           ) : null}
-
-          {phase === "analyzing" ? <ProfessionalOverlay /> : null}
 
           {phase !== "error" && error ? <p className={styles.error}>{error}</p> : null}
         </div>
