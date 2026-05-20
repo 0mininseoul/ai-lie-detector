@@ -18,13 +18,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ko" data-theme="liquid-glass" className="dark">
       <head>
-        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="" />
         <link
           rel="preload"
           as="font"
           type="font/woff2"
-          href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/woff2/PretendardVariable.woff2"
-          crossOrigin=""
+          href="/fonts/PretendardVariable.woff2"
+          crossOrigin="anonymous"
         />
       </head>
       <body>{children}</body>
