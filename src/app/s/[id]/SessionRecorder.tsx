@@ -242,6 +242,11 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   return (
     <main className={styles.shell}>
       <section className={styles.stage} aria-labelledby="session-title">
+        <header className={styles.titleBlock}>
+          <span>AI 거짓말탐지기</span>
+          <h1 id="session-title">{phase === "setup" ? "이제 상대 차례입니다." : "대답해 주세요."}</h1>
+        </header>
+
         <div className={styles.videoColumn}>
           <div className={styles.videoFrame} data-recording={recorder.isRecording}>
             <video ref={recorder.videoRef} autoPlay muted playsInline />
@@ -281,11 +286,6 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
         </div>
 
         <div className={styles.controlColumn}>
-          <div className={styles.titleBlock}>
-            <span>AI 거짓말탐지기</span>
-            <h1 id="session-title">{phase === "setup" ? "이제 상대 차례입니다." : "대답해 주세요."}</h1>
-          </div>
-
           {phase === "setup" ? (
             <div className={styles.panel}>
               <ScanFace size={28} aria-hidden />

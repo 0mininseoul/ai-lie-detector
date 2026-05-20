@@ -24,7 +24,13 @@ export async function POST(request: Request) {
 
   const supabase = getSupabaseServer();
   const authUser = await getSupabaseAuthUser();
-  await cleanupExpiredSessions(supabase);
+
+  /*
+   * Expired-session cleanup is a maintenance chore — don't make the user wait
+   * for it on the way into /s/[id]. Fire-and-forget so the response races on
+   * the two RPCs that actually matter (consume credit + insert session).
+   */
+  void cleanupExpiredSessions(supabase);
 
   try {
     await consumeAnalysisCredit(input.creatorDeviceId, authUser?.id ?? null);
