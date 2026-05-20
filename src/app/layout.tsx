@@ -22,8 +22,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           rel="preload"
           as="font"
           type="font/woff2"
-          href="/fonts/PretendardVariable.woff2"
-          crossOrigin="anonymous"
+          href="/fonts/Pretendard-Bold.subset.woff2"
+        />
+        <link
+          rel="preload"
+          as="font"
+          type="font/woff2"
+          href="/fonts/Pretendard-Regular.subset.woff2"
         />
       </head>
       <body>{children}</body>

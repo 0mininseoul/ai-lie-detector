@@ -1,23 +1,68 @@
 /*
- * Pretendard Variable — self-hosted woff2 (public/fonts/).
+ * Pretendard — self-hosted, dual track (variable + static fallback).
  *
- * 두 src 라인을 동시에 둔다:
- *   1) format('woff2') tech(variations) — W3C 최신 표준. Chrome 119+, Safari 17+.
- *   2) format('woff2-variations')        — 레거시 호환. Safari 12+, Chrome 89+.
- * 첫 줄을 이해 못 하는 브라우저가 두 번째 줄로 fall-through 하기 때문에
- * 두 줄 모두 같은 파일을 가리켜도 안전하다.
+ * Safari 가 variable woff2 의 fvar 축을 못 풀 때 (font-synthesis: none 과
+ * 결합되면 weight 600+ 요청이 silent fallback 처리되어 시스템 폰트가
+ * 노출됨), 같은 family 우선순위로 정적 weight 파일이 픽업되어 모든
+ * weight 가 안정적으로 렌더링되도록 한다.
  *
- * CDN을 쓰지 않는 이유: third-party origin font는 Safari에서 CORS/preflight
- * 실패 시 silent fallback 으로 떨어져 시스템 폰트가 노출되는 사례 발생.
+ *   1) "Pretendard Variable" — 변수 폰트가 정상 동작하는 환경 (Chrome,
+ *      Edge, FF, Safari 17+) 에서 그대로 100-900 축 사용.
+ *   2) "Pretendard"          — 정적 woff2 (Regular~Black, 6 weights).
+ *      Variable 이 실패한 환경에서 가장 가까운 100-step weight 로 매칭.
+ *
+ * tech(variations) 같은 신규 syntax 는 일부 Safari 의 src descriptor
+ * 파서를 깨뜨려 face 자체가 폐기되는 사례가 있어 사용하지 않는다.
  */
 @font-face {
   font-family: "Pretendard Variable";
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
-  src:
-    url("/fonts/PretendardVariable.woff2") format("woff2") tech(variations),
-    url("/fonts/PretendardVariable.woff2") format("woff2-variations");
+  src: url("/fonts/PretendardVariable.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Pretendard";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Pretendard-Regular.subset.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Pretendard";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Pretendard-Medium.subset.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Pretendard";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Pretendard-SemiBold.subset.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Pretendard";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Pretendard-Bold.subset.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Pretendard";
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Pretendard-ExtraBold.subset.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Pretendard";
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Pretendard-Black.subset.woff2") format("woff2");
 }
 
 /*
@@ -49,7 +94,7 @@
   --primary: #72e3ad;
   --sidebar: #fcfcfc;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --font-sans: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  --font-sans: "Pretendard Variable", "Pretendard", system-ui, sans-serif;
   --secondary: #fdfdfd;
   --background: #fcfcfc;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
@@ -477,6 +522,9 @@ html {
   color: var(--foreground);
   text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
+  /* font-synthesis 는 weight/style 자동 합성을 끄는 옵션이라 variable axis
+   * 가 실패한 Safari 에서 weight 600+ 요청이 system fallback 으로 떨어지는
+   * 원인이 됐다. 정적 fallback 이 매칭되도록 합성을 허용한다. */
   text-rendering: geometricPrecision;
 }
 
@@ -487,7 +535,8 @@ body {
   background: var(--page-bg);
   color: var(--foreground);
   font-family: var(--font-sans);
-  font-synthesis: none;
+  font-synthesis-weight: auto;
+  font-synthesis-style: auto;
   letter-spacing: var(--letter-spacing);
   font-feature-settings: "ss03", "cv11";
   overflow-x: hidden;
