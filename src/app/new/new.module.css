@@ -1,11 +1,11 @@
 /* Mobile-first. Base ≥360px. */
 
 .shell {
-  min-height: 100vh;
-  padding: 18px 18px 40px;
+  min-height: 100dvh;
+  padding: 14px 18px 20px;
   display: grid;
   grid-template-rows: auto 1fr;
-  gap: 32px;
+  gap: 16px;
 }
 
 .topbar {
@@ -105,8 +105,8 @@
   max-width: 1080px;
   margin: 0 auto;
   display: grid;
-  place-items: center;
-  padding: 28px 0;
+  place-items: start center;
+  padding: 8px 0 0;
 }
 
 .gateCard {
@@ -212,13 +212,13 @@
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 32px;
+  gap: 16px;
   align-items: start;
 }
 
 .intro {
   display: grid;
-  gap: 12px;
+  gap: 6px;
   align-content: center;
 }
 
@@ -239,8 +239,8 @@
 .intro h1 {
   margin: 0;
   color: var(--text);
-  font-size: clamp(36px, 9vw, 46px);
-  line-height: 1;
+  font-size: clamp(28px, 7.5vw, 34px);
+  line-height: 1.04;
   letter-spacing: -0.018em;
   font-weight: var(--fw-display);
   text-shadow: var(--text-shadow-strong);
@@ -252,8 +252,8 @@
   margin: 0;
   max-width: 360px;
   color: var(--muted-text);
-  font-size: 14.5px;
-  line-height: 1.6;
+  font-size: 13.5px;
+  line-height: 1.5;
   font-weight: var(--fw-body-soft);
   word-break: keep-all;
 }
@@ -261,8 +261,8 @@
 .console {
   position: relative;
   display: grid;
-  gap: 16px;
-  padding: 22px;
+  gap: 12px;
+  padding: 16px;
   border: 1px solid var(--glass-edge);
   border-radius: calc(var(--radius) * 2.6);
   background: var(--card-glass-bg);
@@ -273,8 +273,8 @@
 .notice {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  padding: 11px 12px;
   border-radius: calc(var(--radius) * 1.6);
   backdrop-filter: blur(18px) saturate(1.4);
 }
@@ -306,15 +306,15 @@
 }
 
 .notice strong {
-  margin-bottom: 3px;
-  font-size: 14.5px;
+  margin-bottom: 2px;
+  font-size: 13.5px;
   font-weight: var(--fw-headline);
 }
 
 .notice span {
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: var(--fw-body-soft);
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
 .questionLabel {
@@ -326,19 +326,19 @@
 
 .questionInput {
   width: 100%;
-  min-height: 132px;
+  min-height: 84px;
   resize: vertical;
   border: 1px solid var(--input-glass-border);
   border-radius: calc(var(--radius) * 1.6);
-  padding: 16px;
+  padding: 12px 14px;
   outline: none;
   background: var(--input-glass-bg);
   color: var(--text);
   box-shadow: var(--shadow-input);
   backdrop-filter: blur(20px) saturate(1.5);
   font-family: var(--font-sans);
-  font-size: 19px;
-  line-height: 1.45;
+  font-size: 17px;
+  line-height: 1.4;
   font-weight: var(--fw-body-strong);
   transition: box-shadow 240ms var(--ease-standard), border-color 240ms var(--ease-standard);
 }
@@ -395,7 +395,7 @@
 
 .lockButton {
   width: 100%;
-  min-height: 50px;
+  min-height: 46px;
   border: 0;
   border-radius: calc(var(--radius) * 1.6);
   padding: 0 18px;
@@ -437,6 +437,7 @@
 }
 
 .afterLock {
+  display: none;
   color: var(--muted-text);
   font-weight: var(--fw-body-soft);
 }
@@ -447,6 +448,11 @@
   .shell {
     padding: 22px 28px 56px;
     gap: 40px;
+  }
+
+  .gateStage {
+    place-items: center;
+    padding: 28px 0;
   }
 
   .gateCard {
@@ -476,15 +482,52 @@
     align-items: center;
   }
 
+  .intro {
+    gap: 12px;
+  }
+
   .intro h1 {
     font-size: clamp(44px, 4.6vw, 60px);
+    line-height: 1;
   }
 
   .intro p {
     font-size: 16px;
+    line-height: 1.6;
   }
 
   .console {
     padding: 28px;
+    gap: 16px;
+  }
+
+  .notice {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .notice strong {
+    font-size: 14.5px;
+    margin-bottom: 3px;
+  }
+
+  .notice span {
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
+  .questionInput {
+    min-height: 132px;
+    padding: 16px;
+    font-size: 19px;
+    line-height: 1.45;
+  }
+
+  .lockButton {
+    min-height: 50px;
+  }
+
+  .afterLock {
+    display: block;
   }
 }
