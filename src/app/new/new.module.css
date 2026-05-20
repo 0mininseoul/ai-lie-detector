@@ -196,6 +196,34 @@
   opacity: 0.6;
 }
 
+.emailButton {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 2px;
+  border: 1px solid var(--glass-edge);
+  border-radius: calc(var(--radius) * 1.6);
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-chip);
+  backdrop-filter: blur(18px) saturate(1.4);
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  font-weight: var(--fw-body-strong);
+  letter-spacing: -0.003em;
+  transition: transform 200ms var(--ease-standard), background 240ms var(--ease-standard);
+}
+
+.emailButton:hover {
+  transform: translateY(-1px);
+  background: var(--glass-strong);
+  color: var(--text);
+}
+
 .gateError {
   margin: 0;
   color: oklch(78% 0.18 25);
