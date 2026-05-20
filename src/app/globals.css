@@ -45,24 +45,9 @@
        local("Pretendard-Bold"),
        url("/fonts/Pretendard-Bold.subset.woff2") format("woff2");
 }
-@font-face {
-  font-family: "Pretendard";
-  font-weight: 800;
-  font-style: normal;
-  font-display: swap;
-  src: local("Pretendard ExtraBold"),
-       local("Pretendard-ExtraBold"),
-       url("/fonts/Pretendard-ExtraBold.subset.woff2") format("woff2");
-}
-@font-face {
-  font-family: "Pretendard";
-  font-weight: 900;
-  font-style: normal;
-  font-display: swap;
-  src: local("Pretendard Black"),
-       local("Pretendard-Black"),
-       url("/fonts/Pretendard-Black.subset.woff2") format("woff2");
-}
+/* 800 (ExtraBold), 900 (Black) 은 의도적으로 미사용. 사용자 요청에 따라
+ * 최대 weight 는 700 (Bold). 누군가 font-weight: 800/900 을 지정해도
+ * 브라우저가 closest match 알고리즘으로 700 로 매핑된다. */
 
 /*
  * Design tokens — single source of truth.
@@ -199,16 +184,16 @@
     0 8px 22px oklch(79% 0.17 152 / 0.22),
     0 22px 54px oklch(70% 0.14 230 / 0.16);
 
-  /* font-weight scale */
-  --fw-display: 900;
-  --fw-headline: 840;
-  --fw-title: 800;
-  --fw-body-strong: 760;
-  --fw-body: 620;
-  --fw-body-soft: 540;
+  /* font-weight scale — 최대 700 (Bold) 로 고정. 정적 Pretendard 400/500/600/700 만 사용. */
+  --fw-display: 700;
+  --fw-headline: 700;
+  --fw-title: 700;
+  --fw-body-strong: 600;
+  --fw-body: 500;
+  --fw-body-soft: 400;
   --fw-caption: 500;
-  --fw-display-on-color: 920;
-  --fw-action: 820;
+  --fw-display-on-color: 700;
+  --fw-action: 600;
 
   /* shadow factory */
   --shadow-color-mint: oklch(79% 0.17 152 / 0.36);
