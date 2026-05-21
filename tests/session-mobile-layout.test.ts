@@ -22,22 +22,28 @@ describe("session recorder mobile layout", () => {
     expect(videoFrame).not.toContain("height: 100%");
   });
 
-  it("layers mobile guidance over the camera instead of below it", () => {
+  it("keeps only the title over the camera and moves guidance below it", () => {
     const titleBlock = selectorBlock(".titleBlock");
     const checkGrid = selectorBlock(".checkGrid");
+    const videoHud = selectorBlock(".videoHud");
 
     expect(titleBlock).toContain("grid-area: video");
     expect(titleBlock).toContain("z-index: 6");
-    expect(checkGrid).toContain("position: absolute");
+    expect(checkGrid).toContain("position: static");
+    expect(checkGrid).toContain("transform: none");
     expect(checkGrid).toContain("pointer-events: none");
+    expect(videoHud).toContain("display: none");
   });
 
-  it("keeps mobile action controls anchored over the lower camera edge", () => {
+  it("keeps mobile action controls below the camera instead of covering faces", () => {
+    const stage = selectorBlock(".stage");
     const controlColumn = selectorBlock(".controlColumn");
 
-    expect(controlColumn).toContain("grid-area: video");
-    expect(controlColumn).toContain("align-self: end");
-    expect(controlColumn).toContain("z-index: 7");
-    expect(mobileCss).toContain("max-height: min(42dvh, 300px)");
+    expect(stage).toContain("\"video\"");
+    expect(stage).toContain("\"controls\"");
+    expect(controlColumn).toContain("grid-area: controls");
+    expect(controlColumn).toContain("align-self: start");
+    expect(controlColumn).not.toContain("z-index: 7");
+    expect(mobileCss).toContain("max-height: none");
   });
 });
