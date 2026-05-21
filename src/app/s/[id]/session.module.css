@@ -573,59 +573,112 @@
 
 @media (max-width: 920px) {
   .shell {
-    padding: 12px 14px 16px;
+    min-height: 100dvh;
+    padding: max(10px, env(safe-area-inset-top)) 14px max(12px, env(safe-area-inset-bottom));
+    overflow-x: hidden;
   }
 
   .stage {
-    min-height: calc(100dvh - 28px);
+    --mobile-camera-width: min(100%, calc(min(64dvh, 620px) * 3 / 4));
+    width: min(430px, 100%);
+    min-height: auto;
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto;
     grid-template-areas:
-      "title"
-      "video"
-      "controls";
-    align-items: stretch;
-    row-gap: 14px;
+      "video";
+    justify-items: center;
+    align-items: start;
+    row-gap: 0;
     padding: 0;
+    position: relative;
   }
 
   .titleBlock {
+    grid-area: video;
     align-self: start;
-    padding-block: 6px 2px;
-    gap: 6px;
+    justify-self: center;
+    width: var(--mobile-camera-width);
+    padding: 12px 14px 0;
+    gap: 4px;
+    z-index: 6;
+    pointer-events: none;
   }
 
   .titleBlock span {
-    font-size: 11.5px;
+    width: fit-content;
+    padding: 4px 8px;
+    border: 1px solid oklch(100% 0 0 / 0.24);
+    border-radius: 999px;
+    color: oklch(86% 0.16 158);
+    background: oklch(8% 0.018 230 / 0.42);
+    backdrop-filter: blur(12px) saturate(1.4);
+    font-size: 10px;
     letter-spacing: 0.1em;
   }
 
   .titleBlock h1 {
-    font-size: clamp(26px, 7.2vw, 32px);
+    color: oklch(98% 0.005 150);
+    font-size: clamp(22px, 6.2vw, 28px);
     line-height: 1.05;
     white-space: normal;
     text-wrap: balance;
     word-break: keep-all;
+    text-shadow:
+      0 2px 10px oklch(8% 0.018 230 / 0.55),
+      0 12px 30px oklch(8% 0.018 230 / 0.36);
+  }
+
+  .stage[data-phase="target"] .titleBlock {
+    opacity: 0;
+    visibility: hidden;
   }
 
   .videoColumn {
-    align-self: stretch;
+    grid-area: video;
+    align-self: start;
+    justify-self: stretch;
+    display: grid;
+    justify-items: center;
+    position: relative;
+    width: 100%;
     min-height: 0;
-    gap: 10px;
-    grid-template-rows: 1fr auto;
+    gap: 0;
+    grid-template-rows: auto;
   }
 
   .controlColumn {
+    grid-area: video;
     align-self: end;
-    gap: 10px;
+    justify-self: center;
+    width: var(--mobile-camera-width);
+    z-index: 7;
+    gap: 8px;
+    padding: 0 10px 10px;
   }
 
   .videoFrame {
-    aspect-ratio: auto;
-    width: 100%;
-    height: 100%;
-    min-height: 180px;
+    aspect-ratio: 3 / 4;
+    width: var(--mobile-camera-width);
+    height: auto;
+    max-height: min(64dvh, 620px);
+    min-height: 0;
     border-radius: calc(var(--radius) * 1.6);
+  }
+
+  .videoFrame::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      linear-gradient(180deg, oklch(5% 0.012 230 / 0.5), transparent 24%),
+      linear-gradient(0deg, oklch(5% 0.012 230 / 0.62), transparent 44%);
+  }
+
+  .videoFrame video {
+    position: relative;
+    z-index: 0;
   }
 
   .videoHud {
@@ -633,6 +686,7 @@
     right: 8px;
     bottom: 8px;
     gap: 6px;
+    z-index: 3;
   }
 
   .videoHud span {
@@ -642,22 +696,43 @@
   }
 
   .checkGrid {
+    position: absolute;
+    left: 50%;
+    bottom: clamp(132px, 24dvh, 176px);
+    z-index: 5;
+    width: calc(var(--mobile-camera-width) - 20px);
+    max-width: calc(100% - 20px);
+    transform: translateX(-50%);
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
+    pointer-events: none;
+  }
+
+  .stage:not([data-phase="setup"]) .checkGrid {
+    display: none;
   }
 
   .checkGrid div {
-    padding: 8px 9px;
+    padding: 8px 7px;
     min-height: 0;
-    border-radius: calc(var(--radius) * 1.1);
+    border-color: oklch(100% 0 0 / 0.22);
+    border-radius: calc(var(--radius) * 1.2);
+    background: oklch(7% 0.016 230 / 0.46);
+    box-shadow:
+      0 1px 0 oklch(100% 0 0 / 0.12) inset,
+      0 10px 24px oklch(8% 0.018 230 / 0.28);
+    backdrop-filter: blur(14px) saturate(1.4);
+    text-align: center;
   }
 
   .checkGrid strong {
+    color: oklch(98% 0.005 150);
     font-size: 12px;
   }
 
   .checkGrid span {
     margin-top: 2px;
+    color: oklch(84% 0.02 150 / 0.78);
     font-size: 10.5px;
     line-height: 1.3;
     white-space: nowrap;
@@ -666,10 +741,22 @@
   }
 
   .panel,
-  .questionPanel {
+  .questionPanel,
+  .targetPanel {
+    max-height: min(42dvh, 300px);
+    overflow: auto;
     gap: 10px;
-    padding: 14px;
+    padding: 12px;
+    border-color: oklch(100% 0 0 / 0.24);
     border-radius: calc(var(--radius) * 1.6);
+    background:
+      linear-gradient(180deg, oklch(12% 0.018 230 / 0.46), oklch(8% 0.018 230 / 0.7)),
+      radial-gradient(circle at 18% 0%, oklch(100% 0 0 / 0.12), transparent 38%);
+    box-shadow:
+      0 1px 0 oklch(100% 0 0 / 0.14) inset,
+      0 18px 42px oklch(8% 0.018 230 / 0.5);
+    backdrop-filter: blur(22px) saturate(1.45);
+    color: oklch(98% 0.005 150);
   }
 
   .panel svg {
@@ -678,8 +765,72 @@
   }
 
   .panel p {
+    color: oklch(98% 0.005 150);
     font-size: 14px;
     line-height: 1.45;
+  }
+
+  .questionPanel span {
+    color: oklch(88% 0.14 78);
+    font-size: 12px;
+  }
+
+  .questionPanel h2 {
+    color: oklch(98% 0.005 150);
+    font-size: clamp(22px, 6.4vw, 30px);
+    line-height: 1.12;
+    text-shadow: 0 10px 28px oklch(8% 0.018 230 / 0.5);
+  }
+
+  .targetPanel {
+    gap: 11px;
+  }
+
+  .targetPanel::before {
+    opacity: 0.55;
+  }
+
+  .questionLabel {
+    padding: 4px 9px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+  }
+
+  .questionText {
+    color: oklch(98% 0.005 150);
+    font-size: clamp(22px, 6vw, 30px);
+    line-height: 1.1;
+    text-shadow: 0 10px 28px oklch(8% 0.018 230 / 0.54);
+  }
+
+  .countdownRow {
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: stretch;
+    text-align: left;
+    gap: 10px;
+    padding-top: 0;
+  }
+
+  .countdownCopy {
+    justify-items: start;
+    gap: 4px;
+  }
+
+  .countdownCopy strong {
+    color: oklch(98% 0.005 150);
+    font-size: 14px;
+  }
+
+  .countdownCopy span {
+    color: oklch(84% 0.02 150 / 0.78);
+    font-size: 11.5px;
+    line-height: 1.35;
+  }
+
+  .manualFinish {
+    margin-top: 4px;
+    color: oklch(98% 0.005 150);
+    background: oklch(100% 0 0 / 0.12);
   }
 
   .primaryButton,
@@ -691,5 +842,23 @@
     padding: 0 14px;
     border-radius: calc(var(--radius) * 1.3);
     font-size: 14.5px;
+  }
+
+  .error {
+    padding: 9px 11px;
+    border: 1px solid oklch(72% 0.18 25 / 0.36);
+    border-radius: calc(var(--radius) * 1.2);
+    background: oklch(12% 0.03 25 / 0.62);
+    color: oklch(86% 0.16 25);
+    backdrop-filter: blur(14px);
+    font-size: 12.5px;
+  }
+
+  .telemetryWrap {
+    display: none;
+  }
+
+  .modalOverlay {
+    padding: 16px;
   }
 }

@@ -261,7 +261,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
   return (
     <main className={styles.shell}>
-      <section className={styles.stage} aria-labelledby="session-title">
+      <section className={styles.stage} data-phase={phase} aria-labelledby="session-title">
         <header className={styles.titleBlock}>
           <span>AI 거짓말탐지기</span>
           <h1 id="session-title">{phase === "setup" ? "이제 상대 차례입니다." : "대답해 주세요."}</h1>
