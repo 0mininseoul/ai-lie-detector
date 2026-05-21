@@ -51,14 +51,17 @@
 
 .topMeta {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 54px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
   z-index: 20;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
-  max-width: 64%;
+  width: max-content;
+  max-width: min(86%, 420px);
 }
 
 .brand {
@@ -71,16 +74,23 @@
 
 .question {
   margin: 0;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: oklch(8% 0.018 230 / 0.6);
-  backdrop-filter: blur(14px) saturate(1.4);
+  padding: 12px 18px;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, oklch(8% 0.018 230 / 0.74), oklch(9% 0.02 35 / 0.58)),
+    radial-gradient(circle at 18% 0%, oklch(74% 0.16 158 / 0.14), transparent 48%);
+  backdrop-filter: blur(16px) saturate(1.45);
   color: oklch(96% 0.02 158);
-  font-size: 13px;
-  text-align: right;
-  font-weight: 600;
-  line-height: 1.4;
-  border: 1px solid oklch(94% 0.02 158 / 0.08);
+  font-size: clamp(16px, 4.6vw, 20px);
+  text-align: center;
+  font-weight: 820;
+  line-height: 1.25;
+  border: 1px solid oklch(94% 0.02 158 / 0.12);
+  box-shadow:
+    0 1px 0 oklch(100% 0 0 / 0.1) inset,
+    0 18px 44px oklch(8% 0.018 230 / 0.46);
+  word-break: keep-all;
+  animation: questionDrop 280ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 .analyzingLayer {
@@ -89,7 +99,10 @@
   z-index: 15;
   pointer-events: none;
   display: grid;
-  place-items: center;
+  justify-items: center;
+  align-items: end;
+  padding: 0 20px;
+  padding-bottom: max(132px, 22dvh);
 }
 
 .scanline {
@@ -231,6 +244,17 @@
   }
 }
 
+@keyframes questionDrop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .failedLayer {
   position: absolute;
   inset: 0;
@@ -241,8 +265,9 @@
   backdrop-filter: blur(12px);
 }
 .failedCard {
-  max-width: 320px;
-  padding: 28px 24px;
+  width: 100%;
+  max-width: min(88vw, 390px);
+  padding: 30px 28px;
   border-radius: 18px;
   background: oklch(10% 0.02 230);
   border: 1px solid oklch(74% 0.16 158 / 0.32);
@@ -255,13 +280,26 @@
 }
 .failedCard p {
   margin: 0 0 10px;
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 13.5px;
+  line-height: 1.65;
   color: oklch(88% 0.02 158 / 0.92);
 }
+.failedCopy {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  word-break: keep-all;
+}
+.failedCopyLine {
+  display: block;
+  white-space: nowrap;
+}
 .failedDetail {
+  max-width: 30ch;
+  margin-inline: auto;
   font-size: 11px;
   color: oklch(68% 0.02 158 / 0.75);
+  overflow-wrap: anywhere;
 }
 .failedCard button {
   margin-top: 14px;
@@ -289,7 +327,7 @@
   transition: opacity 200ms ease;
 }
 .actionBar[data-disabled="true"] {
-  opacity: 0.35;
+  opacity: 0;
   pointer-events: none;
 }
 

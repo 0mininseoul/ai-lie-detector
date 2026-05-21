@@ -22,6 +22,13 @@ describe("session recorder mobile layout", () => {
     expect(videoFrame).not.toContain("height: 100%");
   });
 
+  it("uses a taller camera frame only when answer prompts are overlaid", () => {
+    expect(mobileCss).toContain('.stage[data-phase="warmup"]');
+    expect(mobileCss).toContain('.stage[data-phase="target"]');
+    expect(mobileCss).toContain("aspect-ratio: 9 / 16");
+    expect(mobileCss).toContain("max-height: min(84dvh, 740px)");
+  });
+
   it("keeps only the title over the camera and moves guidance below it", () => {
     const titleBlock = selectorBlock(".titleBlock");
     const checkGrid = selectorBlock(".checkGrid");

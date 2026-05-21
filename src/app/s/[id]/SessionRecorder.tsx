@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, Check, CircleStop, Gift, Mic, Play, RotateCcw, ScanFace } from "lucide-react";
+import { AudioLines, Camera, Gift, Mic, Play, RotateCcw, ScanFace, Smile, SunMedium } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CountdownRing } from "@/components/analysis/CountdownRing";
@@ -22,7 +22,7 @@ type SessionRecorderProps = {
   };
 };
 
-type FlowPhase = "setup" | "warmup" | "between" | "target" | "error";
+type FlowPhase = "setup" | "warmup" | "target" | "error";
 
 type UploadUrlResponse = {
   uploadUrl?: string;
@@ -108,15 +108,11 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     setPhase("warmup");
   }
 
-  function finishWarmup() {
+  const finishWarmup = useCallback(() => {
     featureCollector.markWarmupEnd();
-    setPhase("between");
-  }
-
-  function startTarget() {
     featureCollector.markTargetStart();
     setPhase("target");
-  }
+  }, [featureCollector]);
 
   const finishTargetRef = useRef<() => void>(() => undefined);
 
@@ -200,6 +196,11 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     if (isSubmitting) return;
     void finishTargetRef.current();
   }, [isSubmitting]);
+
+  const handleWarmupComplete = useCallback(() => {
+    if (isSubmitting) return;
+    finishWarmup();
+  }, [finishWarmup, isSubmitting]);
 
   useEffect(() => {
     finishTargetRef.current = finishTarget;
@@ -290,15 +291,24 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
           </div>
 
           <div className={styles.checkGrid}>
-            <div>
+            <div data-check="face">
+              <span className={styles.checkIcon}>
+                <Smile size={16} aria-hidden />
+              </span>
               <strong>얼굴</strong>
               <span>화면 정중앙에</span>
             </div>
-            <div>
+            <div data-check="light">
+              <span className={styles.checkIcon}>
+                <SunMedium size={16} aria-hidden />
+              </span>
               <strong>조명</strong>
               <span>어둡지 않게</span>
             </div>
-            <div>
+            <div data-check="voice">
+              <span className={styles.checkIcon}>
+                <AudioLines size={16} aria-hidden />
+              </span>
               <strong>목소리</strong>
               <span>또렷한 발음으로</span>
             </div>
@@ -313,7 +323,13 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
                 {recorder.cameraStatus === "error"
                   ? "카메라/마이크 권한이 막혔어요. 브라우저에서 권한을 다시 켠 뒤 아래 버튼을 눌러 주세요."
                   : recorder.cameraStatus === "ready"
-                    ? "얼굴이 화면 중앙에 들어오면 가볍게 하나 물어보고 진짜 질문으로 들어갑니다."
+                    ? (
+                        <>
+                          얼굴을 화면 중앙에 맞춰 주세요.
+                          <br />
+                          가벼운 질문 5초 뒤 진짜 질문으로 넘어갑니다.
+                        </>
+                      )
                     : "카메라와 마이크 권한을 허용해 주세요. 허용 즉시 자동으로 켜져요."}
               </p>
               {recorder.cameraStatus === "error" ? (
@@ -336,57 +352,33 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
           ) : null}
 
           {phase === "warmup" ? (
-            <div className={styles.questionPanel}>
-              <span>먼저 가볍게 하나만 답해 주세요.</span>
-              <h2>{currentQuestion}</h2>
-              <button
-                className={styles.stopButton}
-                type="button"
-                onClick={finishWarmup}
-                disabled={isSubmitting}
-              >
-                <CircleStop size={18} aria-hidden />
-                대답 완료
-              </button>
-            </div>
+            <section className={styles.questionPanel} data-kind="warmup">
+              <div className={styles.questionHeader}>
+                <span className={styles.questionEyebrow}>WARM-UP</span>
+                <CountdownRing
+                  durationMs={5000}
+                  active={!isSubmitting}
+                  onComplete={handleWarmupComplete}
+                  size="compact"
+                />
+              </div>
+              <h2 className={styles.questionText}>{currentQuestion}</h2>
+            </section>
           ) : null}
 
           {phase === "target" ? (
             <section className={styles.targetPanel}>
-              <span className={styles.questionLabel}>REAL QUESTION</span>
-              <h2 className={styles.questionText}>{currentQuestion}</h2>
-              <div className={styles.countdownRow}>
+              <div className={styles.questionHeader}>
+                <span className={styles.questionLabel}>REAL QUESTION</span>
                 <CountdownRing
                   durationMs={5000}
                   active={!isSubmitting}
                   onComplete={handleAutoFinish}
+                  size="compact"
                 />
-                <div className={styles.countdownCopy}>
-                  <strong>5초 안에 답해 주세요.</strong>
-                  <span>0초가 되는 순간 자동으로 분석이 시작됩니다.</span>
-                  <button
-                    type="button"
-                    className={styles.manualFinish}
-                    onClick={finishTarget}
-                    disabled={isSubmitting}
-                  >
-                    <CircleStop size={14} aria-hidden />
-                    지금 끝내기
-                  </button>
-                </div>
               </div>
+              <h2 className={styles.questionText}>{currentQuestion}</h2>
             </section>
-          ) : null}
-
-          {phase === "between" ? (
-            <div className={styles.panel}>
-              <Check size={28} aria-hidden />
-              <p>몸풀기는 끝났습니다. 이제 진짜 질문입니다. 표정 관리하실 거면 지금부터가 본게임입니다.</p>
-              <button className={styles.startButton} type="button" onClick={startTarget}>
-                <Play size={18} aria-hidden />
-                진짜 질문 보기
-              </button>
-            </div>
           ) : null}
 
           {phase !== "error" && error ? <p className={styles.error}>{error}</p> : null}

@@ -17,12 +17,13 @@ type Props = {
   durationMs?: number;
   active: boolean;
   onComplete: () => void;
+  size?: "default" | "compact";
 };
 
 const RADIUS = 56;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export function CountdownRing({ durationMs = 5000, active, onComplete }: Props) {
+export function CountdownRing({ durationMs = 5000, active, onComplete, size = "default" }: Props) {
   const [remainingMs, setRemainingMs] = useState(durationMs);
   const firedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
@@ -66,7 +67,7 @@ export function CountdownRing({ durationMs = 5000, active, onComplete }: Props) 
   const tone = remainingMs <= 1000 ? "danger" : remainingMs <= 2000 ? "warn" : "live";
 
   return (
-    <div className={styles.ring} data-tone={tone} aria-live="polite">
+    <div className={styles.ring} data-tone={tone} data-size={size} aria-live="polite">
       <svg viewBox="0 0 128 128" aria-hidden>
         <circle cx="64" cy="64" r={RADIUS} className={styles.track} />
         <circle

@@ -29,7 +29,16 @@ type Props = {
 };
 
 const pollIntervalMs = 1500;
-const maxPollMs = 60_000;
+const maxPollMs = 180_000;
+
+function getFriendlyStatusError(data: Pick<StatusResponse, "status" | "errorDetail">) {
+  if (data.status === "expired") return "세션이 만료되었어요.";
+  if (data.errorDetail?.includes("User location is not supported")) {
+    return "현재 지역은 모델 호출이 제한됐어요.";
+  }
+  if (data.errorDetail?.trim()) return "분석 서버가 응답을 마치지 못했어요.";
+  return "분석을 마치지 못했어요.";
+}
 
 export function ResultExperience({ sessionId, question }: Props) {
   const router = useRouter();
@@ -72,18 +81,12 @@ export function ResultExperience({ sessionId, question }: Props) {
           return true;
         }
         if (data.status === "failed" || data.status === "expired") {
-          setErrorDetail(
-            data.errorDetail
-              ? `${data.errorCode ?? "error"}: ${data.errorDetail}`
-              : data.status === "expired"
-                ? "세션이 만료되었어요."
-                : "분석을 마치지 못했어요."
-          );
+          setErrorDetail(getFriendlyStatusError(data));
           setStatus("failed");
           return true;
         }
         if (Date.now() - startedAt > maxPollMs) {
-          setErrorDetail("분석 응답이 너무 오래 걸려서 중단했습니다.");
+          setErrorDetail("분석이 예상보다 오래 걸리고 있어요.");
           setStatus("failed");
           return true;
         }
@@ -224,10 +227,9 @@ function FailedOverlay({
     <div className={styles.failedLayer} role="dialog" aria-modal="true" aria-labelledby="failed-title">
       <div className={styles.failedCard}>
         <h2 id="failed-title">죄송합니다.</h2>
-        <p>
-          분석 중에 문제가 발생했어요.
-          <br />
-          사과의 의미로 무료 체험권 1회를 추가로 드릴게요.
+        <p className={styles.failedCopy}>
+          <span className={styles.failedCopyLine}>분석 중에 문제가 발생했어요.</span>
+          <span className={styles.failedCopyLine}>무료 체험권 1회를 추가로 드릴게요.</span>
         </p>
         {errorDetail ? <p className={styles.failedDetail}>{errorDetail}</p> : null}
         <button type="button" onClick={onRetry}>

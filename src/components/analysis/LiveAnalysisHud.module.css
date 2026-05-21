@@ -203,7 +203,15 @@
 @media (max-width: 720px) {
   .cornerTl, .cornerTr, .cornerBl, .cornerBr { width: 22px; height: 22px; }
   .topChip { font-size: 9px; padding: 3px 7px; }
-  .sideMetrics { right: 10px; gap: 4px; }
+  .sideMetrics {
+    top: auto;
+    right: 10px;
+    bottom: 52px;
+    transform: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, auto));
+    gap: 4px;
+  }
   .sideMetrics li { padding: 4px 7px; font-size: 9px; }
   .waveform { height: 30px; padding: 3px 8px; }
   .latency { font-size: 9px; padding: 3px 7px; }

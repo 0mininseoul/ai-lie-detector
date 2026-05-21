@@ -15,6 +15,11 @@
   animation: ringPulse 380ms steps(2, end) infinite;
 }
 
+.ring[data-size="compact"] {
+  width: 64px;
+  height: 64px;
+}
+
 .ring svg {
   width: 100%;
   height: 100%;
@@ -58,12 +63,21 @@
   transition: color 220ms ease;
 }
 
+.ring[data-size="compact"] .center strong {
+  font-size: 26px;
+}
+
 .center span {
   color: var(--muted-text);
   font-size: 10px;
   font-weight: var(--fw-body-strong);
   letter-spacing: 0.18em;
   text-transform: uppercase;
+}
+
+.ring[data-size="compact"] .center span {
+  font-size: 7px;
+  letter-spacing: 0.14em;
 }
 
 @keyframes ringPulse {
@@ -75,7 +89,14 @@
     width: 116px;
     height: 116px;
   }
+  .ring[data-size="compact"] {
+    width: 58px;
+    height: 58px;
+  }
   .center strong {
     font-size: 46px;
+  }
+  .ring[data-size="compact"] .center strong {
+    font-size: 24px;
   }
 }
