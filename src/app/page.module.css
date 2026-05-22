@@ -663,10 +663,6 @@
   opacity: 0.78;
 }
 
-.footerLegal span:nth-child(2) {
-  opacity: 0.5;
-}
-
 /* ─── Tablet (≥720px) ───────────────────── */
 
 @media (min-width: 720px) {

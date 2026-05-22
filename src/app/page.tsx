@@ -205,9 +205,9 @@ export default function HomePage() {
           <Link href="/legal/terms">이용약관</Link>
         </nav>
         <div className={styles.footerLegal}>
-          <span>Company: ascentum</span>
-          <span>Business Registration No. 478-59-01063</span>
-          <span>Address: Room 206, 51 Samjeon-ro 13-gil, Songpa-gu, Seoul, Republic of Korea</span>
+          <span>Company: Ascentum</span>
+          <span>BRN 478-59-01063</span>
+          <span>Address: 206, 51 Samjeon-ro 13-gil, Songpa-gu, Seoul, Republic of Korea</span>
           <span>Representative: Youngmin Park</span>
         </div>
       </footer>
