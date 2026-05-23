@@ -201,20 +201,53 @@
 
 /* ─ Mobile tightening ─ */
 @media (max-width: 720px) {
-  .cornerTl, .cornerTr, .cornerBl, .cornerBr { width: 22px; height: 22px; }
-  .topChip { font-size: 9px; padding: 3px 7px; }
+  .cornerTl, .cornerTr, .cornerBl, .cornerBr {
+    width: 22px;
+    height: 22px;
+    opacity: 0.7;
+  }
+  .topBar {
+    display: none;
+  }
+  .faceMesh {
+    color: oklch(82% 0.16 158 / 0.52);
+    filter: drop-shadow(0 0 8px oklch(74% 0.16 158 / 0.2));
+  }
   .sideMetrics {
     top: auto;
-    right: 10px;
-    bottom: 52px;
+    left: 16px;
+    right: 16px;
+    bottom: 84px;
     transform: none;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, auto));
-    gap: 4px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
   }
-  .sideMetrics li { padding: 4px 7px; font-size: 9px; }
-  .waveform { height: 30px; padding: 3px 8px; }
-  .latency { font-size: 9px; padding: 3px 7px; }
-  .topBar > :nth-child(3) { display: none; }
-  .sideMetrics li:nth-child(n+5) { display: none; }
+  .sideMetrics li {
+    justify-content: space-between;
+    padding: 7px 9px;
+    border-radius: 7px;
+    background: oklch(5% 0.012 230 / 0.48);
+    font-size: 9px;
+  }
+  .bottomBar {
+    bottom: 26px;
+    left: 16px;
+    right: 16px;
+  }
+  .waveform {
+    height: 34px;
+    padding: 4px 9px;
+    border-radius: 8px;
+    background: oklch(5% 0.012 230 / 0.52);
+  }
+  .latency {
+    font-size: 9px;
+    padding: 6px 8px;
+    border-radius: 7px;
+    background: oklch(5% 0.012 230 / 0.54);
+  }
+  .sideMetrics li:nth-child(n+5) {
+    display: none;
+  }
 }

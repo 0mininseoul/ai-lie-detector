@@ -40,7 +40,7 @@ describe("result experience mobile layout", () => {
     const failedCopyLine = selectorBlock(".failedCopyLine");
 
     expect(analyzingLayer).toContain("align-items: end");
-    expect(analyzingLayer).toContain("padding-bottom: max(132px, 22dvh)");
+    expect(analyzingLayer).toContain("padding-bottom: max(86px, 14dvh)");
     expect(failedCard).toContain("max-width: min(88vw, 390px)");
     expect(failedCopyLine).toContain("display: block");
     expect(failedCopyLine).toContain("white-space: nowrap");

@@ -5,19 +5,19 @@ import { createEmptyFeaturePayload } from "@/lib/recording/features";
 describe("recording mime helpers", () => {
   it("lists MediaRecorder candidates in preference order", () => {
     expect(candidateMimeTypes).toEqual([
-      "video/webm;codecs=vp9,opus",
-      "video/webm;codecs=vp8,opus",
-      "video/webm",
       "video/mp4;codecs=h264,aac",
       "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
-      "video/mp4"
+      "video/mp4",
+      "video/webm;codecs=vp9,opus",
+      "video/webm;codecs=vp8,opus",
+      "video/webm"
     ]);
   });
 
   it("returns the first supported MIME type", () => {
     const supported = new Set(["video/webm", "video/mp4"]);
 
-    expect(pickSupportedMimeType((mimeType) => supported.has(mimeType))).toBe("video/webm");
+    expect(pickSupportedMimeType((mimeType) => supported.has(mimeType))).toBe("video/mp4");
   });
 
   it("returns an empty string when no candidates are supported", () => {

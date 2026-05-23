@@ -24,7 +24,9 @@ describe("session recorder mobile flow", () => {
     expect((recorder.match(/durationMs=\{5000\}/g) ?? []).length).toBeGreaterThanOrEqual(2);
   });
 
-  it("keeps setup guidance scannable with explicit check icons", () => {
+  it("keeps setup guidance scannable in a single checklist card", () => {
+    expect(recorder).toContain("styles.guidanceCard");
+    expect(recorder).toContain("styles.guidanceRow");
     expect(recorder).toContain('data-check="face"');
     expect(recorder).toContain('data-check="light"');
     expect(recorder).toContain('data-check="voice"');
@@ -35,9 +37,9 @@ describe("session recorder mobile flow", () => {
     const sideMetrics = selectorBlock(hudMobileCss, ".sideMetrics");
 
     expect(sideMetrics).toContain("top: auto");
-    expect(sideMetrics).toContain("bottom: 52px");
+    expect(sideMetrics).toContain("bottom: 84px");
     expect(sideMetrics).toContain("transform: none");
-    expect(sideMetrics).toContain("grid-template-columns: repeat(2, minmax(0, auto))");
+    expect(sideMetrics).toContain("grid-template-columns: repeat(2, minmax(0, 1fr))");
   });
 
   it("projects face tracking against the rendered video element", () => {

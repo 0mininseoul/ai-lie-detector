@@ -116,6 +116,7 @@ export function useCameraRecorder() {
             facingMode: "user",
             width: { ideal: 720, max: 960 },
             height: { ideal: 960, max: 1280 },
+            aspectRatio: { ideal: 3 / 4 },
             frameRate: { ideal: 24, max: 24 }
           },
           audio: {
@@ -181,8 +182,8 @@ export function useCameraRecorder() {
       const mimeType = getSupportedMimeType();
       const options: MediaRecorderOptions = {
         ...(mimeType ? { mimeType } : {}),
-        videoBitsPerSecond: 650_000,
-        audioBitsPerSecond: 48_000
+        videoBitsPerSecond: 2_500_000,
+        audioBitsPerSecond: 96_000
       };
       const recorder = new MediaRecorder(activeStream, options);
 

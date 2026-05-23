@@ -32,14 +32,13 @@ describe("session recorder mobile layout", () => {
 
   it("keeps only the title over the camera and moves guidance below it", () => {
     const titleBlock = selectorBlock(".titleBlock");
-    const checkGrid = selectorBlock(".checkGrid");
+    const guidanceCard = selectorBlock(".guidanceCard");
     const videoHud = selectorBlock(".videoHud");
 
     expect(titleBlock).toContain("grid-area: video");
     expect(titleBlock).toContain("z-index: 6");
-    expect(checkGrid).toContain("position: static");
-    expect(checkGrid).toContain("transform: none");
-    expect(checkGrid).toContain("pointer-events: none");
+    expect(guidanceCard).toContain("width: var(--mobile-camera-width)");
+    expect(guidanceCard).toContain("pointer-events: none");
     expect(videoHud).toContain("display: none");
   });
 
@@ -51,14 +50,14 @@ describe("session recorder mobile layout", () => {
     expect(stage).toContain("\"controls\"");
     expect(controlColumn).toContain("grid-area: controls");
     expect(controlColumn).toContain("align-self: start");
-    expect(mobileCss).toContain("top: max(12px, env(safe-area-inset-top))");
+    expect(mobileCss).toContain("top: max(8px, env(safe-area-inset-top))");
     expect(mobileCss).toContain("z-index: 7");
   });
 
-  it("preserves the native camera ratio on mobile instead of cropping the feed", () => {
+  it("fills the portrait camera frame on mobile instead of showing a landscape strip", () => {
     const video = selectorBlock(".videoFrame video");
 
-    expect(video).toContain("object-fit: contain");
+    expect(video).toContain("object-fit: cover");
     expect(video).toContain("object-position: center center");
   });
 });

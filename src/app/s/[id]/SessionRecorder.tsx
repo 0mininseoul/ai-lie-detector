@@ -294,27 +294,24 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
             )}
           </div>
 
-          <div className={styles.checkGrid}>
-            <div data-check="face">
+          <div className={styles.guidanceCard}>
+            <div className={styles.guidanceRow} data-check="face">
               <span className={styles.checkIcon}>
                 <Smile size={16} aria-hidden />
               </span>
-              <strong>얼굴</strong>
-              <span>화면 정중앙에</span>
+              <span><strong>얼굴</strong> 화면 중앙에 맞춰 주세요.</span>
             </div>
-            <div data-check="light">
+            <div className={styles.guidanceRow} data-check="light">
               <span className={styles.checkIcon}>
                 <SunMedium size={16} aria-hidden />
               </span>
-              <strong>조명</strong>
-              <span>어둡지 않게</span>
+              <span><strong>조명</strong> 얼굴이 어둡지 않게 해 주세요.</span>
             </div>
-            <div data-check="voice">
+            <div className={styles.guidanceRow} data-check="voice">
               <span className={styles.checkIcon}>
                 <AudioLines size={16} aria-hidden />
               </span>
-              <strong>목소리</strong>
-              <span>또렷한 발음으로</span>
+              <span><strong>목소리</strong> 작지 않게 또렷하게 말해 주세요.</span>
             </div>
           </div>
         </div>

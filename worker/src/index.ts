@@ -70,6 +70,7 @@ type FeaturePayloadRow = {
 };
 
 const defaultGeminiModel = "gemini-2.5-flash";
+const workerVersion = "2026-05-24-portrait-inline-v2";
 const promptVersion = 1;
 const resultExpiresInMs = 48 * 60 * 60 * 1000;
 const inlineVideoMaxBytes = 8 * 1024 * 1024;
@@ -110,7 +111,7 @@ export default {
     const url = new URL(request.url);
 
     if (request.method === "GET" && url.pathname === "/health") {
-      return Response.json({ ok: true });
+      return Response.json({ ok: true, workerVersion });
     }
 
     if (url.pathname === "/upload") {
@@ -155,7 +156,8 @@ export default {
       event: "analysis_queued",
       level: "info",
       source: "worker_analyze_route",
-      sessionId
+      sessionId,
+      workerVersion
     });
 
     context.waitUntil(
@@ -259,6 +261,7 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
       level: "info",
       source: "worker_analyze_session",
       sessionId,
+      workerVersion,
       stage,
       elapsedMs: Date.now() - startedAt,
       ...fields

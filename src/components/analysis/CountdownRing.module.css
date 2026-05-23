@@ -16,8 +16,8 @@
 }
 
 .ring[data-size="compact"] {
-  width: 58px;
-  height: 58px;
+  width: 66px;
+  height: 66px;
   border: 1px solid oklch(100% 0 0 / 0.16);
   border-radius: 999px;
   background: oklch(6% 0.014 230 / 0.42);
@@ -36,13 +36,13 @@
 .track {
   fill: none;
   stroke: oklch(46% 0.13 230 / 0.22);
-  stroke-width: 6;
+  stroke-width: 5;
 }
 
 .progress {
   fill: none;
   stroke: var(--ring-tone);
-  stroke-width: 6;
+  stroke-width: 5;
   stroke-linecap: round;
   filter: drop-shadow(0 0 16px var(--ring-tone));
   transition: stroke 220ms ease;
@@ -51,10 +51,11 @@
 .center {
   position: absolute;
   inset: 0;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-items: center;
-  gap: 0;
+  justify-content: center;
+  gap: 1px;
   font-family: var(--font-mono);
   pointer-events: none;
 }
@@ -71,7 +72,8 @@
 }
 
 .ring[data-size="compact"] .center strong {
-  font-size: 24px;
+  font-size: 25px;
+  line-height: 0.9;
 }
 
 .center span {
@@ -84,7 +86,8 @@
 
 .ring[data-size="compact"] .center span {
   font-size: 7px;
-  letter-spacing: 0.14em;
+  line-height: 1;
+  letter-spacing: 0.12em;
 }
 
 @keyframes ringPulse {
@@ -97,17 +100,17 @@
     height: 116px;
   }
   .ring[data-size="compact"] {
-    width: 50px;
-    height: 50px;
+    width: 62px;
+    height: 62px;
   }
   .center strong {
     font-size: 46px;
   }
   .ring[data-size="compact"] .center strong {
-    font-size: 21px;
+    font-size: 24px;
   }
 
   .ring[data-size="compact"] .center span {
-    font-size: 6px;
+    font-size: 7px;
   }
 }

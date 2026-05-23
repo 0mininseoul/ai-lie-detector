@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { assertValidSessionTimings } from "@/lib/recording/features";
 
-const warmupQuestion = "오늘 하루 중 제일 기억나는 일 뭐야?";
+const warmupQuestion = "오늘 하루 중 제일 기억나는 일이 뭐야?";
 
 /*
  * Timings come from performance.now() (DOMHighResTimeStamp) which returns

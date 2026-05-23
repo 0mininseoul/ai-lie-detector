@@ -102,7 +102,7 @@
   justify-items: center;
   align-items: end;
   padding: 0 20px;
-  padding-bottom: max(132px, 22dvh);
+  padding-bottom: max(86px, 14dvh);
 }
 
 .scanline {
@@ -134,10 +134,12 @@
   flex-direction: column;
   gap: 10px;
   align-items: center;
-  padding: 16px 22px;
+  padding: 18px 24px;
   border: 1px solid oklch(74% 0.16 158 / 0.45);
   border-radius: 16px;
-  background: oklch(6% 0.014 230 / 0.66);
+  background:
+    linear-gradient(180deg, oklch(6% 0.014 230 / 0.7), oklch(8% 0.018 230 / 0.58)),
+    radial-gradient(circle at 50% 0%, oklch(74% 0.16 158 / 0.12), transparent 42%);
   backdrop-filter: blur(20px) saturate(1.6);
   text-align: center;
   max-width: 86%;
