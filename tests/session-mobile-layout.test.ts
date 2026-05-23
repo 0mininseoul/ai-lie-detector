@@ -17,7 +17,7 @@ describe("session recorder mobile layout", () => {
     const videoFrame = selectorBlock(".videoFrame");
 
     expect(videoFrame).toContain("aspect-ratio: 3 / 4");
-    expect(videoFrame).toContain("max-height: calc(100svh - 242px)");
+    expect(videoFrame).toContain("max-height: calc(100svh - 306px)");
     expect(videoFrame).toContain("height: auto");
     expect(videoFrame).not.toContain("height: 100%");
   });
@@ -50,7 +50,7 @@ describe("session recorder mobile layout", () => {
     expect(stage).toContain("\"controls\"");
     expect(controlColumn).toContain("grid-area: controls");
     expect(controlColumn).toContain("align-self: start");
-    expect(mobileCss).toContain("top: max(8px, env(safe-area-inset-top))");
+    expect(mobileCss).toContain("top: max(10px, env(safe-area-inset-top))");
     expect(mobileCss).toContain("z-index: 7");
   });
 

@@ -38,6 +38,25 @@ function stopStreamTracks(stream: MediaStream | null) {
   });
 }
 
+async function applyWidestCameraView(stream: MediaStream) {
+  const [track] = stream.getVideoTracks();
+  if (!track) return;
+
+  const zoomTrack = track as MediaStreamTrack & {
+    applyConstraints: (constraints: MediaTrackConstraints & { advanced?: Array<Record<string, unknown>> }) => Promise<void>;
+  };
+  const capabilities = track.getCapabilities?.() as ({ zoom?: { min?: number } } | undefined);
+  const minZoom = capabilities?.zoom?.min;
+  if (typeof minZoom !== "number" || !Number.isFinite(minZoom)) return;
+
+  try {
+    await zoomTrack.applyConstraints({ advanced: [{ zoom: minZoom }] });
+  } catch {
+    // Some iOS browser builds expose zoom but reject applying it. The stream is
+    // still usable, so keep recording with the browser default.
+  }
+}
+
 function toErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Recording failed";
 }
@@ -125,8 +144,9 @@ export function useCameraRecorder() {
             autoGainControl: true
           }
         })
-        .then((nextStream) => {
+        .then(async (nextStream) => {
           const mimeType = getSupportedMimeType();
+          await applyWidestCameraView(nextStream);
 
           if (!isMountedRef.current || cameraStartTokenRef.current !== requestToken) {
             stopStreamTracks(nextStream);

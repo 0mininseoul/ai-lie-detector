@@ -46,10 +46,10 @@ describe("result experience mobile layout", () => {
     expect(failedCopyLine).toContain("white-space: nowrap");
   });
 
-  it("preserves the recorded camera aspect ratio during result playback", () => {
+  it("keeps result playback fullscreen instead of falling back to a landscape strip", () => {
     const video = selectorBlock(".video,\n.videoPlaceholder");
 
-    expect(video).toContain("object-fit: contain");
+    expect(video).toContain("object-fit: cover");
     expect(video).toContain("object-position: center center");
   });
 

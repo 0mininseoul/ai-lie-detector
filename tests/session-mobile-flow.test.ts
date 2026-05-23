@@ -37,7 +37,7 @@ describe("session recorder mobile flow", () => {
     const sideMetrics = selectorBlock(hudMobileCss, ".sideMetrics");
 
     expect(sideMetrics).toContain("top: auto");
-    expect(sideMetrics).toContain("bottom: 84px");
+    expect(sideMetrics).toContain("bottom: 86px");
     expect(sideMetrics).toContain("transform: none");
     expect(sideMetrics).toContain("grid-template-columns: repeat(2, minmax(0, 1fr))");
   });

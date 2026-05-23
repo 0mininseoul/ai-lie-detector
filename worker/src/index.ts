@@ -1,11 +1,11 @@
 import {
   GoogleGenAI,
   MediaResolution,
-  PartMediaResolutionLevel,
   type File as GeminiFile,
   type Part
 } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
+import { normalizeGeminiVideoMimeType } from "../../src/lib/gemini/mime";
 import { geminiResponseSchema, parseGeminiResult } from "../../src/lib/gemini/schema";
 import { maxWorkerUploadByteSize, verifyWorkerUploadToken } from "../../src/lib/uploads/worker-token";
 import { logAxiomEvent, type AxiomEvent } from "./observability";
@@ -70,7 +70,7 @@ type FeaturePayloadRow = {
 };
 
 const defaultGeminiModel = "gemini-2.5-flash";
-const workerVersion = "2026-05-24-portrait-inline-v2";
+const workerVersion = "2026-05-24-portrait-inline-v4";
 const promptVersion = 1;
 const resultExpiresInMs = 48 * 60 * 60 * 1000;
 const inlineVideoMaxBytes = 8 * 1024 * 1024;
@@ -441,25 +441,28 @@ async function buildGeminiVideoPart({
     endOffset: `${Math.max(1, Math.ceil(recording.target_end_ms / 1000))}s`,
     fps: 3
   };
-  const mediaResolution = { level: PartMediaResolutionLevel.MEDIA_RESOLUTION_LOW };
+  const geminiMimeType = normalizeGeminiVideoMimeType(recording.mime_type);
 
   if (videoBytes.byteLength <= inlineVideoMaxBytes) {
-    logStage("gemini_inline_video_prepared", { byteSize: videoBytes.byteLength });
+    logStage("gemini_inline_video_prepared", {
+      byteSize: videoBytes.byteLength,
+      originalMimeType: recording.mime_type,
+      geminiMimeType
+    });
     return {
       inlineData: {
         data: arrayBufferToBase64(videoBytes),
-        mimeType: recording.mime_type
+        mimeType: geminiMimeType
       },
-      mediaResolution,
       videoMetadata
     };
   }
 
   const geminiFile = await withTimeout(
     ai.files.upload({
-      file: new Blob([videoBytes], { type: recording.mime_type }),
+      file: new Blob([videoBytes], { type: geminiMimeType }),
       config: {
-        mimeType: recording.mime_type,
+        mimeType: geminiMimeType,
         displayName: `${sessionId}.${recording.mime_type.startsWith("video/mp4") ? "mp4" : "webm"}`
       }
     }),
@@ -476,8 +479,7 @@ async function buildGeminiVideoPart({
   }
 
   return {
-    fileData: { fileUri: activeFile.uri, mimeType: recording.mime_type },
-    mediaResolution,
+    fileData: { fileUri: activeFile.uri, mimeType: geminiMimeType },
     videoMetadata
   };
 }
@@ -530,6 +532,7 @@ function classifyError(error: unknown): { code: string; message: string } {
   else if (lower.includes("gemini returned empty")) code = "gemini_empty_response";
   else if (lower.includes("gemini file processing failed")) code = "gemini_processing_failed";
   else if (lower.includes("user location is not supported")) code = "gemini_region_unsupported";
+  else if (lower.includes("invalid_argument") || lower.includes("invalid argument")) code = "gemini_invalid_argument";
   else if (lower.includes("gemini file upload timed out")) code = "gemini_upload_timeout";
   else if (lower.includes("gemini file processing timed out")) code = "gemini_file_timeout";
   else if (lower.includes("gemini generation timed out")) code = "gemini_generation_timeout";

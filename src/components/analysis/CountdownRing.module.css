@@ -16,8 +16,8 @@
 }
 
 .ring[data-size="compact"] {
-  width: 66px;
-  height: 66px;
+  width: 62px;
+  height: 62px;
   border: 1px solid oklch(100% 0 0 / 0.16);
   border-radius: 999px;
   background: oklch(6% 0.014 230 / 0.42);
@@ -55,7 +55,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 2px;
   font-family: var(--font-mono);
   pointer-events: none;
 }
@@ -72,8 +72,8 @@
 }
 
 .ring[data-size="compact"] .center strong {
-  font-size: 25px;
-  line-height: 0.9;
+  font-size: 23px;
+  line-height: 1;
 }
 
 .center span {
@@ -87,7 +87,7 @@
 .ring[data-size="compact"] .center span {
   font-size: 7px;
   line-height: 1;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
 }
 
 @keyframes ringPulse {
@@ -100,17 +100,17 @@
     height: 116px;
   }
   .ring[data-size="compact"] {
-    width: 62px;
-    height: 62px;
+    width: 56px;
+    height: 56px;
   }
   .center strong {
     font-size: 46px;
   }
   .ring[data-size="compact"] .center strong {
-    font-size: 24px;
+    font-size: 21px;
   }
 
   .ring[data-size="compact"] .center span {
-    font-size: 7px;
+    font-size: 6.5px;
   }
 }

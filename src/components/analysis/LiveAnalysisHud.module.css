@@ -210,14 +210,14 @@
     display: none;
   }
   .faceMesh {
-    color: oklch(82% 0.16 158 / 0.52);
-    filter: drop-shadow(0 0 8px oklch(74% 0.16 158 / 0.2));
+    color: oklch(82% 0.16 158 / 0.46);
+    filter: drop-shadow(0 0 8px oklch(74% 0.16 158 / 0.16));
   }
   .sideMetrics {
     top: auto;
     left: 16px;
     right: 16px;
-    bottom: 84px;
+    bottom: 86px;
     transform: none;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -225,27 +225,28 @@
   }
   .sideMetrics li {
     justify-content: space-between;
-    padding: 7px 9px;
-    border-radius: 7px;
-    background: oklch(5% 0.012 230 / 0.48);
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: oklch(5% 0.012 230 / 0.42);
     font-size: 9px;
+    box-shadow: 0 1px 0 oklch(100% 0 0 / 0.08) inset;
   }
   .bottomBar {
-    bottom: 26px;
+    bottom: 24px;
     left: 16px;
     right: 16px;
   }
   .waveform {
-    height: 34px;
-    padding: 4px 9px;
+    height: 32px;
+    padding: 4px 10px;
     border-radius: 8px;
-    background: oklch(5% 0.012 230 / 0.52);
+    background: oklch(5% 0.012 230 / 0.44);
   }
   .latency {
     font-size: 9px;
     padding: 6px 8px;
     border-radius: 7px;
-    background: oklch(5% 0.012 230 / 0.54);
+    background: oklch(5% 0.012 230 / 0.46);
   }
   .sideMetrics li:nth-child(n+5) {
     display: none;

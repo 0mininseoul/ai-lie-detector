@@ -241,11 +241,22 @@ function projectFaceBoxToDisplayedVideo({
   }
 
   const sourceX = mirrored ? 1 - box.x - box.width : box.x;
+  const rawLeft = renderedLeft + sourceX * renderedWidth;
+  const rawTop = renderedTop + box.y * renderedHeight;
+  const rawWidth = Math.max(1, box.width * renderedWidth);
+  const rawHeight = Math.max(1, box.height * renderedHeight);
+  const padX = rawWidth * 0.08;
+  const padTop = rawHeight * 0.07;
+  const padBottom = rawHeight * 0.04;
+  const left = Math.max(0, rawLeft - padX);
+  const top = Math.max(0, rawTop - padTop);
+  const right = Math.min(containerWidth, rawLeft + rawWidth + padX);
+  const bottom = Math.min(containerHeight, rawTop + rawHeight + padBottom);
 
   return {
-    left: renderedLeft + sourceX * renderedWidth,
-    top: renderedTop + box.y * renderedHeight,
-    width: Math.max(1, box.width * renderedWidth),
-    height: Math.max(1, box.height * renderedHeight)
+    left,
+    top,
+    width: Math.max(1, right - left),
+    height: Math.max(1, bottom - top)
   };
 }
