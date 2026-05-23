@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodError, z } from "zod";
 import { triggerAnalysis } from "@/lib/analysis/trigger";
+import { logAxiomEvent } from "@/lib/observability/axiom";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { assertR2KeyMatchesSession, parseCompleteUploadInput } from "@/lib/sessions/validation";
 
@@ -69,6 +70,16 @@ export async function POST(request: Request, context: RouteContext) {
       hint: error.hint,
       code: error.code
     });
+    await logAxiomEvent({
+      event: "complete_upload_rpc_failed",
+      level: "error",
+      source: "next_complete_upload_route",
+      sessionId: sessionId.data,
+      byteSize: input.byteSize,
+      durationMs: input.durationMs,
+      errorCode: error.code,
+      error: error.message
+    });
     return NextResponse.json({ error: message }, { status });
   }
 
@@ -79,6 +90,16 @@ export async function POST(request: Request, context: RouteContext) {
       status: trigger.status,
       error: trigger.error
     });
+    await logAxiomEvent({
+      event: "analysis_trigger_failed",
+      level: "error",
+      source: "next_complete_upload_route",
+      sessionId: sessionId.data,
+      byteSize: input.byteSize,
+      durationMs: input.durationMs,
+      triggerStatus: trigger.status,
+      error: trigger.error
+    });
     return NextResponse.json(
       {
         error: trigger.error ?? "Failed to queue analysis",
@@ -87,6 +108,17 @@ export async function POST(request: Request, context: RouteContext) {
       { status: trigger.status === "disabled" ? 503 : 502 }
     );
   }
+
+  await logAxiomEvent({
+    event: "session_upload_completed",
+    level: "info",
+    source: "next_complete_upload_route",
+    sessionId: sessionId.data,
+    byteSize: input.byteSize,
+    durationMs: input.durationMs,
+    mimeType: input.mimeType,
+    analysisQueued: true
+  });
 
   return NextResponse.json({
     id: session.id,

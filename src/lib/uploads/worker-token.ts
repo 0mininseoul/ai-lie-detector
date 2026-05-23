@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const maxWorkerUploadByteSize = 95 * 1024 * 1024;
+export const maxWorkerUploadByteSize = 32 * 1024 * 1024;
 
 const uploadTokenPayloadSchema = z.object({
   sessionId: z.uuid(),

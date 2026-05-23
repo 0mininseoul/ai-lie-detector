@@ -14,10 +14,11 @@ function selectorBlock(selector: string) {
 
 describe("result experience mobile layout", () => {
   it("does not turn a slow worker into a one-minute client-side failure", () => {
-    expect(resultTsx).toContain("const maxPollMs = 180_000");
+    expect(resultTsx).toContain("analysisSlowMs");
+    expect(resultTsx).toContain("setIsTakingLong(true)");
     expect(resultTsx).not.toContain("분석 응답이 너무 오래 걸려서 중단했습니다.");
     expect(resultTsx).not.toContain("${data.errorCode");
-    expect(resultTsx).toContain("분석이 예상보다 오래 걸리고 있어요.");
+    expect(resultTsx).toContain("분석이 길어지고 있어요.");
     expect(resultTsx).toContain("분석 서버가 응답을 마치지 못했어요.");
   });
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z, ZodError } from "zod";
+import { logAxiomEvent } from "@/lib/observability/axiom";
 import { buildRecordingObjectKey } from "@/lib/r2/presign";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { createWorkerUploadToken, maxWorkerUploadByteSize } from "@/lib/uploads/worker-token";
@@ -69,6 +70,12 @@ export async function POST(request: Request, context: RouteContext) {
   const sharedSecret = process.env.WORKER_SHARED_SECRET?.trim();
 
   if (!workerUrl || !sharedSecret) {
+    await logAxiomEvent({
+      event: "upload_url_not_configured",
+      level: "error",
+      source: "next_upload_url_route",
+      sessionId: sessionId.data
+    });
     return NextResponse.json({ error: "Worker upload environment is not configured" }, { status: 503 });
   }
 
@@ -96,7 +103,16 @@ export async function POST(request: Request, context: RouteContext) {
         "content-type": input.mimeType
       }
     });
-  } catch {
+  } catch (error) {
+    await logAxiomEvent({
+      event: "upload_url_create_failed",
+      level: "error",
+      source: "next_upload_url_route",
+      sessionId: sessionId.data,
+      byteSize: input.byteSize,
+      mimeType: input.mimeType,
+      error: error instanceof Error ? error.message : String(error)
+    });
     return NextResponse.json({ error: "Failed to create upload URL" }, { status: 500 });
   }
 }

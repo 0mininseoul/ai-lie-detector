@@ -2,6 +2,7 @@ import { GoogleGenAI, type File as GeminiFile } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
 import { geminiResponseSchema, parseGeminiResult } from "../../src/lib/gemini/schema";
 import { maxWorkerUploadByteSize, verifyWorkerUploadToken } from "../../src/lib/uploads/worker-token";
+import { logAxiomEvent, type AxiomEvent } from "./observability";
 
 type R2ObjectBody = {
   arrayBuffer(): Promise<ArrayBuffer>;
@@ -32,6 +33,11 @@ type Env = {
   SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
   WORKER_SHARED_SECRET?: string;
+  AXIOM_TOKEN?: string;
+  AXIOM_DATASET?: string;
+  AXIOM_URL?: string;
+  AXIOM_INGEST_URL?: string;
+  AXIOM_ORG_ID?: string;
 };
 
 type SessionRow = {
@@ -60,6 +66,8 @@ type FeaturePayloadRow = {
 const defaultGeminiModel = "gemini-2.5-flash";
 const promptVersion = 1;
 const resultExpiresInMs = 48 * 60 * 60 * 1000;
+const geminiUploadTimeoutMs = 45_000;
+const geminiGenerateTimeoutMs = 75_000;
 
 const systemPrompt = `
 당신은 "AI 거짓말탐지기"의 멀티모달 분석 모델입니다.
@@ -136,8 +144,15 @@ export default {
       return Response.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
+    recordWorkerEvent(context, env, {
+      event: "analysis_queued",
+      level: "info",
+      source: "worker_analyze_route",
+      sessionId
+    });
+
     context.waitUntil(
-      analyzeSession(sessionId, env).catch((error) => markSessionFailed(sessionId, env, error))
+      analyzeSession(sessionId, env, context).catch((error) => markSessionFailed(sessionId, env, error, context))
     );
 
     return Response.json({ status: "queued", sessionId });
@@ -229,7 +244,22 @@ function downloadCorsHeaders(request: Request) {
   return headers;
 }
 
-async function analyzeSession(sessionId: string, env: Env) {
+async function analyzeSession(sessionId: string, env: Env, context: WorkerContext) {
+  const startedAt = Date.now();
+  const logStage = (stage: string, fields: Record<string, unknown> = {}) => {
+    recordWorkerEvent(context, env, {
+      event: "analysis_stage",
+      level: "info",
+      source: "worker_analyze_session",
+      sessionId,
+      stage,
+      elapsedMs: Date.now() - startedAt,
+      ...fields
+    });
+  };
+
+  logStage("started");
+
   const supabase = createSupabase(env);
   const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
   const modelName = env.GEMINI_MODEL ?? defaultGeminiModel;
@@ -244,7 +274,10 @@ async function analyzeSession(sessionId: string, env: Env) {
     throw new Error("Session not found");
   }
 
+  logStage("session_loaded", { status: session.status });
+
   if (session.status === "complete" || session.status === "analyzing") {
+    logStage("skipped", { status: session.status });
     return;
   }
 
@@ -258,8 +291,11 @@ async function analyzeSession(sessionId: string, env: Env) {
   );
 
   if (!claimedSession) {
+    logStage("claim_skipped");
     return;
   }
+
+  logStage("claimed");
 
   const [recordingResult, featurePayloadResult] = await Promise.all([
     supabase
@@ -285,61 +321,78 @@ async function analyzeSession(sessionId: string, env: Env) {
   }
 
   const recording = recordingResult.data;
+  logStage("recording_loaded", {
+    byteSize: recording.byte_size,
+    durationMs: recording.duration_ms,
+    mimeType: recording.mime_type
+  });
+
   const r2Object = await env.RECORDINGS.get(recording.r2_key);
   if (!r2Object) {
     throw new Error("R2 recording object not found");
   }
 
   const videoBytes = await r2Object.arrayBuffer();
-  const geminiFile = await ai.files.upload({
-    file: new Blob([videoBytes], { type: recording.mime_type }),
-    config: {
-      mimeType: recording.mime_type,
-      displayName: `${sessionId}.${recording.mime_type.startsWith("video/mp4") ? "mp4" : "webm"}`
-    }
-  });
+  logStage("r2_downloaded", { byteSize: videoBytes.byteLength });
+
+  const geminiFile = await withTimeout(
+    ai.files.upload({
+      file: new Blob([videoBytes], { type: recording.mime_type }),
+      config: {
+        mimeType: recording.mime_type,
+        displayName: `${sessionId}.${recording.mime_type.startsWith("video/mp4") ? "mp4" : "webm"}`
+      }
+    }),
+    geminiUploadTimeoutMs,
+    "Gemini file upload timed out"
+  );
+  logStage("gemini_uploaded", { fileName: geminiFile.name ?? null, fileState: geminiFile.state ?? null });
+
   const activeFile = await waitForGeminiFile(ai, geminiFile);
+  logStage("gemini_file_active", { fileName: activeFile.name ?? null });
 
   if (!activeFile.uri) {
     throw new Error("Gemini file URI is missing");
   }
 
-  const response = await ai.models.generateContent({
-    model: modelName,
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            fileData: { fileUri: activeFile.uri, mimeType: recording.mime_type },
-            videoMetadata: { fps: 1 }
-          },
-          {
-            fileData: { fileUri: activeFile.uri, mimeType: recording.mime_type },
-            videoMetadata: {
-              startOffset: `${Math.floor(recording.target_start_ms / 1000)}s`,
-              endOffset: `${Math.ceil(recording.target_end_ms / 1000)}s`,
-              fps: 5
+  logStage("gemini_generate_started", { modelName });
+  const response = await withTimeout(
+    ai.models.generateContent({
+      model: modelName,
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              fileData: { fileUri: activeFile.uri, mimeType: recording.mime_type },
+              videoMetadata: {
+                startOffset: `${Math.max(0, Math.floor(recording.target_start_ms / 1000))}s`,
+                endOffset: `${Math.max(1, Math.ceil(recording.target_end_ms / 1000))}s`,
+                fps: 4
+              }
+            },
+            {
+              text: buildTextPayload({
+                session,
+                recording,
+                featurePayload: featurePayloadResult.data?.payload_json ?? null
+              })
             }
-          },
-          {
-            text: buildTextPayload({
-              session,
-              recording,
-              featurePayload: featurePayloadResult.data?.payload_json ?? null
-            })
-          }
-        ]
+          ]
+        }
+      ],
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: "application/json",
+        // Force exact JSON structure; Gemini sometimes omits or guesses
+        // optional-looking fields when only given a text prompt.
+        responseSchema: geminiResponseSchema as unknown as Record<string, unknown>
       }
-    ],
-    config: {
-      systemInstruction: systemPrompt,
-      responseMimeType: "application/json",
-      // Force exact JSON structure; Gemini sometimes omits or guesses
-      // optional-looking fields when only given a text prompt.
-      responseSchema: geminiResponseSchema as unknown as Record<string, unknown>
-    }
-  });
+    }),
+    geminiGenerateTimeoutMs,
+    "Gemini generation timed out"
+  );
+  logStage("gemini_generate_completed");
 
   if (!response.text) {
     throw new Error("Gemini returned empty text");
@@ -370,6 +423,8 @@ async function analyzeSession(sessionId: string, env: Env) {
     supabase.from("sessions").update({ status: "complete" }).eq("id", sessionId),
     "Failed to mark session complete"
   );
+
+  logStage("completed", { totalMs: Date.now() - startedAt, modelName });
 }
 
 async function waitForGeminiFile(ai: GoogleGenAI, file: GeminiFile) {
@@ -407,13 +462,19 @@ function classifyError(error: unknown): { code: string; message: string } {
   else if (lower.includes("gemini file uri")) code = "gemini_file_uri_missing";
   else if (lower.includes("gemini returned empty")) code = "gemini_empty_response";
   else if (lower.includes("gemini file processing failed")) code = "gemini_processing_failed";
-  else if (lower.includes("gemini file processing timed out")) code = "gemini_timeout";
+  else if (lower.includes("user location is not supported")) code = "gemini_region_unsupported";
+  else if (lower.includes("gemini file upload timed out")) code = "gemini_upload_timeout";
+  else if (lower.includes("gemini file processing timed out")) code = "gemini_file_timeout";
+  else if (lower.includes("gemini generation timed out")) code = "gemini_generation_timeout";
+  else if (lower.includes("timed out") || lower.includes("timeout") || lower.includes("deadline")) {
+    code = "analysis_timeout";
+  }
   else if (lower.includes("invalid input") || lower.includes("expected int")) code = "validation_failed";
 
   return { code, message: raw.slice(0, 800) };
 }
 
-async function markSessionFailed(sessionId: string, env: Env, error: unknown) {
+async function markSessionFailed(sessionId: string, env: Env, error: unknown, context?: WorkerContext) {
   const { code, message } = classifyError(error);
   console.error("analyzeSession failed", {
     sessionId,
@@ -432,6 +493,17 @@ async function markSessionFailed(sessionId: string, env: Env, error: unknown) {
     })
     .eq("id", sessionId)
     .neq("status", "complete");
+
+  if (context) {
+    recordWorkerEvent(context, env, {
+      event: "analysis_failed",
+      level: "error",
+      source: "worker_mark_failed",
+      sessionId,
+      errorCode: code,
+      errorDetail: message
+    });
+  }
 }
 
 function createSupabase(env: Env) {
@@ -547,4 +619,21 @@ function isUuid(value: string) {
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function recordWorkerEvent(context: WorkerContext, env: Env, event: AxiomEvent) {
+  context.waitUntil(logAxiomEvent(env, event).catch(() => undefined));
+}
+
+function withTimeout<T>(promise: PromiseLike<T>, ms: number, message: string) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error(`${message} after ${ms}ms`)), ms);
+    })
+  ]).finally(() => {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  });
 }

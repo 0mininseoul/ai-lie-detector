@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { logAxiomEvent } from "@/lib/observability/axiom";
+import {
+  analysisTimeoutErrorCode,
+  analysisTimeoutErrorDetail,
+  isAnalysisStale
+} from "@/lib/sessions/analysis-timeout";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 type RouteContext = {
@@ -21,7 +27,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const supabase = getSupabaseServer();
   const { data: session, error: sessionError } = await supabase
     .from("sessions")
-    .select("id, status, error_code, error_detail, error_at")
+    .select("id, status, error_code, error_detail, error_at, updated_at")
     .eq("id", sessionId.data)
     .single();
 
@@ -31,6 +37,49 @@ export async function GET(_request: Request, context: RouteContext) {
       error: sessionError?.message
     });
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
+  }
+
+  let effectiveSession = session;
+
+  if (isAnalysisStale(session.status, session.updated_at)) {
+    const staleDurationMs = Date.now() - Date.parse(session.updated_at);
+    const { data: updatedSession, error: staleError } = await supabase
+      .from("sessions")
+      .update({
+        status: "failed",
+        error_code: analysisTimeoutErrorCode,
+        error_detail: analysisTimeoutErrorDetail,
+        error_at: new Date().toISOString()
+      })
+      .eq("id", sessionId.data)
+      .eq("status", "analyzing")
+      .select("id, status, error_code, error_detail, error_at, updated_at")
+      .maybeSingle();
+
+    if (staleError) {
+      console.error("[status] failed to mark stale analysis", {
+        sessionId: sessionId.data,
+        error: staleError.message
+      });
+      await logAxiomEvent({
+        event: "analysis_stale_update_failed",
+        level: "error",
+        source: "next_status_route",
+        sessionId: sessionId.data,
+        staleDurationMs,
+        error: staleError.message
+      });
+    } else if (updatedSession) {
+      effectiveSession = updatedSession;
+      await logAxiomEvent({
+        event: "analysis_marked_stale",
+        level: "warn",
+        source: "next_status_route",
+        sessionId: sessionId.data,
+        staleDurationMs,
+        errorCode: analysisTimeoutErrorCode
+      });
+    }
   }
 
   const { data: result, error: resultError } = await supabase
@@ -47,20 +96,29 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Failed to load session result" }, { status: 500 });
   }
 
-  if (session.status === "failed") {
+  if (effectiveSession.status === "failed") {
     console.error("[status] session failed", {
-      sessionId: session.id,
-      errorCode: session.error_code,
-      errorDetail: session.error_detail,
-      errorAt: session.error_at
+      sessionId: effectiveSession.id,
+      errorCode: effectiveSession.error_code,
+      errorDetail: effectiveSession.error_detail,
+      errorAt: effectiveSession.error_at
+    });
+    await logAxiomEvent({
+      event: "session_status_failed",
+      level: "error",
+      source: "next_status_route",
+      sessionId: effectiveSession.id,
+      errorCode: effectiveSession.error_code,
+      errorDetail: effectiveSession.error_detail,
+      errorAt: effectiveSession.error_at
     });
   }
 
   return NextResponse.json({
-    id: session.id,
-    status: session.status,
-    errorCode: session.error_code ?? null,
-    errorDetail: session.error_detail ?? null,
+    id: effectiveSession.id,
+    status: effectiveSession.status,
+    errorCode: effectiveSession.error_code ?? null,
+    errorDetail: effectiveSession.error_detail ?? null,
     result: result
       ? {
           verdict: result.verdict,

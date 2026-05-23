@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Volume2, VolumeX } from "lucide-react";
 import { recordingLocalStore } from "@/lib/recording/local-store";
+import { analysisSlowMs } from "@/lib/sessions/analysis-timeout";
 import { recordingDownloadUrl } from "@/lib/sessions/video-url";
 import { ResultActions } from "./ResultActions";
 import type { Headline } from "@/types/domain";
@@ -29,10 +30,15 @@ type Props = {
 };
 
 const pollIntervalMs = 1500;
-const maxPollMs = 180_000;
 
-function getFriendlyStatusError(data: Pick<StatusResponse, "status" | "errorDetail">) {
+function getFriendlyStatusError(data: Pick<StatusResponse, "status" | "errorCode" | "errorDetail">) {
   if (data.status === "expired") return "세션이 만료되었어요.";
+  if (data.errorCode === "analysis_timeout") {
+    return "분석 응답이 너무 오래 걸려서 중단했어요.";
+  }
+  if (data.errorCode === "gemini_region_unsupported") {
+    return "현재 지역은 모델 호출이 제한됐어요.";
+  }
   if (data.errorDetail?.includes("User location is not supported")) {
     return "현재 지역은 모델 호출이 제한됐어요.";
   }
@@ -49,6 +55,7 @@ export function ResultExperience({ sessionId, question }: Props) {
   const [result, setResult] = useState<StatusResponse["result"]>(null);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [revealing, setRevealing] = useState(false);
+  const [isTakingLong, setIsTakingLong] = useState(false);
 
   useEffect(() => {
     const local = recordingLocalStore.toUrl(sessionId);
@@ -76,6 +83,7 @@ export function ResultExperience({ sessionId, question }: Props) {
         if (data.status === "complete" && data.result) {
           setResult(data.result);
           setStatus("revealed");
+          setIsTakingLong(false);
           setRevealing(true);
           window.setTimeout(() => setRevealing(false), 1400);
           return true;
@@ -85,10 +93,8 @@ export function ResultExperience({ sessionId, question }: Props) {
           setStatus("failed");
           return true;
         }
-        if (Date.now() - startedAt > maxPollMs) {
-          setErrorDetail("분석이 예상보다 오래 걸리고 있어요.");
-          setStatus("failed");
-          return true;
+        if (Date.now() - startedAt > analysisSlowMs) {
+          setIsTakingLong(true);
         }
       } catch {
         // network blip — try again
@@ -159,7 +165,7 @@ export function ResultExperience({ sessionId, question }: Props) {
           <p className={styles.question}>{question}</p>
         </header>
 
-        {status === "pending" ? <AnalyzingOverlay /> : null}
+        {status === "pending" ? <AnalyzingOverlay isTakingLong={isTakingLong} /> : null}
 
         {status === "revealed" && headline ? (
           <div className={styles.verdictLayer}>
@@ -191,7 +197,7 @@ export function ResultExperience({ sessionId, question }: Props) {
   );
 }
 
-function AnalyzingOverlay() {
+function AnalyzingOverlay({ isTakingLong }: { isTakingLong: boolean }) {
   return (
     <div className={styles.analyzingLayer} aria-live="polite">
       <span className={styles.scanline} aria-hidden />
@@ -204,7 +210,9 @@ function AnalyzingOverlay() {
           <i style={{ animationDelay: "360ms" }} />
           <i style={{ animationDelay: "480ms" }} />
         </div>
-        <p className={styles.analyzingLog}>표정 · 시선 · 음성 · 지연 패턴 교차 검증</p>
+        <p className={styles.analyzingLog}>
+          {isTakingLong ? "분석이 길어지고 있어요. 결과가 준비되면 바로 표시됩니다." : "표정 · 시선 · 음성 · 지연 패턴 교차 검증"}
+        </p>
       </div>
     </div>
   );

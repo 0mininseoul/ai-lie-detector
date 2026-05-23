@@ -39,6 +39,7 @@ describe("worker upload token", () => {
   });
 
   it("refuses to sign uploads over the Worker storage guardrail", async () => {
+    expect(maxWorkerUploadByteSize).toBe(32 * 1024 * 1024);
     await expect(
       createWorkerUploadToken({ ...payload, byteSize: maxWorkerUploadByteSize + 1 }, "secret")
     ).rejects.toThrow();

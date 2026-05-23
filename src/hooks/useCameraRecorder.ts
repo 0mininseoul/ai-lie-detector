@@ -114,9 +114,10 @@ export function useCameraRecorder() {
         .getUserMedia({
           video: {
             facingMode: "user",
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            frameRate: { ideal: 30 }
+            width: { ideal: 720, max: 1280 },
+            height: { ideal: 1280, max: 1280 },
+            aspectRatio: { ideal: 9 / 16 },
+            frameRate: { ideal: 24, max: 24 }
           },
           audio: {
             echoCancellation: true,
@@ -179,7 +180,11 @@ export function useCameraRecorder() {
       }
 
       const mimeType = getSupportedMimeType();
-      const options = mimeType ? { mimeType } : undefined;
+      const options: MediaRecorderOptions = {
+        ...(mimeType ? { mimeType } : {}),
+        videoBitsPerSecond: 1_000_000,
+        audioBitsPerSecond: 64_000
+      };
       const recorder = new MediaRecorder(activeStream, options);
 
       chunksRef.current = [];
@@ -199,7 +204,7 @@ export function useCameraRecorder() {
       recorderRef.current = recorder;
       setRecording(null);
       setSelectedMimeType(mimeType);
-      recorder.start();
+      recorder.start(1000);
       setRecordingStatus("recording");
       setLatestError(null);
       return true;
