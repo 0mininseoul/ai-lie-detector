@@ -46,6 +46,13 @@ describe("result experience mobile layout", () => {
     expect(failedCopyLine).toContain("white-space: nowrap");
   });
 
+  it("preserves the recorded camera aspect ratio during result playback", () => {
+    const video = selectorBlock(".video,\n.videoPlaceholder");
+
+    expect(video).toContain("object-fit: contain");
+    expect(video).toContain("object-position: center center");
+  });
+
   it("loops only the target-answer segment during analysis playback", () => {
     expect(resultTsx).toContain("recordingLocalStore.getTiming(sessionId)");
     expect(resultTsx).toContain("coercePlaybackClip(data.recording)");
