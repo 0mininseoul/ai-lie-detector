@@ -181,7 +181,10 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
         throw new Error(data.error ?? "분석 요청을 넘기지 못했습니다.");
       }
 
-      recordingLocalStore.set(session.id, recording.blob);
+      recordingLocalStore.set(session.id, recording.blob, {
+        targetStartMs: timings.targetStartMs,
+        targetEndMs: timings.targetEndMs
+      });
       router.replace(`/result/${session.id}`);
       return;
     } catch (caughtError) {
@@ -275,6 +278,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
               <LiveAnalysisHud
                 active
                 faceBoxRef={featureCollector.liveFaceBoxRef}
+                videoElementRef={recorder.videoRef}
               />
             ) : (
               <div className={styles.videoHud}>

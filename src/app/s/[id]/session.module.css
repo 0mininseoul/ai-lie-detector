@@ -617,17 +617,21 @@
 
 @media (max-width: 920px) {
   .shell {
-    min-height: 100dvh;
-    padding: max(16px, env(safe-area-inset-top)) 14px max(12px, env(safe-area-inset-bottom));
+    height: 100svh;
+    min-height: 100svh;
+    padding: max(12px, env(safe-area-inset-top)) 14px max(10px, env(safe-area-inset-bottom));
+    overflow: hidden;
     overflow-x: hidden;
+    overscroll-behavior: none;
   }
 
   .stage {
-    --mobile-camera-width: min(100%, calc(min(64dvh, 620px) * 3 / 4));
+    --mobile-camera-width: min(100%, 390px, calc((100svh - 260px) * 3 / 4));
     width: min(430px, 100%);
-    min-height: auto;
+    height: 100%;
+    min-height: 0;
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
+    grid-template-rows: minmax(0, 1fr) auto;
     grid-template-areas:
       "video"
       "controls";
@@ -640,7 +644,12 @@
 
   .stage[data-phase="warmup"],
   .stage[data-phase="target"] {
-    --mobile-camera-width: min(100%, calc(min(84dvh, 740px) * 9 / 16));
+    --mobile-camera-width: 100%;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100svh;
+    display: block;
   }
 
   .titleBlock {
@@ -694,7 +703,7 @@
     width: 100%;
     min-height: 0;
     gap: 8px;
-    grid-template-rows: auto auto;
+    grid-template-rows: minmax(0, auto) auto;
   }
 
   .controlColumn {
@@ -708,10 +717,13 @@
 
   .stage[data-phase="warmup"] .controlColumn,
   .stage[data-phase="target"] .controlColumn {
-    grid-area: video;
-    align-self: start;
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    left: 50%;
     z-index: 7;
-    padding-top: 12px;
+    width: min(calc(100% - 28px), 430px);
+    transform: translateX(-50%);
+    padding: 0;
     pointer-events: none;
   }
 
@@ -719,15 +731,29 @@
     aspect-ratio: 3 / 4;
     width: var(--mobile-camera-width);
     height: auto;
-    max-height: min(64dvh, 620px);
+    max-height: calc(100svh - 242px);
     min-height: 0;
     border-radius: calc(var(--radius) * 1.6);
   }
 
   .stage[data-phase="warmup"] .videoFrame,
   .stage[data-phase="target"] .videoFrame {
-    aspect-ratio: 9 / 16;
-    max-height: min(84dvh, 740px);
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100svh;
+    max-height: none;
+    aspect-ratio: auto;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: #030605;
+  }
+
+  .stage[data-phase="warmup"] .videoFrame[data-recording="true"],
+  .stage[data-phase="target"] .videoFrame[data-recording="true"] {
+    border: 0;
+    box-shadow: none;
   }
 
   .videoFrame::after {
@@ -744,6 +770,8 @@
   .videoFrame video {
     position: relative;
     z-index: 0;
+    object-fit: contain;
+    object-position: center center;
   }
 
   .videoHud {
@@ -836,8 +864,9 @@
   .stage[data-phase="warmup"] .questionPanel,
   .stage[data-phase="target"] .targetPanel {
     width: 100%;
-    padding: 12px 13px 14px;
+    padding: 14px 14px 16px;
     border-color: oklch(100% 0 0 / 0.22);
+    container-type: inline-size;
     background:
       linear-gradient(180deg, oklch(6% 0.014 230 / 0.78), oklch(7% 0.018 230 / 0.52)),
       radial-gradient(circle at 18% 0%, oklch(74% 0.16 158 / 0.14), transparent 46%);
@@ -879,10 +908,16 @@
   .questionPanel h2,
   .questionPanel .questionText {
     color: oklch(98% 0.005 150);
-    font-size: clamp(23px, 6vw, 30px);
+    font-size: clamp(21px, 7cqi, 28px);
     line-height: 1.06;
     text-shadow: 0 10px 28px oklch(8% 0.018 230 / 0.5);
     animation: questionTextIn 320ms var(--ease-out-glass) 60ms both;
+  }
+
+  .questionPanel[data-kind="warmup"] .questionText {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
   }
 
   .targetPanel {
@@ -907,10 +942,15 @@
 
   .questionText {
     color: oklch(98% 0.005 150);
-    font-size: clamp(30px, 8.4vw, 42px);
+    font-size: clamp(22px, 7.4cqi, 31px);
     line-height: 1.03;
     text-shadow: 0 10px 28px oklch(8% 0.018 230 / 0.54);
     animation: questionTextIn 320ms var(--ease-out-glass) 60ms both;
+  }
+
+  .stage[data-phase="target"] .questionText {
+    white-space: nowrap;
+    text-wrap: nowrap;
   }
 
   .countdownRow {

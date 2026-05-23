@@ -45,4 +45,12 @@ describe("result experience mobile layout", () => {
     expect(failedCopyLine).toContain("display: block");
     expect(failedCopyLine).toContain("white-space: nowrap");
   });
+
+  it("loops only the target-answer segment during analysis playback", () => {
+    expect(resultTsx).toContain("recordingLocalStore.getTiming(sessionId)");
+    expect(resultTsx).toContain("coercePlaybackClip(data.recording)");
+    expect(resultTsx).toContain("loop={!clip}");
+    expect(resultTsx).toContain("onTimeUpdate={loopTargetClip}");
+    expect(resultTsx).toContain("video.currentTime = clip.startSec");
+  });
 });

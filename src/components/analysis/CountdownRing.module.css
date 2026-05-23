@@ -16,8 +16,15 @@
 }
 
 .ring[data-size="compact"] {
-  width: 64px;
-  height: 64px;
+  width: 58px;
+  height: 58px;
+  border: 1px solid oklch(100% 0 0 / 0.16);
+  border-radius: 999px;
+  background: oklch(6% 0.014 230 / 0.42);
+  box-shadow:
+    0 1px 0 oklch(100% 0 0 / 0.1) inset,
+    0 10px 28px oklch(6% 0.014 230 / 0.26);
+  backdrop-filter: blur(12px) saturate(1.35);
 }
 
 .ring svg {
@@ -64,7 +71,7 @@
 }
 
 .ring[data-size="compact"] .center strong {
-  font-size: 26px;
+  font-size: 24px;
 }
 
 .center span {
@@ -90,13 +97,17 @@
     height: 116px;
   }
   .ring[data-size="compact"] {
-    width: 58px;
-    height: 58px;
+    width: 50px;
+    height: 50px;
   }
   .center strong {
     font-size: 46px;
   }
   .ring[data-size="compact"] .center strong {
-    font-size: 24px;
+    font-size: 21px;
+  }
+
+  .ring[data-size="compact"] .center span {
+    font-size: 6px;
   }
 }

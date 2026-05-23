@@ -17,16 +17,17 @@ describe("session recorder mobile layout", () => {
     const videoFrame = selectorBlock(".videoFrame");
 
     expect(videoFrame).toContain("aspect-ratio: 3 / 4");
-    expect(videoFrame).toContain("max-height: min(64dvh, 620px)");
+    expect(videoFrame).toContain("max-height: calc(100svh - 242px)");
     expect(videoFrame).toContain("height: auto");
     expect(videoFrame).not.toContain("height: 100%");
   });
 
-  it("uses a taller camera frame only when answer prompts are overlaid", () => {
+  it("uses a fullscreen camera layer when answer prompts are overlaid", () => {
     expect(mobileCss).toContain('.stage[data-phase="warmup"]');
     expect(mobileCss).toContain('.stage[data-phase="target"]');
-    expect(mobileCss).toContain("aspect-ratio: 9 / 16");
-    expect(mobileCss).toContain("max-height: min(84dvh, 740px)");
+    expect(mobileCss).toContain("position: fixed");
+    expect(mobileCss).toContain("height: 100svh");
+    expect(mobileCss).toContain("aspect-ratio: auto");
   });
 
   it("keeps only the title over the camera and moves guidance below it", () => {
@@ -42,7 +43,7 @@ describe("session recorder mobile layout", () => {
     expect(videoHud).toContain("display: none");
   });
 
-  it("keeps mobile action controls below the camera instead of covering faces", () => {
+  it("keeps setup action controls below the camera and answer prompts as overlays", () => {
     const stage = selectorBlock(".stage");
     const controlColumn = selectorBlock(".controlColumn");
 
@@ -50,7 +51,14 @@ describe("session recorder mobile layout", () => {
     expect(stage).toContain("\"controls\"");
     expect(controlColumn).toContain("grid-area: controls");
     expect(controlColumn).toContain("align-self: start");
-    expect(controlColumn).not.toContain("z-index: 7");
-    expect(mobileCss).toContain("max-height: none");
+    expect(mobileCss).toContain("top: max(12px, env(safe-area-inset-top))");
+    expect(mobileCss).toContain("z-index: 7");
+  });
+
+  it("preserves the native camera ratio on mobile instead of cropping the feed", () => {
+    const video = selectorBlock(".videoFrame video");
+
+    expect(video).toContain("object-fit: contain");
+    expect(video).toContain("object-position: center center");
   });
 });

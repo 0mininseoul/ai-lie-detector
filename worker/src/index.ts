@@ -1,4 +1,10 @@
-import { GoogleGenAI, type File as GeminiFile } from "@google/genai";
+import {
+  GoogleGenAI,
+  MediaResolution,
+  PartMediaResolutionLevel,
+  type File as GeminiFile,
+  type Part
+} from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
 import { geminiResponseSchema, parseGeminiResult } from "../../src/lib/gemini/schema";
 import { maxWorkerUploadByteSize, verifyWorkerUploadToken } from "../../src/lib/uploads/worker-token";
@@ -66,6 +72,7 @@ type FeaturePayloadRow = {
 const defaultGeminiModel = "gemini-2.5-flash";
 const promptVersion = 1;
 const resultExpiresInMs = 48 * 60 * 60 * 1000;
+const inlineVideoMaxBytes = 8 * 1024 * 1024;
 const geminiUploadTimeoutMs = 45_000;
 const geminiGenerateTimeoutMs = 75_000;
 
@@ -335,25 +342,13 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
   const videoBytes = await r2Object.arrayBuffer();
   logStage("r2_downloaded", { byteSize: videoBytes.byteLength });
 
-  const geminiFile = await withTimeout(
-    ai.files.upload({
-      file: new Blob([videoBytes], { type: recording.mime_type }),
-      config: {
-        mimeType: recording.mime_type,
-        displayName: `${sessionId}.${recording.mime_type.startsWith("video/mp4") ? "mp4" : "webm"}`
-      }
-    }),
-    geminiUploadTimeoutMs,
-    "Gemini file upload timed out"
-  );
-  logStage("gemini_uploaded", { fileName: geminiFile.name ?? null, fileState: geminiFile.state ?? null });
-
-  const activeFile = await waitForGeminiFile(ai, geminiFile);
-  logStage("gemini_file_active", { fileName: activeFile.name ?? null });
-
-  if (!activeFile.uri) {
-    throw new Error("Gemini file URI is missing");
-  }
+  const videoPart = await buildGeminiVideoPart({
+    ai,
+    sessionId,
+    recording,
+    videoBytes,
+    logStage
+  });
 
   logStage("gemini_generate_started", { modelName });
   const response = await withTimeout(
@@ -364,12 +359,7 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
           role: "user",
           parts: [
             {
-              fileData: { fileUri: activeFile.uri, mimeType: recording.mime_type },
-              videoMetadata: {
-                startOffset: `${Math.max(0, Math.floor(recording.target_start_ms / 1000))}s`,
-                endOffset: `${Math.max(1, Math.ceil(recording.target_end_ms / 1000))}s`,
-                fps: 4
-              }
+              ...videoPart
             },
             {
               text: buildTextPayload({
@@ -383,6 +373,9 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
       ],
       config: {
         systemInstruction: systemPrompt,
+        mediaResolution: MediaResolution.MEDIA_RESOLUTION_LOW,
+        maxOutputTokens: 900,
+        thinkingConfig: { thinkingBudget: 0 },
         responseMimeType: "application/json",
         // Force exact JSON structure; Gemini sometimes omits or guesses
         // optional-looking fields when only given a text prompt.
@@ -425,6 +418,77 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
   );
 
   logStage("completed", { totalMs: Date.now() - startedAt, modelName });
+}
+
+async function buildGeminiVideoPart({
+  ai,
+  sessionId,
+  recording,
+  videoBytes,
+  logStage
+}: {
+  ai: GoogleGenAI;
+  sessionId: string;
+  recording: RecordingRow;
+  videoBytes: ArrayBuffer;
+  logStage: (stage: string, fields?: Record<string, unknown>) => void;
+}): Promise<Part> {
+  const videoMetadata = {
+    startOffset: `${Math.max(0, Math.floor(recording.target_start_ms / 1000))}s`,
+    endOffset: `${Math.max(1, Math.ceil(recording.target_end_ms / 1000))}s`,
+    fps: 3
+  };
+  const mediaResolution = { level: PartMediaResolutionLevel.MEDIA_RESOLUTION_LOW };
+
+  if (videoBytes.byteLength <= inlineVideoMaxBytes) {
+    logStage("gemini_inline_video_prepared", { byteSize: videoBytes.byteLength });
+    return {
+      inlineData: {
+        data: arrayBufferToBase64(videoBytes),
+        mimeType: recording.mime_type
+      },
+      mediaResolution,
+      videoMetadata
+    };
+  }
+
+  const geminiFile = await withTimeout(
+    ai.files.upload({
+      file: new Blob([videoBytes], { type: recording.mime_type }),
+      config: {
+        mimeType: recording.mime_type,
+        displayName: `${sessionId}.${recording.mime_type.startsWith("video/mp4") ? "mp4" : "webm"}`
+      }
+    }),
+    geminiUploadTimeoutMs,
+    "Gemini file upload timed out"
+  );
+  logStage("gemini_uploaded", { fileName: geminiFile.name ?? null, fileState: geminiFile.state ?? null });
+
+  const activeFile = await waitForGeminiFile(ai, geminiFile);
+  logStage("gemini_file_active", { fileName: activeFile.name ?? null });
+
+  if (!activeFile.uri) {
+    throw new Error("Gemini file URI is missing");
+  }
+
+  return {
+    fileData: { fileUri: activeFile.uri, mimeType: recording.mime_type },
+    mediaResolution,
+    videoMetadata
+  };
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 32_768;
+  let binary = "";
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+
+  return btoa(binary);
 }
 
 async function waitForGeminiFile(ai: GoogleGenAI, file: GeminiFile) {

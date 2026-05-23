@@ -16,6 +16,10 @@ type StatusResponse = {
   status: string;
   errorCode?: string | null;
   errorDetail?: string | null;
+  recording: null | {
+    targetStartMs: number;
+    targetEndMs: number;
+  };
   result: null | {
     verdict: string;
     headline: Headline;
@@ -27,6 +31,15 @@ type StatusResponse = {
 type Props = {
   sessionId: string;
   question: string;
+  initialTiming?: {
+    targetStartMs: number;
+    targetEndMs: number;
+  } | null;
+};
+
+type PlaybackClip = {
+  startSec: number;
+  endSec: number;
 };
 
 const pollIntervalMs = 1500;
@@ -46,13 +59,14 @@ function getFriendlyStatusError(data: Pick<StatusResponse, "status" | "errorCode
   return "분석을 마치지 못했어요.";
 }
 
-export function ResultExperience({ sessionId, question }: Props) {
+export function ResultExperience({ sessionId, question, initialTiming = null }: Props) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [muted, setMuted] = useState(true);
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("pending");
   const [result, setResult] = useState<StatusResponse["result"]>(null);
+  const [clip, setClip] = useState<PlaybackClip | null>(() => coercePlaybackClip(initialTiming) ?? null);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [revealing, setRevealing] = useState(false);
   const [isTakingLong, setIsTakingLong] = useState(false);
@@ -61,6 +75,7 @@ export function ResultExperience({ sessionId, question }: Props) {
     const local = recordingLocalStore.toUrl(sessionId);
     if (local) {
       setVideoSrc(local);
+      setClip(coercePlaybackClip(recordingLocalStore.getTiming(sessionId)) ?? null);
       return;
     }
     const remote = recordingDownloadUrl(sessionId);
@@ -79,6 +94,11 @@ export function ResultExperience({ sessionId, question }: Props) {
         if (!response.ok) return false;
         const data = (await response.json()) as StatusResponse;
         if (cancelled) return true;
+
+        const playbackClip = coercePlaybackClip(data.recording);
+        if (playbackClip) {
+          setClip(playbackClip);
+        }
 
         if (data.status === "complete" && data.result) {
           setResult(data.result);
@@ -123,6 +143,31 @@ export function ResultExperience({ sessionId, question }: Props) {
     });
   }, []);
 
+  const syncVideoToTargetClip = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !clip) return;
+    const endSec = video.duration > 0 ? Math.min(clip.endSec, video.duration) : clip.endSec;
+    if (endSec <= clip.startSec) return;
+    if (video.currentTime < clip.startSec || video.currentTime >= endSec) {
+      video.currentTime = clip.startSec;
+    }
+  }, [clip]);
+
+  const loopTargetClip = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !clip) return;
+    const endSec = video.duration > 0 ? Math.min(clip.endSec, video.duration) : clip.endSec;
+    if (endSec <= clip.startSec) return;
+    if (video.currentTime >= endSec - 0.05 || video.ended) {
+      video.currentTime = clip.startSec;
+      void video.play().catch(() => undefined);
+    }
+  }, [clip]);
+
+  useEffect(() => {
+    syncVideoToTargetClip();
+  }, [syncVideoToTargetClip, videoSrc]);
+
   const headline = result?.headline ?? null;
   const roast = result?.roastComment ?? "";
   const shareText = useMemo(() => {
@@ -141,10 +186,13 @@ export function ResultExperience({ sessionId, question }: Props) {
             src={videoSrc}
             autoPlay
             muted={muted}
-            loop
+            loop={!clip}
             playsInline
             preload="auto"
             crossOrigin="anonymous"
+            onLoadedMetadata={syncVideoToTargetClip}
+            onTimeUpdate={loopTargetClip}
+            onEnded={loopTargetClip}
           />
         ) : (
           <div className={styles.videoPlaceholder} aria-hidden />
@@ -195,6 +243,27 @@ export function ResultExperience({ sessionId, question }: Props) {
       </div>
     </main>
   );
+}
+
+function coercePlaybackClip(
+  timing: { targetStartMs?: number | null; targetEndMs?: number | null } | null | undefined
+): PlaybackClip | undefined {
+  const startMs = timing?.targetStartMs;
+  const endMs = timing?.targetEndMs;
+  if (
+    typeof startMs !== "number" ||
+    typeof endMs !== "number" ||
+    !Number.isFinite(startMs) ||
+    !Number.isFinite(endMs) ||
+    endMs <= startMs
+  ) {
+    return undefined;
+  }
+
+  return {
+    startSec: Math.max(0, startMs / 1000),
+    endSec: Math.max(0.1, endMs / 1000)
+  };
 }
 
 function AnalyzingOverlay({ isTakingLong }: { isTakingLong: boolean }) {

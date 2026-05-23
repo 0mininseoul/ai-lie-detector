@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type MutableRefObject, type RefObject } from "react";
 import type { LiveFaceBox } from "@/hooks/useFeatureCollector";
 import styles from "./LiveAnalysisHud.module.css";
 
@@ -34,14 +34,16 @@ function randomInRange(min: number, max: number) {
 type HudProps = {
   active?: boolean;
   faceBoxRef?: MutableRefObject<LiveFaceBox | null>;
+  videoElementRef?: RefObject<HTMLVideoElement | null>;
   mirrored?: boolean;
 };
 
-export function LiveAnalysisHud({ active = true, faceBoxRef, mirrored = true }: HudProps) {
+export function LiveAnalysisHud({ active = true, faceBoxRef, videoElementRef, mirrored = true }: HudProps) {
   const [tick, setTick] = useState(0);
   const [latencyMs, setLatencyMs] = useState(48);
   const [frameIndex, setFrameIndex] = useState(0);
 
+  const hudRef = useRef<HTMLDivElement | null>(null);
   const meshTrackerRef = useRef<HTMLDivElement | null>(null);
   const meshFoundRef = useRef(false);
 
@@ -67,18 +69,22 @@ export function LiveAnalysisHud({ active = true, faceBoxRef, mirrored = true }: 
     let raf = 0;
     const loop = () => {
       const el = meshTrackerRef.current;
+      const hud = hudRef.current;
       const box = faceBoxRef.current;
-      if (el) {
+      if (el && hud) {
         if (box) {
           meshFoundRef.current = true;
-          // Camera frame is shown mirrored (transform: scaleX(-1)). The
-          // landmarks are in the *unmirrored* coordinate system, so flip X
-          // for visual placement.
-          const x = mirrored ? 1 - box.x - box.width : box.x;
-          el.style.left = `${(x * 100).toFixed(2)}%`;
-          el.style.top = `${(box.y * 100).toFixed(2)}%`;
-          el.style.width = `${(box.width * 100).toFixed(2)}%`;
-          el.style.height = `${(box.height * 100).toFixed(2)}%`;
+          const projected = projectFaceBoxToDisplayedVideo({
+            box,
+            containerWidth: hud.clientWidth,
+            containerHeight: hud.clientHeight,
+            videoElement: videoElementRef?.current ?? null,
+            mirrored
+          });
+          el.style.left = `${projected.left.toFixed(1)}px`;
+          el.style.top = `${projected.top.toFixed(1)}px`;
+          el.style.width = `${projected.width.toFixed(1)}px`;
+          el.style.height = `${projected.height.toFixed(1)}px`;
           el.style.opacity = "1";
         } else if (meshFoundRef.current) {
           // Hide the mesh when we lose tracking instead of leaving it stuck.
@@ -89,7 +95,7 @@ export function LiveAnalysisHud({ active = true, faceBoxRef, mirrored = true }: 
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [active, faceBoxRef, mirrored]);
+  }, [active, faceBoxRef, mirrored, videoElementRef]);
 
   const metrics: Metric[] = useMemo(() => {
     void tick;
@@ -102,7 +108,7 @@ export function LiveAnalysisHud({ active = true, faceBoxRef, mirrored = true }: 
   const hasTracking = Boolean(faceBoxRef);
 
   return (
-    <div className={styles.hud} aria-hidden>
+    <div ref={hudRef} className={styles.hud} aria-hidden>
       <div className={styles.cornerTl} />
       <div className={styles.cornerTr} />
       <div className={styles.cornerBl} />
@@ -200,4 +206,46 @@ export function LiveAnalysisHud({ active = true, faceBoxRef, mirrored = true }: 
       </div>
     </div>
   );
+}
+
+function projectFaceBoxToDisplayedVideo({
+  box,
+  containerWidth,
+  containerHeight,
+  videoElement,
+  mirrored
+}: {
+  box: LiveFaceBox;
+  containerWidth: number;
+  containerHeight: number;
+  videoElement: HTMLVideoElement | null;
+  mirrored: boolean;
+}) {
+  const videoWidth = videoElement?.videoWidth || 0;
+  const videoHeight = videoElement?.videoHeight || 0;
+  const objectFit = videoElement ? window.getComputedStyle(videoElement).objectFit : "cover";
+
+  let renderedLeft = 0;
+  let renderedTop = 0;
+  let renderedWidth = containerWidth;
+  let renderedHeight = containerHeight;
+
+  if (videoWidth > 0 && videoHeight > 0 && containerWidth > 0 && containerHeight > 0 && objectFit !== "fill") {
+    const scale = objectFit === "contain"
+      ? Math.min(containerWidth / videoWidth, containerHeight / videoHeight)
+      : Math.max(containerWidth / videoWidth, containerHeight / videoHeight);
+    renderedWidth = videoWidth * scale;
+    renderedHeight = videoHeight * scale;
+    renderedLeft = (containerWidth - renderedWidth) / 2;
+    renderedTop = (containerHeight - renderedHeight) / 2;
+  }
+
+  const sourceX = mirrored ? 1 - box.x - box.width : box.x;
+
+  return {
+    left: renderedLeft + sourceX * renderedWidth,
+    top: renderedTop + box.y * renderedHeight,
+    width: Math.max(1, box.width * renderedWidth),
+    height: Math.max(1, box.height * renderedHeight)
+  };
 }

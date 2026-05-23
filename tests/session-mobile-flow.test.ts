@@ -39,4 +39,8 @@ describe("session recorder mobile flow", () => {
     expect(sideMetrics).toContain("transform: none");
     expect(sideMetrics).toContain("grid-template-columns: repeat(2, minmax(0, auto))");
   });
+
+  it("projects face tracking against the rendered video element", () => {
+    expect(recorder).toContain("videoElementRef={recorder.videoRef}");
+  });
 });

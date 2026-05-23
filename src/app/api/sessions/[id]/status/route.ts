@@ -82,11 +82,21 @@ export async function GET(_request: Request, context: RouteContext) {
     }
   }
 
-  const { data: result, error: resultError } = await supabase
-    .from("analysis_results")
-    .select("verdict, headline, roast_comment, public_json")
-    .eq("session_id", sessionId.data)
-    .maybeSingle();
+  const [resultResponse, recordingResponse] = await Promise.all([
+    supabase
+      .from("analysis_results")
+      .select("verdict, headline, roast_comment, public_json")
+      .eq("session_id", sessionId.data)
+      .maybeSingle(),
+    supabase
+      .from("recordings")
+      .select("target_start_ms, target_end_ms")
+      .eq("session_id", sessionId.data)
+      .maybeSingle<{ target_start_ms: number; target_end_ms: number }>()
+  ]);
+
+  const { data: result, error: resultError } = resultResponse;
+  const { data: recording, error: recordingError } = recordingResponse;
 
   if (resultError) {
     console.error("[status] failed to load result", {
@@ -94,6 +104,13 @@ export async function GET(_request: Request, context: RouteContext) {
       error: resultError.message
     });
     return NextResponse.json({ error: "Failed to load session result" }, { status: 500 });
+  }
+
+  if (recordingError) {
+    console.error("[status] failed to load recording timing", {
+      sessionId: sessionId.data,
+      error: recordingError.message
+    });
   }
 
   if (effectiveSession.status === "failed") {
@@ -125,6 +142,12 @@ export async function GET(_request: Request, context: RouteContext) {
           headline: result.headline,
           roastComment: result.roast_comment,
           public: result.public_json
+        }
+      : null,
+    recording: recording
+      ? {
+          targetStartMs: recording.target_start_ms,
+          targetEndMs: recording.target_end_ms
         }
       : null
   });
