@@ -6,6 +6,7 @@ type LocalRecordingEntry = {
 
 const recordings = new Map<string, LocalRecordingEntry>();
 const urls = new Map<string, string>();
+const uploadPromises = new Map<string, Promise<void>>();
 
 export const recordingLocalStore = {
   set(sessionId: string, blob: Blob, timing?: { targetStartMs?: number; targetEndMs?: number }): void {
@@ -20,6 +21,19 @@ export const recordingLocalStore = {
   },
   has(sessionId: string): boolean {
     return recordings.has(sessionId);
+  },
+  setUploadPromise(sessionId: string, promise: Promise<void>): void {
+    uploadPromises.set(sessionId, promise);
+    void promise
+      .catch(() => undefined)
+      .finally(() => {
+        if (uploadPromises.get(sessionId) === promise) {
+          uploadPromises.delete(sessionId);
+        }
+      });
+  },
+  getUploadPromise(sessionId: string): Promise<void> | undefined {
+    return uploadPromises.get(sessionId);
   },
   getTiming(sessionId: string): { targetStartMs?: number; targetEndMs?: number } | undefined {
     const recording = recordings.get(sessionId);
@@ -43,5 +57,6 @@ export const recordingLocalStore = {
     if (url) URL.revokeObjectURL(url);
     urls.delete(sessionId);
     recordings.delete(sessionId);
+    uploadPromises.delete(sessionId);
   }
 };

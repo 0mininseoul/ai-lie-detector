@@ -63,6 +63,18 @@ describe("parseGeminiResult", () => {
     ).toThrow();
   });
 
+  it("clamps out-of-range private scores instead of failing publishable results", () => {
+    const parsed = parseGeminiResult({
+      ...baseResult,
+      private_diagnostics: {
+        ...baseResult.private_diagnostics,
+        internal_score: -3
+      }
+    });
+
+    expect(parsed.private_diagnostics.internal_score).toBe(0);
+  });
+
   it("rejects extra public result fields", () => {
     expect(() =>
       parseGeminiResult({

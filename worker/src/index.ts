@@ -70,7 +70,7 @@ type FeaturePayloadRow = {
 };
 
 const defaultGeminiModel = "gemini-2.5-flash";
-const workerVersion = "2026-05-24-portrait-inline-v4";
+const workerVersion = "2026-05-24-portrait-inline-v5";
 const promptVersion = 1;
 const resultExpiresInMs = 48 * 60 * 60 * 1000;
 const inlineVideoMaxBytes = 8 * 1024 * 1024;
@@ -539,7 +539,12 @@ function classifyError(error: unknown): { code: string; message: string } {
   else if (lower.includes("timed out") || lower.includes("timeout") || lower.includes("deadline")) {
     code = "analysis_timeout";
   }
-  else if (lower.includes("invalid input") || lower.includes("expected int")) code = "validation_failed";
+  else if (
+    lower.includes("invalid input") ||
+    lower.includes("expected int") ||
+    lower.includes("too_small") ||
+    lower.includes("too_big")
+  ) code = "validation_failed";
 
   return { code, message: raw.slice(0, 800) };
 }

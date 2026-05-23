@@ -83,6 +83,22 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
   }, [sessionId]);
 
   useEffect(() => {
+    const uploadPromise = recordingLocalStore.getUploadPromise(sessionId);
+    if (!uploadPromise) return;
+
+    let cancelled = false;
+    uploadPromise.catch(() => {
+      if (cancelled) return;
+      setErrorDetail("영상 업로드가 완료되지 못했어요.");
+      setStatus("failed");
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
+
+  useEffect(() => {
     let cancelled = false;
     const startedAt = Date.now();
     let timer: number | undefined;

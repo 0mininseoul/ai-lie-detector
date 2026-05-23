@@ -13,31 +13,26 @@ function selectorBlock(selector: string) {
 }
 
 describe("session recorder mobile layout", () => {
-  it("bounds the camera stage to a portrait analysis frame", () => {
+  it("uses a fullscreen camera layer for setup and answer phases", () => {
+    const stage = selectorBlock(".stage");
     const videoFrame = selectorBlock(".videoFrame");
 
-    expect(videoFrame).toContain("aspect-ratio: 3 / 4");
-    expect(videoFrame).toContain("max-height: calc(100svh - 306px)");
-    expect(videoFrame).toContain("height: auto");
-    expect(videoFrame).not.toContain("height: 100%");
-  });
-
-  it("uses a fullscreen camera layer when answer prompts are overlaid", () => {
-    expect(mobileCss).toContain('.stage[data-phase="warmup"]');
-    expect(mobileCss).toContain('.stage[data-phase="target"]');
-    expect(mobileCss).toContain("position: fixed");
+    expect(stage).toContain("position: fixed");
+    expect(stage).toContain("display: block");
+    expect(videoFrame).toContain("position: fixed");
     expect(mobileCss).toContain("height: 100svh");
     expect(mobileCss).toContain("aspect-ratio: auto");
   });
 
-  it("keeps only the title over the camera and moves guidance below it", () => {
+  it("keeps setup content as camera overlays", () => {
     const titleBlock = selectorBlock(".titleBlock");
     const guidanceCard = selectorBlock(".guidanceCard");
     const videoHud = selectorBlock(".videoHud");
 
-    expect(titleBlock).toContain("grid-area: video");
+    expect(titleBlock).toContain("position: fixed");
     expect(titleBlock).toContain("z-index: 6");
-    expect(guidanceCard).toContain("width: var(--mobile-camera-width)");
+    expect(guidanceCard).toContain("position: fixed");
+    expect(guidanceCard).toContain("width: var(--overlay-width)");
     expect(guidanceCard).toContain("pointer-events: none");
     expect(videoHud).toContain("display: none");
   });
@@ -46,11 +41,10 @@ describe("session recorder mobile layout", () => {
     const stage = selectorBlock(".stage");
     const controlColumn = selectorBlock(".controlColumn");
 
-    expect(stage).toContain("\"video\"");
-    expect(stage).toContain("\"controls\"");
-    expect(controlColumn).toContain("grid-area: controls");
-    expect(controlColumn).toContain("align-self: start");
-    expect(mobileCss).toContain("top: max(10px, env(safe-area-inset-top))");
+    expect(stage).toContain("--overlay-width");
+    expect(controlColumn).toContain("position: fixed");
+    expect(mobileCss).toContain("bottom: max(14px, env(safe-area-inset-bottom))");
+    expect(mobileCss).toContain("top: max(16px, env(safe-area-inset-top))");
     expect(mobileCss).toContain("z-index: 7");
   });
 

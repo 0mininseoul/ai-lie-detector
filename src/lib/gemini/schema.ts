@@ -187,7 +187,7 @@ export const geminiResponseSchema = {
 } as const;
 
 export function parseGeminiResult(input: unknown): GeminiResult {
-  const parsed = geminiResultSchema.parse(input);
+  const parsed = geminiResultSchema.parse(normalizeGeminiResultCandidate(input));
 
   if (parsed.quality_gate.status === "retry") {
     throw new Error("Retry result is not publishable");
@@ -213,6 +213,26 @@ export function parseGeminiResult(input: unknown): GeminiResult {
   assertSegmentJudgmentsComplete(parsed.private_diagnostics.segment_judgments);
 
   return parsed;
+}
+
+function normalizeGeminiResultCandidate(input: unknown): unknown {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return input;
+
+  const candidate = input as Record<string, unknown>;
+  const diagnostics = candidate.private_diagnostics;
+  if (!diagnostics || typeof diagnostics !== "object" || Array.isArray(diagnostics)) return input;
+
+  const diagnosticsObject = diagnostics as Record<string, unknown>;
+  const score = Number(diagnosticsObject.internal_score);
+  if (!Number.isFinite(score)) return input;
+
+  return {
+    ...candidate,
+    private_diagnostics: {
+      ...diagnosticsObject,
+      internal_score: Math.min(100, Math.max(0, Math.round(score)))
+    }
+  };
 }
 
 function assertPublicTextIsSafe(result: GeminiResult) {

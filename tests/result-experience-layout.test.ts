@@ -55,6 +55,7 @@ describe("result experience mobile layout", () => {
 
   it("loops only the target-answer segment during analysis playback", () => {
     expect(resultTsx).toContain("recordingLocalStore.getTiming(sessionId)");
+    expect(resultTsx).toContain("recordingLocalStore.getUploadPromise(sessionId)");
     expect(resultTsx).toContain("coercePlaybackClip(data.recording)");
     expect(resultTsx).toContain("loop={!clip}");
     expect(resultTsx).toContain("onTimeUpdate={loopTargetClip}");

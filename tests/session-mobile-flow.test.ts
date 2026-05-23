@@ -33,6 +33,16 @@ describe("session recorder mobile flow", () => {
     expect(recorder).toContain("가벼운 질문 5초");
   });
 
+  it("moves to the result page immediately after local recording is ready", () => {
+    const localStoreIndex = recorder.indexOf("recordingLocalStore.set(session.id");
+    const uploadPromiseIndex = recorder.indexOf("recordingLocalStore.setUploadPromise");
+    const routeIndex = recorder.indexOf("router.replace(`/result/${session.id}`)");
+
+    expect(localStoreIndex).toBeGreaterThan(-1);
+    expect(uploadPromiseIndex).toBeGreaterThan(localStoreIndex);
+    expect(routeIndex).toBeGreaterThan(uploadPromiseIndex);
+  });
+
   it("moves live metrics away from the face center on mobile", () => {
     const sideMetrics = selectorBlock(hudMobileCss, ".sideMetrics");
 

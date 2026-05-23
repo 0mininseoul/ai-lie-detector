@@ -627,46 +627,31 @@
   .shell {
     height: 100svh;
     min-height: 100svh;
-    padding: max(12px, env(safe-area-inset-top)) 14px max(10px, env(safe-area-inset-bottom));
+    padding: 0;
     overflow: hidden;
     overflow-x: hidden;
     overscroll-behavior: none;
   }
 
   .stage {
-    --mobile-camera-width: min(100%, clamp(248px, calc((100svh - 324px) * 3 / 4), 342px));
-    width: min(430px, 100%);
-    height: 100%;
-    min-height: 0;
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "video"
-      "controls";
-    justify-items: center;
-    align-items: start;
-    row-gap: 10px;
-    padding: 0;
-    position: relative;
-  }
-
-  .stage[data-phase="warmup"],
-  .stage[data-phase="target"] {
-    --mobile-camera-width: 100%;
+    --overlay-width: min(calc(100% - 28px), 430px);
     position: fixed;
     inset: 0;
     width: 100%;
     height: 100svh;
+    min-height: 0;
     display: block;
+    padding: 0;
   }
 
   .titleBlock {
-    grid-area: video;
-    align-self: start;
-    justify-self: center;
-    width: var(--mobile-camera-width);
-    padding: 12px 14px 0;
-    gap: 4px;
+    position: fixed;
+    top: max(22px, env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    width: var(--overlay-width);
+    padding: 0;
+    gap: 6px;
     z-index: 6;
     pointer-events: none;
   }
@@ -685,7 +670,7 @@
 
   .titleBlock h1 {
     color: oklch(98% 0.005 150);
-    font-size: clamp(22px, 6.2vw, 28px);
+    font-size: clamp(30px, 8vw, 40px);
     line-height: 1.05;
     white-space: normal;
     text-wrap: balance;
@@ -702,50 +687,34 @@
   }
 
   .videoColumn {
-    grid-area: video;
-    align-self: start;
-    justify-self: stretch;
-    display: grid;
-    justify-items: center;
-    position: relative;
+    position: fixed;
+    inset: 0;
     width: 100%;
-    min-height: 0;
-    gap: 8px;
-    grid-template-rows: minmax(0, auto) auto;
+    height: 100svh;
+    display: block;
   }
 
   .controlColumn {
-    grid-area: controls;
-    align-self: start;
-    justify-self: center;
-    width: var(--mobile-camera-width);
-    gap: 8px;
+    position: fixed;
+    left: 50%;
+    z-index: 7;
+    width: var(--overlay-width);
+    transform: translateX(-50%);
     padding: 0;
   }
 
   .stage[data-phase="warmup"] .controlColumn,
   .stage[data-phase="target"] .controlColumn {
-    position: fixed;
-    top: max(10px, env(safe-area-inset-top));
-    left: 50%;
-    z-index: 7;
-    width: min(calc(100% - 22px), 430px);
-    transform: translateX(-50%);
-    padding: 0;
+    top: max(16px, env(safe-area-inset-top));
     pointer-events: none;
   }
 
-  .videoFrame {
-    aspect-ratio: 3 / 4;
-    width: var(--mobile-camera-width);
-    height: auto;
-    max-height: calc(100svh - 306px);
-    min-height: 0;
-    border-radius: calc(var(--radius) * 1.6);
+  .stage[data-phase="setup"] .controlColumn {
+    bottom: max(14px, env(safe-area-inset-bottom));
+    pointer-events: auto;
   }
 
-  .stage[data-phase="warmup"] .videoFrame,
-  .stage[data-phase="target"] .videoFrame {
+  .videoFrame {
     position: fixed;
     inset: 0;
     width: 100%;
@@ -798,8 +767,12 @@
   }
 
   .guidanceCard {
-    width: var(--mobile-camera-width);
-    max-width: 100%;
+    position: fixed;
+    left: 50%;
+    bottom: max(178px, calc(env(safe-area-inset-bottom) + 178px));
+    z-index: 7;
+    width: var(--overlay-width);
+    transform: translateX(-50%);
     gap: 9px;
     padding: 13px 14px;
     border-color: oklch(100% 0 0 / 0.22);
@@ -866,18 +839,33 @@
     color: oklch(98% 0.005 150);
   }
 
+  .stage[data-phase="setup"] .panel {
+    gap: 12px;
+    padding: 14px;
+    border-radius: 18px;
+    background:
+      linear-gradient(180deg, oklch(6% 0.014 230 / 0.72), oklch(5% 0.012 230 / 0.86)),
+      radial-gradient(circle at 12% 0%, oklch(74% 0.16 158 / 0.14), transparent 36%);
+  }
+
   .stage[data-phase="warmup"] .questionPanel,
   .stage[data-phase="target"] .targetPanel {
     width: 100%;
-    gap: 9px;
-    padding: 10px 12px 12px;
-    border-color: oklch(100% 0 0 / 0.16);
-    border-radius: 20px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "label timer"
+      "question timer";
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 8px;
+    padding: 12px 14px;
+    border-color: oklch(100% 0 0 / 0.14);
+    border-radius: 18px;
     container-type: inline-size;
     background:
-      linear-gradient(180deg, oklch(5% 0.012 230 / 0.68), oklch(7% 0.018 230 / 0.5)),
-      radial-gradient(circle at 12% 0%, oklch(100% 0 0 / 0.09), transparent 32%),
-      radial-gradient(circle at 92% 16%, oklch(74% 0.16 158 / 0.1), transparent 28%);
+      linear-gradient(180deg, oklch(5% 0.012 230 / 0.64), oklch(7% 0.018 230 / 0.42)),
+      radial-gradient(circle at 8% 0%, oklch(100% 0 0 / 0.08), transparent 28%);
     box-shadow:
       0 1px 0 oklch(100% 0 0 / 0.12) inset,
       0 14px 36px oklch(8% 0.018 230 / 0.38);
@@ -885,8 +873,12 @@
   }
 
   .questionHeader {
-    gap: 10px;
-    align-items: center;
+    display: contents;
+  }
+
+  .questionHeader > :last-child {
+    grid-area: timer;
+    justify-self: end;
   }
 
   .panel {
@@ -917,7 +909,7 @@
   .questionPanel h2,
   .questionPanel .questionText {
     color: oklch(98% 0.005 150);
-    font-size: clamp(18px, 5.65cqi, 24px);
+    font-size: clamp(20px, 5.9cqi, 25px);
     line-height: 1.04;
     text-shadow: 0 10px 28px oklch(8% 0.018 230 / 0.5);
     animation: questionTextIn 320ms var(--ease-out-glass) 60ms both;
@@ -939,20 +931,23 @@
   }
 
   .questionLabel {
+    grid-area: label;
     padding: 5px 10px;
     font-size: 9.5px;
     letter-spacing: 0.14em;
   }
 
   .questionEyebrow {
+    grid-area: label;
     padding: 5px 10px;
     font-size: 9.5px;
     letter-spacing: 0.14em;
   }
 
   .questionText {
+    grid-area: question;
     color: oklch(98% 0.005 150);
-    font-size: clamp(20px, 6.3cqi, 28px);
+    font-size: clamp(22px, 6.4cqi, 29px);
     line-height: 1.04;
     text-shadow: 0 10px 28px oklch(8% 0.018 230 / 0.54);
     animation: questionTextIn 320ms var(--ease-out-glass) 60ms both;

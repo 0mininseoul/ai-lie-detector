@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CountdownRing } from "@/components/analysis/CountdownRing";
 import { LiveAnalysisHud } from "@/components/analysis/LiveAnalysisHud";
 import { TelemetryStrip } from "@/components/analysis/TelemetryStrip";
-import { useCameraRecorder } from "@/hooks/useCameraRecorder";
+import { useCameraRecorder, type RecordingStopResult } from "@/hooks/useCameraRecorder";
 import { useFeatureCollector } from "@/hooks/useFeatureCollector";
 import { recordingLocalStore } from "@/lib/recording/local-store";
 import styles from "./session.module.css";
@@ -29,6 +29,14 @@ type UploadUrlResponse = {
   r2Key?: string;
   requiredHeaders?: Record<string, string>;
   error?: string;
+};
+
+type UploadTimings = {
+  durationMs: number;
+  warmupStartMs: number;
+  warmupEndMs: number;
+  targetStartMs: number;
+  targetEndMs: number;
 };
 
 function getInitialPhase(status: string): FlowPhase {
@@ -116,6 +124,57 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
   const finishTargetRef = useRef<() => void>(() => undefined);
 
+  async function uploadRecordingForAnalysis(
+    recording: RecordingStopResult,
+    timings: UploadTimings,
+    featurePayload: unknown
+  ) {
+    const uploadUrlResponse = await fetch(`/api/sessions/${session.id}/upload-url`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        mimeType: recording.mimeType || "video/webm",
+        byteSize: recording.sizeBytes
+      })
+    });
+    const uploadUrlData = (await uploadUrlResponse.json()) as UploadUrlResponse;
+
+    if (!uploadUrlResponse.ok || !uploadUrlData.uploadUrl || !uploadUrlData.r2Key) {
+      throw new Error(uploadUrlData.error ?? "영상 업로드 주소를 받지 못했습니다.");
+    }
+
+    const uploadResponse = await fetch(uploadUrlData.uploadUrl, {
+      method: "PUT",
+      headers: uploadUrlData.requiredHeaders ?? { "content-type": recording.mimeType || "video/webm" },
+      body: recording.blob
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error("영상 업로드가 막혔습니다. Worker 업로드 설정을 확인해야 합니다.");
+    }
+
+    const response = await fetch(`/api/sessions/${session.id}/complete-upload`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        r2Key: uploadUrlData.r2Key,
+        mimeType: recording.mimeType || "video/webm",
+        byteSize: recording.sizeBytes,
+        durationMs: timings.durationMs,
+        warmupStartMs: timings.warmupStartMs,
+        warmupEndMs: timings.warmupEndMs,
+        targetStartMs: timings.targetStartMs,
+        targetEndMs: timings.targetEndMs,
+        featurePayload
+      })
+    });
+    const data = (await response.json()) as { error?: string };
+
+    if (!response.ok) {
+      throw new Error(data.error ?? "분석 요청을 넘기지 못했습니다.");
+    }
+  }
+
   async function finishTarget() {
     setError("");
     setIsSubmitting(true);
@@ -136,55 +195,14 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
       }
 
       const timings = featureResult.payload.session;
-      const uploadUrlResponse = await fetch(`/api/sessions/${session.id}/upload-url`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          mimeType: recording.mimeType || "video/webm",
-          byteSize: recording.sizeBytes
-        })
-      });
-      const uploadUrlData = (await uploadUrlResponse.json()) as UploadUrlResponse;
-
-      if (!uploadUrlResponse.ok || !uploadUrlData.uploadUrl || !uploadUrlData.r2Key) {
-        throw new Error(uploadUrlData.error ?? "영상 업로드 주소를 받지 못했습니다.");
-      }
-
-      const uploadResponse = await fetch(uploadUrlData.uploadUrl, {
-        method: "PUT",
-        headers: uploadUrlData.requiredHeaders ?? { "content-type": recording.mimeType || "video/webm" },
-        body: recording.blob
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error("영상 업로드가 막혔습니다. Worker 업로드 설정을 확인해야 합니다.");
-      }
-
-      const response = await fetch(`/api/sessions/${session.id}/complete-upload`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          r2Key: uploadUrlData.r2Key,
-          mimeType: recording.mimeType || "video/webm",
-          byteSize: recording.sizeBytes,
-          durationMs: timings.durationMs,
-          warmupStartMs: timings.warmupStartMs,
-          warmupEndMs: timings.warmupEndMs,
-          targetStartMs: timings.targetStartMs,
-          targetEndMs: timings.targetEndMs,
-          featurePayload: featureResult.payload
-        })
-      });
-      const data = (await response.json()) as { error?: string };
-
-      if (!response.ok) {
-        throw new Error(data.error ?? "분석 요청을 넘기지 못했습니다.");
-      }
-
       recordingLocalStore.set(session.id, recording.blob, {
         targetStartMs: timings.targetStartMs,
         targetEndMs: timings.targetEndMs
       });
+      recordingLocalStore.setUploadPromise(
+        session.id,
+        uploadRecordingForAnalysis(recording, timings, featureResult.payload)
+      );
       router.replace(`/result/${session.id}`);
       return;
     } catch (caughtError) {
