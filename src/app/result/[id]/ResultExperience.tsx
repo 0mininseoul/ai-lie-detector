@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Volume2, VolumeX } from "lucide-react";
 import { recordingLocalStore } from "@/lib/recording/local-store";
@@ -42,7 +42,15 @@ type PlaybackClip = {
   endSec: number;
 };
 
+type ShareImageUploadUrlResponse = {
+  uploadUrl?: string;
+  requiredHeaders?: Record<string, string>;
+  error?: string;
+};
+
 const pollIntervalMs = 1500;
+const shareImageWidth = 1200;
+const shareImageHeight = 630;
 
 function getFriendlyStatusError(data: Pick<StatusResponse, "status" | "errorCode" | "errorDetail">) {
   if (data.status === "expired") return "세션이 만료되었어요.";
@@ -62,6 +70,7 @@ function getFriendlyStatusError(data: Pick<StatusResponse, "status" | "errorCode
 export function ResultExperience({ sessionId, question, initialTiming = null }: Props) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const shareImagePromiseRef = useRef<Promise<void> | null>(null);
   const [muted, setMuted] = useState(true);
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("pending");
@@ -197,11 +206,20 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
 
   const headline = result?.headline ?? null;
   const roast = result?.roastComment ?? "";
-  const shareText = useMemo(() => {
-    if (result?.public?.share_text) return result.public.share_text;
-    if (headline) return `질문: ${question} / 판정: ${headline} / ${roast}`;
-    return `질문: ${question}`;
-  }, [headline, question, result, roast]);
+  const ensureShareImage = useCallback(() => {
+    if (!headline) return Promise.resolve();
+    if (shareImagePromiseRef.current) return shareImagePromiseRef.current;
+
+    shareImagePromiseRef.current = uploadShareImagePreview({
+      sessionId,
+      question,
+      headline,
+      roast,
+      video: videoRef.current
+    }).catch(() => undefined);
+
+    return shareImagePromiseRef.current;
+  }, [headline, question, roast, sessionId]);
 
   return (
     <main className={styles.shell}>
@@ -269,12 +287,191 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
           videoSrc={videoSrc}
           headline={headline}
           roastComment={roast}
-          shareText={shareText}
+          ensureShareImage={ensureShareImage}
           disabled={status !== "revealed"}
         />
       </div>
     </main>
   );
+}
+
+async function uploadShareImagePreview({
+  sessionId,
+  question,
+  headline,
+  roast,
+  video
+}: {
+  sessionId: string;
+  question: string;
+  headline: Headline;
+  roast: string;
+  video: HTMLVideoElement | null;
+}) {
+  if (!video) return;
+  await waitForVideoData(video);
+
+  if (!video.videoWidth || !video.videoHeight) return;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = shareImageWidth;
+  canvas.height = shareImageHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  drawShareImage(ctx, video, question, headline, roast);
+  const blob = await canvasToJpeg(canvas);
+  if (!blob) return;
+
+  const response = await fetch(`/api/sessions/${sessionId}/share-image-url`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      mimeType: "image/jpeg",
+      byteSize: blob.size
+    })
+  });
+  const data = (await response.json()) as ShareImageUploadUrlResponse;
+  if (!response.ok || !data.uploadUrl) {
+    throw new Error(data.error ?? "Failed to prepare share image upload");
+  }
+
+  const uploadResponse = await fetch(data.uploadUrl, {
+    method: "PUT",
+    headers: data.requiredHeaders ?? { "content-type": "image/jpeg" },
+    body: blob
+  });
+  if (!uploadResponse.ok) {
+    throw new Error("Failed to upload share image");
+  }
+}
+
+function waitForVideoData(video: HTMLVideoElement) {
+  if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return Promise.resolve();
+
+  return new Promise<void>((resolve) => {
+    const timeout = window.setTimeout(done, 900);
+    function done() {
+      window.clearTimeout(timeout);
+      video.removeEventListener("loadeddata", done);
+      resolve();
+    }
+    video.addEventListener("loadeddata", done, { once: true });
+  });
+}
+
+function canvasToJpeg(canvas: HTMLCanvasElement) {
+  return new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", 0.9);
+  });
+}
+
+function drawShareImage(
+  ctx: CanvasRenderingContext2D,
+  video: HTMLVideoElement,
+  question: string,
+  headline: Headline,
+  roast: string
+) {
+  ctx.fillStyle = "#02070a";
+  ctx.fillRect(0, 0, shareImageWidth, shareImageHeight);
+  drawCoverVideoMirrored(ctx, video, shareImageWidth, shareImageHeight);
+
+  const gradient = ctx.createLinearGradient(0, 0, shareImageWidth, 0);
+  gradient.addColorStop(0, "rgba(0, 0, 0, 0.74)");
+  gradient.addColorStop(0.42, "rgba(0, 0, 0, 0.22)");
+  gradient.addColorStop(1, "rgba(0, 0, 0, 0.36)");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, shareImageWidth, shareImageHeight);
+
+  ctx.fillStyle = "#8ef0bf";
+  ctx.font = "800 32px Pretendard, system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("AI 거짓말탐지기", 64, 74);
+
+  ctx.fillStyle = "rgba(5, 10, 15, 0.68)";
+  roundRect(ctx, 64, 108, 620, 78, 24);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(142, 240, 191, 0.34)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = "#f7faf8";
+  ctx.font = "850 34px Pretendard, system-ui, sans-serif";
+  fitText(ctx, question, 94, 157, 560);
+
+  ctx.textAlign = "center";
+  ctx.font = "900 136px Pretendard, system-ui, sans-serif";
+  ctx.fillStyle = headline === "거짓" ? "#f5655d" : "#72e3ad";
+  ctx.fillText(headline, 920, 330);
+
+  ctx.font = "760 34px Pretendard, system-ui, sans-serif";
+  ctx.fillStyle = "#f4f7fb";
+  wrapCanvasText(ctx, roast, 730, 394, 380, 42, 3);
+}
+
+function drawCoverVideoMirrored(
+  ctx: CanvasRenderingContext2D,
+  video: HTMLVideoElement,
+  width: number,
+  height: number
+) {
+  const vw = video.videoWidth || width;
+  const vh = video.videoHeight || height;
+  const scale = Math.max(width / vw, height / vh);
+  const dw = vw * scale;
+  const dh = vh * scale;
+  const dx = (width - dw) / 2;
+  const dy = (height - dh) / 2;
+  ctx.save();
+  ctx.translate(width, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(video, dx, dy, dw, dh);
+  ctx.restore();
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function fitText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number) {
+  let output = text;
+  while (output.length > 0 && ctx.measureText(output).width > maxW) {
+    output = output.slice(0, -1);
+  }
+  ctx.fillText(output.length < text.length ? `${output.slice(0, -1)}…` : output, x, y);
+}
+
+function wrapCanvasText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxW: number,
+  lineH: number,
+  maxLines: number
+) {
+  const chars = Array.from(text);
+  let line = "";
+  const lines: string[] = [];
+  for (const ch of chars) {
+    const candidate = line + ch;
+    if (ctx.measureText(candidate).width > maxW) {
+      if (line) lines.push(line);
+      line = ch;
+      if (lines.length === maxLines - 1) break;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line && lines.length < maxLines) lines.push(line);
+  lines.forEach((ln, index) => ctx.fillText(ln, x, y + index * lineH));
 }
 
 function coercePlaybackClip(

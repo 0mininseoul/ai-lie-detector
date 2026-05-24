@@ -34,11 +34,11 @@ export function CountdownRing({ durationMs = 5000, active, onComplete, size = "d
 
   useEffect(() => {
     if (!active) {
-      setRemainingMs((current) => (firedRef.current ? 0 : Math.min(current, durationMs)));
       return;
     }
 
     firedRef.current = false;
+    setRemainingMs(durationMs);
     let raf = 0;
     const startedAt = performance.now();
     const tick = (now: number) => {

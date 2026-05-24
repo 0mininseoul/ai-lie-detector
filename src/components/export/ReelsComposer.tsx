@@ -33,6 +33,7 @@ export function ReelsComposer({ videoSrc, question, headline, roastComment }: Pr
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [status, setStatus] = useState<"idle" | "rendering" | "ready" | "error">("idle");
   const [downloadUrl, setDownloadUrl] = useState("");
+  const [downloadName, setDownloadName] = useState("ai-lie-detector-reels.mp4");
   const urlRef = useRef("");
 
   useEffect(() => {
@@ -55,7 +56,7 @@ export function ReelsComposer({ videoSrc, question, headline, roastComment }: Pr
       // Fallback: trigger download of the raw source video.
       const a = document.createElement("a");
       a.href = videoSrc;
-      a.download = "ai-lie-detector-recording.webm";
+      a.download = "ai-lie-detector-recording.mp4";
       a.target = "_blank";
       a.rel = "noopener";
       a.click();
@@ -64,6 +65,7 @@ export function ReelsComposer({ videoSrc, question, headline, roastComment }: Pr
 
     setStatus("rendering");
     setDownloadUrl("");
+    setDownloadName("ai-lie-detector-reels.mp4");
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     urlRef.current = "";
 
@@ -95,10 +97,13 @@ export function ReelsComposer({ videoSrc, question, headline, roastComment }: Pr
     };
     recorder.onstop = () => {
       canvasStream.getTracks().forEach((track) => track.stop());
-      const blob = new Blob(chunks, { type: recorder.mimeType || "video/webm" });
+      const recordedMimeType = recorder.mimeType || mimeType || "video/mp4";
+      const blob = new Blob(chunks, { type: recordedMimeType });
+      const extension = recordedMimeType.includes("mp4") ? "mp4" : "webm";
       const next = URL.createObjectURL(blob);
       urlRef.current = next;
       setDownloadUrl(next);
+      setDownloadName(`ai-lie-detector-reels.${extension}`);
       setStatus("ready");
     };
     recorder.start(200);
@@ -141,7 +146,7 @@ export function ReelsComposer({ videoSrc, question, headline, roastComment }: Pr
         aria-hidden
       />
       {downloadUrl ? (
-        <a href={downloadUrl} download="ai-lie-detector-reels.webm" className={styles.button}>
+        <a href={downloadUrl} download={downloadName} className={styles.button}>
           <Download size={16} aria-hidden /> 영상 저장
         </a>
       ) : (
@@ -166,7 +171,11 @@ function drawCoverVideo(ctx: CanvasRenderingContext2D, video: HTMLVideoElement) 
   const dh = vh * scale;
   const dx = (CANVAS_W - dw) / 2;
   const dy = (CANVAS_H - dh) / 2;
+  ctx.save();
+  ctx.translate(CANVAS_W, 0);
+  ctx.scale(-1, 1);
   ctx.drawImage(video, dx, dy, dw, dh);
+  ctx.restore();
 }
 
 function drawTopChrome(ctx: CanvasRenderingContext2D, question: string) {

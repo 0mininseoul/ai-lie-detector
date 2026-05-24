@@ -17,26 +17,24 @@ type Props = {
   videoSrc: string | null;
   headline: Headline | null;
   roastComment: string;
-  shareText: string;
+  ensureShareImage?: () => Promise<void>;
   disabled: boolean;
 };
 
-export function ResultActions({ question, videoSrc, headline, roastComment, shareText, disabled }: Props) {
+export function ResultActions({ question, videoSrc, headline, roastComment, ensureShareImage, disabled }: Props) {
   const router = useRouter();
   const [toast, setToast] = useState("");
 
   async function share() {
     try {
+      await ensureShareImage?.();
+      const shareUrl = window.location.href;
       if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share({
-          title: "AI 거짓말탐지기",
-          text: shareText,
-          url: window.location.href
-        });
+        await navigator.share({ url: shareUrl });
         return;
       }
-      await navigator.clipboard.writeText(`${shareText}\n${window.location.href}`);
-      setToast("공유 문구를 복사했어요.");
+      await navigator.clipboard.writeText(shareUrl);
+      setToast("링크를 복사했어요.");
       window.setTimeout(() => setToast(""), 1800);
     } catch {
       setToast("공유가 막혔어요. 다시 눌러 주세요.");

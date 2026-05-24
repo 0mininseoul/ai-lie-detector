@@ -70,7 +70,7 @@ type FeaturePayloadRow = {
 };
 
 const defaultGeminiModel = "gemini-2.5-flash";
-const workerVersion = "2026-05-24-portrait-inline-v6";
+const workerVersion = "2026-05-25-share-preview-v7";
 const promptVersion = 1;
 const resultExpiresInMs = 48 * 60 * 60 * 1000;
 const inlineVideoMaxBytes = 8 * 1024 * 1024;
@@ -130,6 +130,15 @@ export default {
       }
       if (request.method === "GET") {
         return handleRecordingDownload(request, env, url);
+      }
+    }
+
+    if (url.pathname.startsWith("/share-image/")) {
+      if (request.method === "OPTIONS") {
+        return new Response(null, { status: 204, headers: downloadCorsHeaders(request) });
+      }
+      if (request.method === "GET" || request.method === "HEAD") {
+        return handleShareImageDownload(request, env, url, request.method === "HEAD");
       }
     }
 
@@ -237,6 +246,46 @@ async function handleRecordingDownload(request: Request, env: Env, url: URL) {
   headers.set("content-type", recording.mime_type);
   headers.set("cache-control", "private, max-age=3600");
   return new Response(object.body, { headers });
+}
+
+async function handleShareImageDownload(request: Request, env: Env, url: URL, headOnly = false) {
+  const corsHeaders = downloadCorsHeaders(request);
+  const sessionId = url.pathname.slice("/share-image/".length);
+  if (!isUuid(sessionId)) {
+    return Response.json({ error: "Invalid session id" }, { status: 400, headers: corsHeaders });
+  }
+
+  const object = await env.RECORDINGS.get(buildShareImageObjectKey(sessionId));
+  if (!object) {
+    const headers = new Headers(corsHeaders);
+    headers.set("content-type", "image/svg+xml; charset=utf-8");
+    headers.set("cache-control", "no-store");
+    return new Response(headOnly ? null : buildFallbackShareImageSvg(), { headers });
+  }
+
+  const headers = new Headers(corsHeaders);
+  headers.set("content-type", "image/jpeg");
+  headers.set("cache-control", "public, max-age=86400, s-maxage=86400");
+  return new Response(headOnly ? null : object.body, { headers });
+}
+
+function buildShareImageObjectKey(sessionId: string) {
+  return `share-images/${sessionId}/preview.jpg`;
+}
+
+function buildFallbackShareImageSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06120c"/>
+      <stop offset="1" stop-color="#03070c"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="72" y="70" width="1056" height="490" rx="42" fill="#050a0f" fill-opacity=".72" stroke="#72e3ad" stroke-opacity=".35"/>
+  <text x="600" y="265" text-anchor="middle" font-family="system-ui, sans-serif" font-size="54" font-weight="800" fill="#72e3ad">AI 거짓말탐지기</text>
+  <text x="600" y="348" text-anchor="middle" font-family="system-ui, sans-serif" font-size="36" font-weight="700" fill="#f4f7fb">분석 결과를 확인하세요</text>
+</svg>`;
 }
 
 function downloadCorsHeaders(request: Request) {

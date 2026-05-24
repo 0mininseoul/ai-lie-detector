@@ -31,7 +31,7 @@ describe("result experience mobile layout", () => {
     expect(topMeta).toContain("transform: translateX(-50%)");
     expect(topMeta).toContain("align-items: center");
     expect(question).toContain("text-align: center");
-    expect(question).toContain("font-size: clamp(16px");
+    expect(question).toContain("font-size: clamp(18px");
   });
 
   it("keeps the analyzing and failure cards out of awkward face/text overlaps", () => {
@@ -40,17 +40,19 @@ describe("result experience mobile layout", () => {
     const failedCopyLine = selectorBlock(".failedCopyLine");
 
     expect(analyzingLayer).toContain("align-items: end");
-    expect(analyzingLayer).toContain("padding-bottom: max(86px, 14dvh)");
+    expect(analyzingLayer).toContain("padding-bottom: max(106px, 17dvh)");
     expect(failedCard).toContain("max-width: min(88vw, 390px)");
     expect(failedCopyLine).toContain("display: block");
     expect(failedCopyLine).toContain("white-space: nowrap");
   });
 
-  it("keeps result playback at the source aspect instead of cropping the face", () => {
+  it("fills the portrait result frame and mirrors selfie playback", () => {
     const video = selectorBlock(".video,\n.videoPlaceholder");
+    const videoOnly = selectorBlock(".video");
 
-    expect(video).toContain("object-fit: contain");
+    expect(video).toContain("object-fit: cover");
     expect(video).toContain("object-position: center center");
+    expect(videoOnly).toContain("transform: scaleX(-1)");
   });
 
   it("loops only the target-answer segment during analysis playback", () => {

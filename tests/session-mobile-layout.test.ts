@@ -48,10 +48,10 @@ describe("session recorder mobile layout", () => {
     expect(mobileCss).toContain("z-index: 7");
   });
 
-  it("shows the full source camera frame on mobile instead of cropping the face", () => {
+  it("fills the mobile camera layer without letterboxing", () => {
     const video = selectorBlock(".videoFrame video");
 
-    expect(video).toContain("object-fit: contain");
+    expect(video).toContain("object-fit: cover");
     expect(video).toContain("object-position: center center");
   });
 });
