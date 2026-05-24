@@ -2,7 +2,7 @@
 
 import { AudioLines, Camera, Gift, Mic, Play, RotateCcw, ScanFace, Smile, SunMedium } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { CountdownRing } from "@/components/analysis/CountdownRing";
 import { LiveAnalysisHud } from "@/components/analysis/LiveAnalysisHud";
 import { TelemetryStrip } from "@/components/analysis/TelemetryStrip";
@@ -63,6 +63,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requiresNewSession, setRequiresNewSession] = useState(() => ["failed", "expired"].includes(session.status));
   const [refundState, setRefundState] = useState<RefundState>("idle");
+  const [cameraAspect, setCameraAspect] = useState("3 / 4");
 
   const currentQuestion = useMemo(() => {
     if (phase === "warmup") return session.warmupQuestion;
@@ -74,6 +75,21 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   useEffect(() => {
     startCameraRef.current = recorder.startCamera;
   }, [recorder.startCamera]);
+
+  const updateCameraAspect = useCallback(() => {
+    const video = recorder.videoRef.current;
+    if (!video?.videoWidth || !video.videoHeight) return;
+    setCameraAspect(`${video.videoWidth} / ${video.videoHeight}`);
+  }, [recorder.videoRef]);
+
+  useEffect(() => {
+    if (recorder.cameraStatus === "ready") updateCameraAspect();
+  }, [recorder.cameraStatus, updateCameraAspect]);
+
+  const videoFrameStyle = useMemo(
+    () => ({ "--camera-aspect": cameraAspect }) as CSSProperties,
+    [cameraAspect]
+  );
 
   /*
    * Auto-request camera + mic the moment the user lands on this page in the
@@ -290,8 +306,8 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
         </header>
 
         <div className={styles.videoColumn}>
-          <div className={styles.videoFrame} data-recording={recorder.isRecording}>
-            <video ref={recorder.videoRef} autoPlay muted playsInline />
+          <div className={styles.videoFrame} data-recording={recorder.isRecording} style={videoFrameStyle}>
+            <video ref={recorder.videoRef} autoPlay muted playsInline onLoadedMetadata={updateCameraAspect} />
             {phase === "target" ? (
               <LiveAnalysisHud
                 active

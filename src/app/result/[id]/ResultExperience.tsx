@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Volume2, VolumeX } from "lucide-react";
 import { recordingLocalStore } from "@/lib/recording/local-store";
@@ -70,6 +70,8 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [revealing, setRevealing] = useState(false);
   const [isTakingLong, setIsTakingLong] = useState(false);
+  const [videoAspect, setVideoAspect] = useState("3 / 4");
+  const [videoMaxWidth, setVideoMaxWidth] = useState("75dvh");
 
   useEffect(() => {
     const local = recordingLocalStore.toUrl(sessionId);
@@ -169,6 +171,15 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
     }
   }, [clip]);
 
+  const handleVideoLoadedMetadata = useCallback(() => {
+    const video = videoRef.current;
+    if (video?.videoWidth && video.videoHeight) {
+      setVideoAspect(`${video.videoWidth} / ${video.videoHeight}`);
+      setVideoMaxWidth(`${(video.videoWidth / video.videoHeight) * 100}dvh`);
+    }
+    syncVideoToTargetClip();
+  }, [syncVideoToTargetClip]);
+
   const loopTargetClip = useCallback(() => {
     const video = videoRef.current;
     if (!video || !clip) return;
@@ -194,7 +205,12 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
 
   return (
     <main className={styles.shell}>
-      <div className={styles.stage} data-status={status} data-revealing={revealing}>
+      <div
+        className={styles.stage}
+        data-status={status}
+        data-revealing={revealing}
+        style={{ "--result-aspect": videoAspect, "--result-max-width": videoMaxWidth } as CSSProperties}
+      >
         {videoSrc ? (
           <video
             ref={videoRef}
@@ -206,7 +222,7 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
             playsInline
             preload="auto"
             crossOrigin="anonymous"
-            onLoadedMetadata={syncVideoToTargetClip}
+            onLoadedMetadata={handleVideoLoadedMetadata}
             onTimeUpdate={loopTargetClip}
             onEnded={loopTargetClip}
           />

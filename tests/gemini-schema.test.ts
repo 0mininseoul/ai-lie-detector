@@ -54,13 +54,17 @@ describe("parseGeminiResult", () => {
     ).toThrow();
   });
 
-  it("rejects public probability flags", () => {
-    expect(() =>
+  it("normalizes unreliable self-reported public policy flags", () => {
+    expect(
       parseGeminiResult({
         ...baseResult,
-        policy_flags: { ...baseResult.policy_flags, contains_probability_in_public_text: true }
-      })
-    ).toThrow();
+        policy_flags: {
+          ...baseResult.policy_flags,
+          contains_probability_in_public_text: true,
+          contains_detection_signal_in_public_text: true
+        }
+      }).policy_flags.contains_probability_in_public_text
+    ).toBe(false);
   });
 
   it("clamps out-of-range private scores instead of failing publishable results", () => {
@@ -114,22 +118,25 @@ describe("parseGeminiResult", () => {
     ).toThrow();
   });
 
-  it("rejects inconsistent retry state", () => {
-    expect(() =>
-      parseGeminiResult({
-        ...baseResult,
-        quality_gate: { status: "retry", retry_reason: "none", retry_message: "" }
-      })
-    ).toThrow();
+  it("publishes retry-shaped results as low-confidence when public output is valid", () => {
+    const parsed = parseGeminiResult({
+      ...baseResult,
+      quality_gate: { status: "retry", retry_reason: "none", retry_message: "" }
+    });
+
+    expect(parsed.quality_gate.status).toBe("pass");
+    expect(parsed.quality_gate.retry_reason).toBe("none");
+    expect(parsed.private_diagnostics.internal_confidence).toBe("low");
   });
 
-  it("rejects retry payloads even when they include a valid-looking public result", () => {
-    expect(() =>
-      parseGeminiResult({
-        ...baseResult,
-        quality_gate: { status: "retry", retry_reason: "audio_missing", retry_message: "소리가 거의 안 들어왔어. 다시 해보자." }
-      })
-    ).toThrow("Retry result is not publishable");
+  it("does not fail publishable sessions just because Gemini requested retry", () => {
+    const parsed = parseGeminiResult({
+      ...baseResult,
+      quality_gate: { status: "retry", retry_reason: "audio_missing", retry_message: "소리가 거의 안 들어왔어. 다시 해보자." }
+    });
+
+    expect(parsed.quality_gate.status).toBe("pass");
+    expect(parsed.private_diagnostics.internal_confidence).toBe("low");
   });
 
   it("rejects missing segment judgments", () => {

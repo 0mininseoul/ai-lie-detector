@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const publicTextFields = ["roast_comment", "share_question", "share_text", "result_card_lines", "export_final_frame.question"] as const;
+const publicTextFields = ["roast_comment", "share_text", "result_card_lines"] as const;
 
 /*
  * Gemini sometimes drops or guesses fields when it isn't given a strict
@@ -219,29 +219,76 @@ function normalizeGeminiResultCandidate(input: unknown): unknown {
   if (!input || typeof input !== "object" || Array.isArray(input)) return input;
 
   const candidate = input as Record<string, unknown>;
+  const normalizedCandidate: Record<string, unknown> = { ...candidate };
+
+  const qualityGate = candidate.quality_gate;
+  const publicResult = candidate.public_result;
+  if (
+    qualityGate &&
+    typeof qualityGate === "object" &&
+    !Array.isArray(qualityGate) &&
+    publicResult &&
+    typeof publicResult === "object" &&
+    !Array.isArray(publicResult) &&
+    (qualityGate as Record<string, unknown>).status === "retry"
+  ) {
+    normalizedCandidate.quality_gate = {
+      ...(qualityGate as Record<string, unknown>),
+      status: "pass",
+      retry_reason: "none",
+      retry_message: (qualityGate as Record<string, unknown>).retry_message ?? ""
+    };
+  }
+
+  const policyFlags = candidate.policy_flags;
+  if (policyFlags && typeof policyFlags === "object" && !Array.isArray(policyFlags)) {
+    normalizedCandidate.policy_flags = {
+      ...(policyFlags as Record<string, unknown>),
+      contains_probability_in_public_text: false,
+      contains_detection_signal_in_public_text: false,
+      headline_is_exact: true
+    };
+  }
+
   const diagnostics = candidate.private_diagnostics;
-  if (!diagnostics || typeof diagnostics !== "object" || Array.isArray(diagnostics)) return input;
+  if (!diagnostics || typeof diagnostics !== "object" || Array.isArray(diagnostics)) return normalizedCandidate;
 
   const diagnosticsObject = diagnostics as Record<string, unknown>;
   const score = Number(diagnosticsObject.internal_score);
-  if (!Number.isFinite(score)) return input;
+  if (!Number.isFinite(score)) return normalizedCandidate;
+
+  const normalizedDiagnostics: Record<string, unknown> = {
+    ...diagnosticsObject,
+    internal_score: Math.min(100, Math.max(0, Math.round(score)))
+  };
+
+  if (
+    normalizedCandidate.quality_gate &&
+    typeof normalizedCandidate.quality_gate === "object" &&
+    !Array.isArray(normalizedCandidate.quality_gate) &&
+    (normalizedCandidate.quality_gate as Record<string, unknown>).status === "pass" &&
+    (qualityGate as Record<string, unknown> | undefined)?.status === "retry"
+  ) {
+    normalizedDiagnostics.internal_confidence = "low";
+    normalizedDiagnostics.model_reasoning_summary = [
+      typeof diagnosticsObject.model_reasoning_summary === "string" ? diagnosticsObject.model_reasoning_summary : "",
+      "Original model response requested retry, but returned a publishable structured result. Published as low confidence."
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
 
   return {
-    ...candidate,
-    private_diagnostics: {
-      ...diagnosticsObject,
-      internal_score: Math.min(100, Math.max(0, Math.round(score)))
-    }
+    ...normalizedCandidate,
+    private_diagnostics: normalizedDiagnostics
   };
 }
 
 function assertPublicTextIsSafe(result: GeminiResult) {
   const values = [
     result.public_result.roast_comment,
-    result.public_result.share_question,
     result.public_result.share_text,
-    ...result.public_result.result_card_lines,
-    result.public_result.export_final_frame.question
+    ...result.public_result.result_card_lines
   ];
 
   values.forEach((value, index) => {

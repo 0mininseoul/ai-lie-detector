@@ -70,7 +70,7 @@ type FeaturePayloadRow = {
 };
 
 const defaultGeminiModel = "gemini-2.5-flash";
-const workerVersion = "2026-05-24-portrait-inline-v5";
+const workerVersion = "2026-05-24-portrait-inline-v6";
 const promptVersion = 1;
 const resultExpiresInMs = 48 * 60 * 60 * 1000;
 const inlineVideoMaxBytes = 8 * 1024 * 1024;
@@ -90,8 +90,8 @@ const systemPrompt = `
 - 공개 결과에는 어떤 행동, 표정, 시선, 음성, 답변 패턴이 수상했는지 쓰지 않습니다.
 - 질문은 공개 결과와 공유 문구에 포함합니다.
 - roast_comment는 심하게 놀리되 심한 욕설은 쓰지 않습니다.
-- 품질이 충분하면 quality_gate.status를 "pass"로 설정하고 public_result를 채웁니다.
-- 품질이 너무 낮으면 quality_gate.status를 "retry"로 설정합니다.
+- 일반적인 모바일 흔들림, 낮은 음량, 약한 조명, 짧은 5초 답변은 실패 사유가 아닙니다. 이런 경우에도 quality_gate.status는 "pass"로 두고 private_diagnostics.internal_confidence만 low로 낮춥니다.
+- quality_gate.status="retry"는 영상 파일이 깨졌거나 얼굴과 답변을 모두 전혀 확인할 수 없는 경우에만 사용합니다.
 
 공개 문구 톤:
 - 한국어 인터넷식 유머와 강한 조롱 톤을 씁니다.
@@ -679,6 +679,9 @@ function uploadCorsHeaders(request: Request) {
 
 function isAllowedUploadOrigin(origin: string) {
   if (origin === "http://localhost:3000") return true;
+  if (origin === "http://127.0.0.1:3000") return true;
+  if (origin === "http://localhost:3001") return true;
+  if (origin === "http://127.0.0.1:3001") return true;
 
   try {
     const url = new URL(origin);

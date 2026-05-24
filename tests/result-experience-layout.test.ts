@@ -46,10 +46,10 @@ describe("result experience mobile layout", () => {
     expect(failedCopyLine).toContain("white-space: nowrap");
   });
 
-  it("keeps result playback fullscreen instead of falling back to a landscape strip", () => {
+  it("keeps result playback at the source aspect instead of cropping the face", () => {
     const video = selectorBlock(".video,\n.videoPlaceholder");
 
-    expect(video).toContain("object-fit: cover");
+    expect(video).toContain("object-fit: contain");
     expect(video).toContain("object-position: center center");
   });
 

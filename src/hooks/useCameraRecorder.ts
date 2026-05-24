@@ -38,6 +38,10 @@ function stopStreamTracks(stream: MediaStream | null) {
   });
 }
 
+type CameraVideoConstraints = MediaTrackConstraints & {
+  resizeMode?: { ideal: string };
+};
+
 async function applyWidestCameraView(stream: MediaStream) {
   const [track] = stream.getVideoTracks();
   if (!track) return;
@@ -128,16 +132,19 @@ export function useCameraRecorder() {
       const requestToken = cameraStartTokenRef.current + 1;
       cameraStartTokenRef.current = requestToken;
 
+      const videoConstraints: CameraVideoConstraints = {
+        facingMode: "user",
+        width: { ideal: 960 },
+        height: { ideal: 1280 },
+        aspectRatio: { ideal: 3 / 4 },
+        frameRate: { ideal: 24, max: 24 },
+        resizeMode: { ideal: "none" }
+      };
+
       let pendingStart: Promise<MediaStream | null>;
       pendingStart = navigator.mediaDevices
         .getUserMedia({
-          video: {
-            facingMode: "user",
-            width: { ideal: 720, max: 960 },
-            height: { ideal: 960, max: 1280 },
-            aspectRatio: { ideal: 3 / 4 },
-            frameRate: { ideal: 24, max: 24 }
-          },
+          video: videoConstraints,
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
@@ -202,7 +209,7 @@ export function useCameraRecorder() {
       const mimeType = getSupportedMimeType();
       const options: MediaRecorderOptions = {
         ...(mimeType ? { mimeType } : {}),
-        videoBitsPerSecond: 2_500_000,
+        videoBitsPerSecond: 4_000_000,
         audioBitsPerSecond: 96_000
       };
       const recorder = new MediaRecorder(activeStream, options);

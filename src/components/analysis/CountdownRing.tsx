@@ -34,7 +34,7 @@ export function CountdownRing({ durationMs = 5000, active, onComplete, size = "d
 
   useEffect(() => {
     if (!active) {
-      setRemainingMs(firedRef.current ? 0 : durationMs);
+      setRemainingMs((current) => (firedRef.current ? 0 : Math.min(current, durationMs)));
       return;
     }
 

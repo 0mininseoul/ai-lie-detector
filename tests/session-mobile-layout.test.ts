@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const css = readFileSync(join(process.cwd(), "src/app/s/[id]/session.module.css"), "utf8");
-const mobileCss = css.slice(css.indexOf("@media (max-width: 920px)"));
+const mobileCss = css.slice(css.indexOf("@media (max-width: 1100px)"));
 
 function selectorBlock(selector: string) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -48,10 +48,10 @@ describe("session recorder mobile layout", () => {
     expect(mobileCss).toContain("z-index: 7");
   });
 
-  it("fills the portrait camera frame on mobile instead of showing a landscape strip", () => {
+  it("shows the full source camera frame on mobile instead of cropping the face", () => {
     const video = selectorBlock(".videoFrame video");
 
-    expect(video).toContain("object-fit: cover");
+    expect(video).toContain("object-fit: contain");
     expect(video).toContain("object-position: center center");
   });
 });
