@@ -270,21 +270,21 @@ async function handleShareImageDownload(request: Request, env: Env, url: URL, he
 }
 
 function buildShareImageObjectKey(sessionId: string) {
-  return `share-images/${sessionId}/preview.jpg`;
+  return `share-images/${sessionId}/preview-20260526-safe.jpg`;
 }
 
 function buildFallbackShareImageSvg() {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1440" viewBox="0 0 1080 1440">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#06120c"/>
       <stop offset="1" stop-color="#03070c"/>
     </linearGradient>
   </defs>
-  <rect width="1200" height="630" fill="url(#bg)"/>
-  <rect x="72" y="70" width="1056" height="490" rx="42" fill="#050a0f" fill-opacity=".72" stroke="#72e3ad" stroke-opacity=".35"/>
-  <text x="600" y="265" text-anchor="middle" font-family="system-ui, sans-serif" font-size="54" font-weight="800" fill="#72e3ad">AI 거짓말탐지기</text>
-  <text x="600" y="348" text-anchor="middle" font-family="system-ui, sans-serif" font-size="36" font-weight="700" fill="#f4f7fb">분석 결과를 확인하세요</text>
+  <rect width="1080" height="1440" fill="url(#bg)"/>
+  <rect x="72" y="1046" width="936" height="228" rx="34" fill="#050a0f" fill-opacity=".74" stroke="#72e3ad" stroke-opacity=".35"/>
+  <text x="114" y="1138" font-family="system-ui, sans-serif" font-size="54" font-weight="800" fill="#f4f7fb">결과를 확인하세요.</text>
+  <text x="114" y="1200" font-family="system-ui, sans-serif" font-size="34" font-weight="700" fill="#dce6e1">지금 AI 거짓말탐지기에서 결과를 확인하세요.</text>
 </svg>`;
 }
 

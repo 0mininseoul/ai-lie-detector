@@ -49,8 +49,9 @@ type ShareImageUploadUrlResponse = {
 };
 
 const pollIntervalMs = 1500;
-const shareImageWidth = 1200;
-const shareImageHeight = 630;
+const shareImageWidth = 1080;
+const shareImageHeight = 1440;
+const shareImageCallToAction = "지금 AI 거짓말탐지기에서 결과를 확인하세요.";
 
 function getFriendlyStatusError(data: Pick<StatusResponse, "status" | "errorCode" | "errorDetail">) {
   if (data.status === "expired") return "세션이 만료되었어요.";
@@ -213,13 +214,11 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
     shareImagePromiseRef.current = uploadShareImagePreview({
       sessionId,
       question,
-      headline,
-      roast,
       video: videoRef.current
     }).catch(() => undefined);
 
     return shareImagePromiseRef.current;
-  }, [headline, question, roast, sessionId]);
+  }, [headline, question, sessionId]);
 
   return (
     <main className={styles.shell}>
@@ -298,14 +297,10 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
 async function uploadShareImagePreview({
   sessionId,
   question,
-  headline,
-  roast,
   video
 }: {
   sessionId: string;
   question: string;
-  headline: Headline;
-  roast: string;
   video: HTMLVideoElement | null;
 }) {
   if (!video) return;
@@ -319,7 +314,7 @@ async function uploadShareImagePreview({
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  drawShareImage(ctx, video, question, headline, roast);
+  drawShareImage(ctx, video, question);
   const blob = await canvasToJpeg(canvas);
   if (!blob) return;
 
@@ -369,45 +364,40 @@ function canvasToJpeg(canvas: HTMLCanvasElement) {
 function drawShareImage(
   ctx: CanvasRenderingContext2D,
   video: HTMLVideoElement,
-  question: string,
-  headline: Headline,
-  roast: string
+  question: string
 ) {
   ctx.fillStyle = "#02070a";
   ctx.fillRect(0, 0, shareImageWidth, shareImageHeight);
   drawCoverVideoMirrored(ctx, video, shareImageWidth, shareImageHeight);
 
-  const gradient = ctx.createLinearGradient(0, 0, shareImageWidth, 0);
-  gradient.addColorStop(0, "rgba(0, 0, 0, 0.74)");
-  gradient.addColorStop(0.42, "rgba(0, 0, 0, 0.22)");
-  gradient.addColorStop(1, "rgba(0, 0, 0, 0.36)");
+  const gradient = ctx.createLinearGradient(0, 0, 0, shareImageHeight);
+  gradient.addColorStop(0, "rgba(0, 0, 0, 0.42)");
+  gradient.addColorStop(0.34, "rgba(0, 0, 0, 0.08)");
+  gradient.addColorStop(0.68, "rgba(0, 0, 0, 0.14)");
+  gradient.addColorStop(1, "rgba(0, 0, 0, 0.72)");
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, shareImageWidth, shareImageHeight);
 
-  ctx.fillStyle = "#8ef0bf";
-  ctx.font = "800 32px Pretendard, system-ui, sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText("AI 거짓말탐지기", 64, 74);
+  const panelX = 72;
+  const panelY = 1046;
+  const panelW = shareImageWidth - panelX * 2;
+  const panelH = 228;
 
-  ctx.fillStyle = "rgba(5, 10, 15, 0.68)";
-  roundRect(ctx, 64, 108, 620, 78, 24);
+  ctx.fillStyle = "rgba(5, 10, 15, 0.74)";
+  roundRect(ctx, panelX, panelY, panelW, panelH, 34);
   ctx.fill();
   ctx.strokeStyle = "rgba(142, 240, 191, 0.34)";
   ctx.lineWidth = 2;
   ctx.stroke();
 
+  ctx.textAlign = "left";
   ctx.fillStyle = "#f7faf8";
-  ctx.font = "850 34px Pretendard, system-ui, sans-serif";
-  fitText(ctx, question, 94, 157, 560);
+  ctx.font = "880 58px Pretendard, system-ui, sans-serif";
+  fitText(ctx, question, panelX + 42, panelY + 92, panelW - 84);
 
-  ctx.textAlign = "center";
-  ctx.font = "900 136px Pretendard, system-ui, sans-serif";
-  ctx.fillStyle = headline === "거짓" ? "#f5655d" : "#72e3ad";
-  ctx.fillText(headline, 920, 330);
-
-  ctx.font = "760 34px Pretendard, system-ui, sans-serif";
-  ctx.fillStyle = "#f4f7fb";
-  wrapCanvasText(ctx, roast, 730, 394, 380, 42, 3);
+  ctx.font = "700 34px Pretendard, system-ui, sans-serif";
+  ctx.fillStyle = "rgba(244, 247, 251, 0.82)";
+  fitText(ctx, shareImageCallToAction, panelX + 42, panelY + 154, panelW - 84);
 }
 
 function drawCoverVideoMirrored(
@@ -446,32 +436,6 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, x: number, y: numb
     output = output.slice(0, -1);
   }
   ctx.fillText(output.length < text.length ? `${output.slice(0, -1)}…` : output, x, y);
-}
-
-function wrapCanvasText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  maxW: number,
-  lineH: number,
-  maxLines: number
-) {
-  const chars = Array.from(text);
-  let line = "";
-  const lines: string[] = [];
-  for (const ch of chars) {
-    const candidate = line + ch;
-    if (ctx.measureText(candidate).width > maxW) {
-      if (line) lines.push(line);
-      line = ch;
-      if (lines.length === maxLines - 1) break;
-    } else {
-      line = candidate;
-    }
-  }
-  if (line && lines.length < maxLines) lines.push(line);
-  lines.forEach((ln, index) => ctx.fillText(ln, x, y + index * lineH));
 }
 
 function coercePlaybackClip(

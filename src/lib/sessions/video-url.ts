@@ -8,6 +8,8 @@ function workerBaseUrl() {
   );
 }
 
+const sharePreviewVersion = "20260526-safe-preview";
+
 export function recordingDownloadUrl(sessionId: string): string {
   const base = workerBaseUrl();
   if (!base) return "";
@@ -17,5 +19,5 @@ export function recordingDownloadUrl(sessionId: string): string {
 export function shareImageUrl(sessionId: string): string {
   const base = workerBaseUrl();
   if (!base) return "";
-  return `${base}/share-image/${sessionId}`;
+  return `${base}/share-image/${sessionId}?v=${sharePreviewVersion}`;
 }
