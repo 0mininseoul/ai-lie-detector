@@ -4,15 +4,28 @@ import { describe, expect, it } from "vitest";
 
 const actionsTsx = readFileSync(join(process.cwd(), "src/app/result/[id]/ResultActions.tsx"), "utf8");
 const experienceTsx = readFileSync(join(process.cwd(), "src/app/result/[id]/ResultExperience.tsx"), "utf8");
+const kakaoShareTs = readFileSync(join(process.cwd(), "src/lib/kakao/share.ts"), "utf8");
 const pageTsx = readFileSync(join(process.cwd(), "src/app/result/[id]/page.tsx"), "utf8");
 const worker = readFileSync(join(process.cwd(), "worker/src/index.ts"), "utf8");
 
 describe("result sharing", () => {
-  it("shares only the result URL through Web Share and clipboard fallback", () => {
+  it("shares a Kakao feed card before falling back to Web Share and clipboard", () => {
     expect(actionsTsx).toContain("await ensureShareImage?.()");
+    expect(actionsTsx).toContain("shareResultWithKakao");
+    expect(actionsTsx).toContain("shareImageUrl(sessionId)");
     expect(actionsTsx).toContain("navigator.share({ url: shareUrl })");
     expect(actionsTsx).toContain("navigator.clipboard.writeText(shareUrl)");
     expect(actionsTsx).not.toContain("text: shareText");
+  });
+
+  it("configures Kakao sharing with a neutral feed and result button", () => {
+    expect(kakaoShareTs).toContain("sendDefault");
+    expect(kakaoShareTs).toContain('objectType: "feed"');
+    expect(kakaoShareTs).toContain('title: question');
+    expect(kakaoShareTs).toContain('description: kakaoShareDescription');
+    expect(kakaoShareTs).toContain('title: "결과 보러가기"');
+    expect(kakaoShareTs).not.toContain("headline");
+    expect(kakaoShareTs).not.toContain("roast");
   });
 
   it("publishes a dynamic Open Graph image route backed by the worker share image", () => {

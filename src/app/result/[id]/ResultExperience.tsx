@@ -282,6 +282,7 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
         ) : null}
 
         <ResultActions
+          sessionId={sessionId}
           question={question}
           videoSrc={videoSrc}
           headline={headline}

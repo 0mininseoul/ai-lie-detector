@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import type { Headline } from "@/types/domain";
+import { shareResultWithKakao } from "@/lib/kakao/share";
+import { shareImageUrl } from "@/lib/sessions/video-url";
 import styles from "./ResultExperience.module.css";
 
 const ReelsComposer = dynamic(
@@ -13,6 +15,7 @@ const ReelsComposer = dynamic(
 );
 
 type Props = {
+  sessionId: string;
   question: string;
   videoSrc: string | null;
   headline: Headline | null;
@@ -21,14 +24,21 @@ type Props = {
   disabled: boolean;
 };
 
-export function ResultActions({ question, videoSrc, headline, roastComment, ensureShareImage, disabled }: Props) {
+export function ResultActions({ sessionId, question, videoSrc, headline, roastComment, ensureShareImage, disabled }: Props) {
   const router = useRouter();
   const [toast, setToast] = useState("");
 
   async function share() {
     try {
       await ensureShareImage?.();
-      const shareUrl = window.location.href;
+      const shareUrl = `${window.location.origin}/result/${sessionId}`;
+      const kakaoShared = await shareResultWithKakao({
+        url: shareUrl,
+        question,
+        imageUrl: shareImageUrl(sessionId)
+      });
+      if (kakaoShared) return;
+
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share({ url: shareUrl });
         return;
