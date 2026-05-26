@@ -64,10 +64,6 @@
     0 4px 12px oklch(54% 0.16 152 / 0.32);
 }
 
-.plan[data-selected="true"] > .planTop {
-  padding-top: 12px;
-}
-
 .perQuestion {
   display: block;
   margin-top: 3px;
@@ -195,52 +191,6 @@
   line-height: 1.1;
   font-weight: var(--fw-title);
   font-variant-numeric: tabular-nums;
-}
-
-.planReveal {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 360ms var(--ease-out-glass);
-}
-
-.planReveal[data-open="true"] {
-  grid-template-rows: 1fr;
-}
-
-.planRevealInner {
-  overflow: hidden;
-  min-height: 0;
-}
-
-.planReveal[data-open="true"] .planRevealInner {
-  padding: 4px 18px 18px;
-}
-
-.features {
-  display: grid;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.features div {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text);
-  font-size: 13.5px;
-  font-weight: var(--fw-body);
-  opacity: 0;
-  transform: translateY(4px);
-  transition: opacity 240ms var(--ease-standard), transform 240ms var(--ease-standard);
-}
-
-.planReveal[data-open="true"] .features div {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.features svg {
-  color: var(--mint);
 }
 
 .divider {
@@ -394,6 +344,10 @@
 
 .cta {
   min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
   border: 0;
   border-radius: calc(var(--radius) * 1.6);
   color: var(--text-on-mint);
@@ -402,6 +356,8 @@
   font-size: 16px;
   font-weight: var(--fw-action);
   letter-spacing: -0.005em;
+  text-align: center;
+  text-decoration: none;
   transition: transform 200ms var(--ease-standard), box-shadow 240ms var(--ease-standard);
 }
 

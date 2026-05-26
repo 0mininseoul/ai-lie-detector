@@ -17,7 +17,7 @@
 
 .copy {
   display: grid;
-  gap: 20px;
+  gap: 18px;
 }
 
 .kicker {
@@ -53,22 +53,24 @@
   }
 }
 
+/* Headline is locked to exactly two lines at every width: each line stays on
+ * one row (nowrap) and the font scales with the viewport so the longest line
+ * fits the available column. */
 .copy h1 {
-  max-width: 660px;
   margin: 0;
   display: grid;
   gap: 6px;
   color: var(--text);
-  font-size: clamp(38px, 9vw, 52px);
-  line-height: 1.04;
+  font-size: clamp(18px, 5.7vw, 32px);
+  line-height: 1.12;
   letter-spacing: -0.02em;
   font-weight: var(--fw-display);
   text-shadow: var(--text-shadow-display);
-  word-break: keep-all;
 }
 
 .headlineLine {
   display: block;
+  white-space: nowrap;
 }
 
 .headlineAccent {
@@ -78,7 +80,10 @@
     0 22px 56px oklch(46% 0.13 230 / 0.22);
 }
 
+/* Lead paragraph is supporting detail — hidden on phones to keep the column
+ * compact, shown from tablet up. */
 .lead {
+  display: none;
   max-width: 460px;
   margin: 0;
   color: var(--muted-text);
@@ -90,7 +95,7 @@
 
 .valueList {
   display: grid;
-  gap: 14px;
+  gap: 11px;
   margin: 2px 0 0;
   padding: 0;
   list-style: none;
@@ -98,45 +103,27 @@
 
 .valueList li {
   display: flex;
-  align-items: flex-start;
-  gap: 13px;
+  align-items: center;
+  gap: 11px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: var(--fw-body-strong);
 }
 
 .valueIcon {
   flex-shrink: 0;
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
   border: 1px solid var(--glass-edge);
-  border-radius: calc(var(--radius) * 1.6);
+  border-radius: calc(var(--radius) * 1.4);
   color: var(--mint);
   background: var(--glass-tint-mint);
   box-shadow:
     0 1px 0 var(--liquid-highlight) inset,
-    0 8px 20px oklch(58% 0.18 152 / 0.22);
+    0 6px 16px oklch(58% 0.18 152 / 0.2);
   backdrop-filter: blur(16px) saturate(1.4);
-}
-
-.valueText {
-  display: grid;
-  gap: 2px;
-  padding-top: 2px;
-}
-
-.valueText strong {
-  color: var(--text);
-  font-size: 15px;
-  line-height: 1.25;
-  font-weight: var(--fw-body-strong);
-}
-
-.valueText span {
-  color: var(--muted-text);
-  font-size: 13px;
-  line-height: 1.45;
-  font-weight: var(--fw-body-soft);
-  word-break: keep-all;
 }
 
 .ctaRow {
@@ -180,11 +167,16 @@
     padding: 32px 28px 60px;
   }
 
+  .copy {
+    gap: 20px;
+  }
+
   .copy h1 {
-    font-size: clamp(46px, 6vw, 58px);
+    font-size: clamp(28px, 4.6vw, 42px);
   }
 
   .lead {
+    display: block;
     font-size: 16px;
   }
 }
@@ -202,9 +194,8 @@
   }
 
   .copy h1 {
-    max-width: none;
-    font-size: clamp(40px, 3.6vw, 46px);
-    line-height: 1.08;
+    font-size: clamp(26px, 2.6vw, 37px);
+    line-height: 1.14;
   }
 
   .lead {

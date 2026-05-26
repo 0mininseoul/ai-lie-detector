@@ -13,22 +13,22 @@ export const PASS_PRODUCTS: PassProduct[] = [
   {
     id: "day",
     name: "오늘 무제한",
-    tagline: "결제 후 24시간 무제한",
+    tagline: "결제 후 24시간 동안",
     price: 2900,
     durationSeconds: 86_400,
     badge: "🔥 인기"
   },
   {
     id: "weekend",
-    name: "주말 무제한",
-    tagline: "3일 동안 무제한",
+    name: "3일 무제한",
+    tagline: "결제 후 3일 동안",
     price: 4900,
     durationSeconds: 259_200
   },
   {
     id: "week",
     name: "1주 무제한",
-    tagline: "7일 동안 무제한",
+    tagline: "결제 후 7일 동안",
     price: 7900,
     durationSeconds: 604_800
   }

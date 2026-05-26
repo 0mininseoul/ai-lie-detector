@@ -9,21 +9,9 @@ export const metadata = {
 };
 
 const valuePoints = [
-  {
-    icon: Gift,
-    title: "첫 판은 공짜",
-    body: "카드 등록도, 가입 강요도 없이 한 번 써봐요."
-  },
-  {
-    icon: InfinityIcon,
-    title: "패스 켜면 무제한",
-    body: "기간 안에서는 횟수 걱정 없이 계속 물어봐요."
-  },
-  {
-    icon: RefreshCwOff,
-    title: "구독이 아니에요",
-    body: "딱 한 번 결제, 기간 끝나면 자동결제 없이 끝."
-  }
+  { icon: Gift, title: "첫 판은 공짜" },
+  { icon: InfinityIcon, title: "패스 켜면 무제한" },
+  { icon: RefreshCwOff, title: "구독이 아니에요" }
 ];
 
 export default function PricePage() {
@@ -38,7 +26,7 @@ export default function PricePage() {
           <h1 id="price-title">
             <span className={styles.headlineLine}>찝찝하게 밤새 고민하지 마세요.</span>
             <span className={`${styles.headlineLine} ${styles.headlineAccent}`}>
-              하루 2,900원이면 무제한이에요.
+              하루 2,900원에 팩트체크하세요.
             </span>
           </h1>
           <p className={styles.lead}>
@@ -49,12 +37,9 @@ export default function PricePage() {
             {valuePoints.map((point) => (
               <li key={point.title}>
                 <span className={styles.valueIcon} aria-hidden>
-                  <point.icon size={17} />
+                  <point.icon size={16} />
                 </span>
-                <div className={styles.valueText}>
-                  <strong>{point.title}</strong>
-                  <span>{point.body}</span>
-                </div>
+                <strong>{point.title}</strong>
               </li>
             ))}
           </ul>
