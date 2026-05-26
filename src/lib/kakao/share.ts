@@ -22,20 +22,11 @@ type KakaoShareTemplate = {
   }>;
 };
 
-type KakaoScrapImageResponse = {
-  infos?: {
-    original?: {
-      url?: string;
-    };
-  };
-};
-
 type KakaoSdk = {
   init: (key: string) => void;
   isInitialized?: () => boolean;
   Share?: {
     sendDefault: (template: KakaoShareTemplate) => void;
-    scrapImage?: (args: { imageUrl: string }) => Promise<KakaoScrapImageResponse>;
   };
 };
 
@@ -47,7 +38,24 @@ declare global {
 
 let kakaoSdkPromise: Promise<KakaoSdk> | null = null;
 
-export async function shareResultWithKakao({
+export function hasKakaoShareConfig() {
+  return Boolean(process.env.NEXT_PUBLIC_KAKAO_JS_KEY);
+}
+
+export async function prepareKakaoShare() {
+  const jsKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
+  if (!jsKey || typeof window === "undefined") return false;
+
+  try {
+    const kakao = await loadKakaoSdk();
+    initializeKakao(kakao, jsKey);
+    return Boolean(kakao.Share?.sendDefault);
+  } catch {
+    return false;
+  }
+}
+
+export function shareResultWithKakao({
   url,
   question,
   imageUrl
@@ -59,31 +67,33 @@ export async function shareResultWithKakao({
   const jsKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
   if (!jsKey || typeof window === "undefined" || !imageUrl) return false;
 
-  const kakao = await loadKakaoSdk();
+  const kakao = window.Kakao;
+  if (!kakao) return false;
   if (!kakao.Share?.sendDefault) return false;
 
-  if (!kakao.isInitialized?.()) {
-    kakao.init(jsKey);
-  }
+  try {
+    initializeKakao(kakao, jsKey);
 
-  const link = { mobileWebUrl: url, webUrl: url };
-  const kakaoImageUrl = await getKakaoHostedImageUrl(kakao, imageUrl);
+    const link = { mobileWebUrl: url, webUrl: url };
 
-  kakao.Share.sendDefault({
-    objectType: "feed",
-    content: {
-      title: question,
-      description: kakaoShareDescription,
-      imageUrl: kakaoImageUrl,
-      link
-    },
-    buttons: [
-      {
-        title: "결과 보러가기",
+    kakao.Share.sendDefault({
+      objectType: "feed",
+      content: {
+        title: question,
+        description: kakaoShareDescription,
+        imageUrl,
         link
-      }
-    ]
-  });
+      },
+      buttons: [
+        {
+          title: "결과 보러가기",
+          link
+        }
+      ]
+    });
+  } catch {
+    return false;
+  }
 
   return true;
 }
@@ -117,11 +127,8 @@ async function loadKakaoSdk() {
   return kakaoSdkPromise;
 }
 
-async function getKakaoHostedImageUrl(kakao: KakaoSdk, imageUrl: string) {
-  try {
-    const response = await kakao.Share?.scrapImage?.({ imageUrl });
-    return response?.infos?.original?.url || imageUrl;
-  } catch {
-    return imageUrl;
+function initializeKakao(kakao: KakaoSdk, jsKey: string) {
+  if (!kakao.isInitialized?.()) {
+    kakao.init(jsKey);
   }
 }

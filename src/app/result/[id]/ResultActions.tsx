@@ -2,10 +2,10 @@
 
 import { Plus, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Headline } from "@/types/domain";
-import { shareResultWithKakao } from "@/lib/kakao/share";
+import { hasKakaoShareConfig, prepareKakaoShare, shareResultWithKakao } from "@/lib/kakao/share";
 import { shareImageUrl } from "@/lib/sessions/video-url";
 import styles from "./ResultExperience.module.css";
 
@@ -20,36 +20,78 @@ type Props = {
   videoSrc: string | null;
   headline: Headline | null;
   roastComment: string;
-  ensureShareImage?: () => Promise<void>;
+  ensureShareImage?: () => Promise<boolean>;
+  shareImageReady: boolean;
   disabled: boolean;
 };
 
-export function ResultActions({ sessionId, question, videoSrc, headline, roastComment, ensureShareImage, disabled }: Props) {
+export function ResultActions({
+  sessionId,
+  question,
+  videoSrc,
+  headline,
+  roastComment,
+  ensureShareImage,
+  shareImageReady,
+  disabled
+}: Props) {
   const router = useRouter();
   const [toast, setToast] = useState("");
+  const [kakaoReady, setKakaoReady] = useState(false);
+
+  useEffect(() => {
+    if (!hasKakaoShareConfig()) return;
+
+    let active = true;
+    void prepareKakaoShare().then((ready) => {
+      if (active) setKakaoReady(ready);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function share() {
-    try {
-      await ensureShareImage?.();
-      const shareUrl = `${window.location.origin}/result/${sessionId}`;
-      const kakaoShared = await shareResultWithKakao({
-        url: shareUrl,
-        question,
-        imageUrl: shareImageUrl(sessionId)
-      });
-      if (kakaoShared) return;
+    const shareUrl = `${window.location.origin}/result/${sessionId}`;
 
+    if (!shareImageReady) {
+      void ensureShareImage?.();
+      showToast("공유 이미지를 준비 중이에요. 잠시 후 다시 눌러 주세요.");
+      return;
+    }
+
+    const kakaoShared = shareResultWithKakao({
+      url: shareUrl,
+      question,
+      imageUrl: shareImageUrl(sessionId)
+    });
+    if (kakaoShared) return;
+
+    if (hasKakaoShareConfig()) {
+      if (!kakaoReady) {
+        void prepareKakaoShare().then((ready) => setKakaoReady(ready));
+      }
+      showToast("카카오 공유를 준비 중이에요. 잠시 후 다시 눌러 주세요.");
+      return;
+    }
+
+    try {
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share({ url: shareUrl });
         return;
       }
       await navigator.clipboard.writeText(shareUrl);
-      setToast("링크를 복사했어요.");
-      window.setTimeout(() => setToast(""), 1800);
-    } catch {
-      setToast("공유가 막혔어요. 다시 눌러 주세요.");
-      window.setTimeout(() => setToast(""), 1800);
+      showToast("링크를 복사했어요.");
+    } catch (error) {
+      if (isShareDismissed(error)) return;
+      showToast("공유가 막혔어요. 다시 눌러 주세요.");
     }
+  }
+
+  function showToast(message: string) {
+    setToast(message);
+    window.setTimeout(() => setToast(""), 1800);
   }
 
   return (
@@ -77,4 +119,8 @@ export function ResultActions({ sessionId, question, videoSrc, headline, roastCo
       {toast ? <p className={styles.toast}>{toast}</p> : null}
     </div>
   );
+}
+
+function isShareDismissed(error: unknown) {
+  return error instanceof DOMException && (error.name === "AbortError" || error.name === "NotAllowedError");
 }

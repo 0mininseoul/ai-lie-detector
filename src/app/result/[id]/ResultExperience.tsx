@@ -71,7 +71,7 @@ function getFriendlyStatusError(data: Pick<StatusResponse, "status" | "errorCode
 export function ResultExperience({ sessionId, question, initialTiming = null }: Props) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const shareImagePromiseRef = useRef<Promise<void> | null>(null);
+  const shareImagePromiseRef = useRef<Promise<boolean> | null>(null);
   const [muted, setMuted] = useState(true);
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("pending");
@@ -82,6 +82,7 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
   const [isTakingLong, setIsTakingLong] = useState(false);
   const [videoAspect, setVideoAspect] = useState("3 / 4");
   const [videoMaxWidth, setVideoMaxWidth] = useState("75dvh");
+  const [shareImageReady, setShareImageReady] = useState(false);
 
   useEffect(() => {
     const local = recordingLocalStore.toUrl(sessionId);
@@ -208,17 +209,39 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
   const headline = result?.headline ?? null;
   const roast = result?.roastComment ?? "";
   const ensureShareImage = useCallback(() => {
-    if (!headline) return Promise.resolve();
+    if (!headline) return Promise.resolve(false);
+    if (shareImageReady) return Promise.resolve(true);
     if (shareImagePromiseRef.current) return shareImagePromiseRef.current;
 
     shareImagePromiseRef.current = uploadShareImagePreview({
       sessionId,
       question,
       video: videoRef.current
-    }).catch(() => undefined);
+    })
+      .then((uploaded) => {
+        setShareImageReady(uploaded);
+        if (!uploaded) shareImagePromiseRef.current = null;
+        return uploaded;
+      })
+      .catch(() => {
+        setShareImageReady(false);
+        shareImagePromiseRef.current = null;
+        return false;
+      });
 
     return shareImagePromiseRef.current;
-  }, [headline, question, sessionId]);
+  }, [headline, question, sessionId, shareImageReady]);
+
+  useEffect(() => {
+    setShareImageReady(false);
+    shareImagePromiseRef.current = null;
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (headline && videoSrc) {
+      void ensureShareImage();
+    }
+  }, [ensureShareImage, headline, videoSrc]);
 
   return (
     <main className={styles.shell}>
@@ -288,6 +311,7 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
           headline={headline}
           roastComment={roast}
           ensureShareImage={ensureShareImage}
+          shareImageReady={shareImageReady}
           disabled={status !== "revealed"}
         />
       </div>
@@ -304,20 +328,20 @@ async function uploadShareImagePreview({
   question: string;
   video: HTMLVideoElement | null;
 }) {
-  if (!video) return;
+  if (!video) return false;
   await waitForVideoData(video);
 
-  if (!video.videoWidth || !video.videoHeight) return;
+  if (!video.videoWidth || !video.videoHeight) return false;
 
   const canvas = document.createElement("canvas");
   canvas.width = shareImageWidth;
   canvas.height = shareImageHeight;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+  if (!ctx) return false;
 
   drawShareImage(ctx, video, question);
   const blob = await canvasToJpeg(canvas);
-  if (!blob) return;
+  if (!blob) return false;
 
   const response = await fetch(`/api/sessions/${sessionId}/share-image-url`, {
     method: "POST",
@@ -340,6 +364,8 @@ async function uploadShareImagePreview({
   if (!uploadResponse.ok) {
     throw new Error("Failed to upload share image");
   }
+
+  return true;
 }
 
 function waitForVideoData(video: HTMLVideoElement) {

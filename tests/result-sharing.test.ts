@@ -10,20 +10,25 @@ const worker = readFileSync(join(process.cwd(), "worker/src/index.ts"), "utf8");
 
 describe("result sharing", () => {
   it("shares a Kakao feed card before falling back to Web Share and clipboard", () => {
-    expect(actionsTsx).toContain("await ensureShareImage?.()");
+    expect(actionsTsx).toContain("prepareKakaoShare");
+    expect(actionsTsx).toContain("!shareImageReady");
+    expect(actionsTsx).toContain("void ensureShareImage?.()");
     expect(actionsTsx).toContain("shareResultWithKakao");
     expect(actionsTsx).toContain("shareImageUrl(sessionId)");
+    expect(actionsTsx.indexOf("shareResultWithKakao")).toBeLessThan(actionsTsx.indexOf("navigator.share({ url: shareUrl })"));
     expect(actionsTsx).toContain("navigator.share({ url: shareUrl })");
     expect(actionsTsx).toContain("navigator.clipboard.writeText(shareUrl)");
     expect(actionsTsx).not.toContain("text: shareText");
   });
 
   it("configures Kakao sharing with a neutral feed and result button", () => {
+    expect(kakaoShareTs).toContain("prepareKakaoShare");
     expect(kakaoShareTs).toContain("sendDefault");
     expect(kakaoShareTs).toContain('objectType: "feed"');
     expect(kakaoShareTs).toContain('title: question');
     expect(kakaoShareTs).toContain('description: kakaoShareDescription');
     expect(kakaoShareTs).toContain('title: "결과 보러가기"');
+    expect(kakaoShareTs).not.toContain("scrapImage");
     expect(kakaoShareTs).not.toContain("headline");
     expect(kakaoShareTs).not.toContain("roast");
   });
@@ -44,6 +49,7 @@ describe("result sharing", () => {
     expect(experienceTsx).toContain("const shareImageWidth = 1080");
     expect(experienceTsx).toContain("const shareImageHeight = 1440");
     expect(experienceTsx).toContain("shareImageCallToAction");
+    expect(experienceTsx).toContain("setShareImageReady(uploaded)");
     expect(experienceTsx).not.toContain("ctx.fillText(headline");
     expect(experienceTsx).not.toContain("wrapCanvasText(ctx, roast");
     expect(worker).toContain('width="1080" height="1440"');
