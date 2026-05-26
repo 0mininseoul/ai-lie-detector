@@ -8,7 +8,8 @@ import {
   type EntitlementRecord
 } from "@/lib/entitlements/policy";
 
-const ENTITLEMENT_COLUMNS = "device_id,user_id,kakao_user_id,free_trials_used,credits,source";
+const ENTITLEMENT_COLUMNS =
+  "device_id,user_id,kakao_user_id,free_trials_used,credits,source,pass_expires_at";
 
 function toRecord(data: unknown): EntitlementRecord {
   const record = data as EntitlementRecord | null;
@@ -102,6 +103,37 @@ export async function grantCredits(
 
   if (error) {
     throw new Error(`Failed to grant credits: ${error.message}`);
+  }
+
+  return buildEntitlementState(toRecord(data));
+}
+
+export async function grantEntitlementPass(
+  deviceId: string,
+  durationSeconds: number,
+  source: EntitlementSource,
+  providerEventId = crypto.randomUUID()
+): Promise<EntitlementState> {
+  const normalizedDeviceId = normalizeDeviceId(deviceId);
+  const duration = Math.trunc(durationSeconds);
+  assertValidEntitlementSource(source);
+
+  if (!Number.isFinite(duration) || duration <= 0) {
+    throw new Error("Pass duration must be a positive integer of seconds");
+  }
+
+  const { getSupabaseServer } = await import("@/lib/supabase/server");
+  const supabase = getSupabaseServer();
+  const { data, error } = await supabase.rpc("grant_entitlement_pass", {
+    p_device_id: normalizedDeviceId,
+    p_duration_seconds: duration,
+    p_source: source,
+    p_provider: source,
+    p_provider_event_id: providerEventId
+  });
+
+  if (error) {
+    throw new Error(`Failed to grant pass: ${error.message}`);
   }
 
   return buildEntitlementState(toRecord(data));

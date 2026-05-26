@@ -18,8 +18,8 @@ export default function PricePage() {
             <span className={styles.headlineLine}>2,900원으로 팩트 확인하세요.</span>
           </h1>
           <p>
-            첫 판은 무료로 분위기를 보고, 다음부터는 1회권이나 묶음권으로
-            결제하시면 됩니다. 결제 연결은 곧 열려요.
+            첫 판은 무료로 분위기를 보고, 그다음엔 오늘 하루부터 일주일까지
+            무제한 패스로 마음껏 쓰세요. 결제 연결은 곧 열려요.
           </p>
           <Link href="/new">지금 질문하기</Link>
         </div>

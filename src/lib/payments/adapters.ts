@@ -7,6 +7,8 @@ export type EntitlementState = {
   kakaoUserId?: string;
   freeTrialsUsed: number;
   credits: number;
+  hasActivePass: boolean;
+  passExpiresAt?: string;
   canStartAnalysis: boolean;
   source: EntitlementSource;
 };
