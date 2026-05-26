@@ -70,7 +70,7 @@ type FeaturePayloadRow = {
 };
 
 const defaultGeminiModel = "gemini-2.5-flash";
-const workerVersion = "2026-05-26-retention-v1";
+const workerVersion = "2026-05-26-question-only-share-v1";
 const promptVersion = 1;
 const resultExpiresInMs = 7 * 24 * 60 * 60 * 1000;
 const inlineVideoMaxBytes = 8 * 1024 * 1024;
@@ -270,7 +270,7 @@ async function handleShareImageDownload(request: Request, env: Env, url: URL, he
 }
 
 function buildShareImageObjectKey(sessionId: string) {
-  return `share-images/${sessionId}/preview-20260526-safe.jpg`;
+  return `share-images/${sessionId}/preview-20260526-question-only.jpg`;
 }
 
 function buildFallbackShareImageSvg() {
@@ -282,9 +282,6 @@ function buildFallbackShareImageSvg() {
     </linearGradient>
   </defs>
   <rect width="1080" height="1440" fill="url(#bg)"/>
-  <rect x="72" y="1046" width="936" height="228" rx="34" fill="#050a0f" fill-opacity=".74" stroke="#72e3ad" stroke-opacity=".35"/>
-  <text x="114" y="1138" font-family="system-ui, sans-serif" font-size="54" font-weight="800" fill="#f4f7fb">결과를 확인하세요.</text>
-  <text x="114" y="1200" font-family="system-ui, sans-serif" font-size="34" font-weight="700" fill="#dce6e1">지금 AI 거짓말탐지기에서 결과를 확인하세요.</text>
 </svg>`;
 }
 

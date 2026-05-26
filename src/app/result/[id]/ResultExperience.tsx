@@ -51,7 +51,6 @@ type ShareImageUploadUrlResponse = {
 const pollIntervalMs = 1500;
 const shareImageWidth = 1080;
 const shareImageHeight = 1440;
-const shareImageCallToAction = "지금 AI 거짓말탐지기에서 결과를 확인하세요.";
 
 function getFriendlyStatusError(data: Pick<StatusResponse, "status" | "errorCode" | "errorDetail">) {
   if (data.status === "expired") return "세션이 만료되었어요.";
@@ -274,7 +273,7 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
         ) : (
           <div className={styles.videoPlaceholder} data-unavailable={recordingUnavailable || undefined}>
             {recordingUnavailable ? (
-              <p>녹화 영상 보관 기간이 지나 원본 영상은 더 이상 재생할 수 없어요.</p>
+              <p>원본 영상을 찾을 수 없어요. 이전 보관 설정으로 삭제된 영상은 복구할 수 없어요.</p>
             ) : null}
           </div>
         )}
@@ -412,33 +411,23 @@ function drawShareImage(
   }
 
   const gradient = ctx.createLinearGradient(0, 0, 0, shareImageHeight);
-  gradient.addColorStop(0, "rgba(0, 0, 0, 0.42)");
-  gradient.addColorStop(0.34, "rgba(0, 0, 0, 0.08)");
-  gradient.addColorStop(0.68, "rgba(0, 0, 0, 0.14)");
-  gradient.addColorStop(1, "rgba(0, 0, 0, 0.72)");
+  gradient.addColorStop(0, "rgba(0, 0, 0, 0.08)");
+  gradient.addColorStop(0.48, "rgba(0, 0, 0, 0.02)");
+  gradient.addColorStop(0.72, "rgba(0, 0, 0, 0.28)");
+  gradient.addColorStop(1, "rgba(0, 0, 0, 0.82)");
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, shareImageWidth, shareImageHeight);
 
-  const panelX = 72;
-  const panelY = 1046;
-  const panelW = shareImageWidth - panelX * 2;
-  const panelH = 228;
-
-  ctx.fillStyle = "rgba(5, 10, 15, 0.74)";
-  roundRect(ctx, panelX, panelY, panelW, panelH, 34);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(142, 240, 191, 0.34)";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
   ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.shadowColor = "rgba(0, 0, 0, 0.82)";
+  ctx.shadowBlur = 24;
+  ctx.shadowOffsetY = 5;
   ctx.fillStyle = "#f7faf8";
-  ctx.font = "880 58px Pretendard, system-ui, sans-serif";
-  fitText(ctx, question, panelX + 42, panelY + 92, panelW - 84);
-
-  ctx.font = "700 34px Pretendard, system-ui, sans-serif";
-  ctx.fillStyle = "rgba(244, 247, 251, 0.82)";
-  fitText(ctx, shareImageCallToAction, panelX + 42, panelY + 154, panelW - 84);
+  ctx.font = "900 70px Pretendard, system-ui, sans-serif";
+  fitText(ctx, question, 72, 1190, shareImageWidth - 144);
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
 }
 
 function drawFallbackShareImageBackground(ctx: CanvasRenderingContext2D) {
@@ -475,16 +464,6 @@ function drawCoverVideoMirrored(
   ctx.scale(-1, 1);
   ctx.drawImage(video, dx, dy, dw, dh);
   ctx.restore();
-}
-
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
 }
 
 function fitText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number) {

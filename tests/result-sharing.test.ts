@@ -44,17 +44,19 @@ describe("result sharing", () => {
     expect(pageTsx).toContain("height: 1440");
     expect(pageTsx).not.toContain("roast_comment");
     expect(worker).toContain("/share-image/");
-    expect(worker).toContain("share-images/${sessionId}/preview-20260526-safe.jpg");
+    expect(worker).toContain("share-images/${sessionId}/preview-20260526-question-only.jpg");
   });
 
-  it("keeps the generated Kakao preview image result-neutral and portrait", () => {
+  it("keeps the generated Kakao preview image to one bottom question line", () => {
     expect(experienceTsx).toContain("const shareImageWidth = 1080");
     expect(experienceTsx).toContain("const shareImageHeight = 1440");
-    expect(experienceTsx).toContain("shareImageCallToAction");
     expect(experienceTsx).toContain("setShareImageReady(uploaded)");
     expect(experienceTsx).toContain("drawFallbackShareImageBackground(ctx)");
     expect(experienceTsx).toContain("video?.videoWidth && video.videoHeight");
     expect(experienceTsx).toContain("videoSrc={recordingUnavailable ? null : videoSrc}");
+    expect(experienceTsx).toContain("fitText(ctx, question, 72, 1190, shareImageWidth - 144)");
+    expect(experienceTsx).not.toContain("shareImageCallToAction");
+    expect(experienceTsx).not.toContain("roundRect(ctx");
     expect(experienceTsx).not.toContain("ctx.fillText(headline");
     expect(experienceTsx).not.toContain("wrapCanvasText(ctx, roast");
     expect(worker).toContain('width="1080" height="1440"');
