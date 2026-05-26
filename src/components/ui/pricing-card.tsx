@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { PASS_PRODUCTS, formatWon, type PassId } from "@/lib/payments/products";
+import { PASS_PRODUCTS, discountPercent, formatWon, type PassId } from "@/lib/payments/products";
 import styles from "./pricing-card.module.css";
 
 type Selection = "trial" | PassId;
@@ -34,18 +34,23 @@ export default function PricingCard() {
           selected={selected === "trial"}
           onSelect={() => setSelected("trial")}
         />
-        {PASS_PRODUCTS.map((product) => (
-          <Plan
-            key={product.id}
-            name={product.name}
-            tagline={product.tagline}
-            priceLabel={formatWon(product.price)}
-            unitLabel="무제한"
-            badge={product.badge}
-            selected={selected === product.id}
-            onSelect={() => setSelected(product.id)}
-          />
-        ))}
+        {PASS_PRODUCTS.map((product) => {
+          const discount = discountPercent(product);
+          return (
+            <Plan
+              key={product.id}
+              name={product.name}
+              tagline={product.tagline}
+              priceLabel={formatWon(product.price)}
+              originalPriceLabel={product.originalPrice ? formatWon(product.originalPrice) : undefined}
+              discountLabel={discount ? `${discount}% OFF` : undefined}
+              unitLabel="무제한"
+              badge={product.badge}
+              selected={selected === product.id}
+              onSelect={() => setSelected(product.id)}
+            />
+          );
+        })}
       </div>
 
       <footer className={styles.footer}>
@@ -71,13 +76,25 @@ type PlanProps = {
   name: string;
   tagline: string;
   priceLabel: string;
+  originalPriceLabel?: string;
+  discountLabel?: string;
   unitLabel: string;
   badge?: string;
   selected: boolean;
   onSelect: () => void;
 };
 
-function Plan({ name, tagline, priceLabel, unitLabel, badge, selected, onSelect }: PlanProps) {
+function Plan({
+  name,
+  tagline,
+  priceLabel,
+  originalPriceLabel,
+  discountLabel,
+  unitLabel,
+  badge,
+  selected,
+  onSelect
+}: PlanProps) {
   return (
     <div
       role="button"
@@ -103,6 +120,12 @@ function Plan({ name, tagline, priceLabel, unitLabel, badge, selected, onSelect 
           <small>{tagline}</small>
         </div>
         <div className={styles.price}>
+          {originalPriceLabel ? (
+            <span className={styles.compare}>
+              {discountLabel ? <em className={styles.off}>{discountLabel}</em> : null}
+              <s>{originalPriceLabel}</s>
+            </span>
+          ) : null}
           <b>{priceLabel}</b>
           <small>{unitLabel}</small>
         </div>

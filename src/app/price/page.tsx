@@ -26,7 +26,7 @@ export default function PricePage() {
           <h1 id="price-title">
             <span className={styles.headlineLine}>찝찝하게 밤새 고민하지 마세요.</span>
             <span className={`${styles.headlineLine} ${styles.headlineAccent}`}>
-              하루 2,900원에 팩트체크하세요.
+              단돈 2,900원에 팩트체크하세요.
             </span>
           </h1>
           <p className={styles.lead}>
