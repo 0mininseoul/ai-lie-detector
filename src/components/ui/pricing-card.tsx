@@ -120,14 +120,21 @@ function Plan({
           <small>{tagline}</small>
         </div>
         <div className={styles.price}>
-          {originalPriceLabel ? (
-            <span className={styles.compare}>
-              {discountLabel ? <em className={styles.off}>{discountLabel}</em> : null}
-              <s>{originalPriceLabel}</s>
-            </span>
-          ) : null}
-          <b>{priceLabel}</b>
-          <small>{unitLabel}</small>
+          <span className={styles.anchor}>
+            {originalPriceLabel ? (
+              <>
+                <s>{originalPriceLabel}</s>
+                <span className={styles.arrow} aria-hidden>
+                  →
+                </span>
+              </>
+            ) : null}
+            <b>{priceLabel}</b>
+          </span>
+          <span className={styles.priceMeta}>
+            {discountLabel ? <em className={styles.off}>{discountLabel}</em> : null}
+            <small>{unitLabel}</small>
+          </span>
         </div>
       </div>
     </div>

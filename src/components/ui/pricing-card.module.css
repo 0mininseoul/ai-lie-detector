@@ -176,6 +176,31 @@
   gap: 5px;
 }
 
+/* Anchor flow: original price → live price, reading left-to-right so the
+ * discount lands on the current amount. */
+.anchor {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.anchor s {
+  color: var(--muted-text);
+  font-size: 13px;
+  line-height: 1;
+  font-weight: var(--fw-body-soft);
+  text-decoration-thickness: 1px;
+  text-decoration-color: oklch(68% 0.02 230 / 0.7);
+  font-variant-numeric: tabular-nums;
+}
+
+.arrow {
+  color: var(--muted-text);
+  font-size: 13px;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
 .price b {
   color: var(--text);
   font-size: 20px;
@@ -184,23 +209,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Anchor row: discount pill + struck-through original price, sitting above
- * the live price so the drop reads at a glance. */
-.compare {
+.priceMeta {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  margin-bottom: 2px;
-}
-
-.compare s {
-  color: var(--muted-text);
-  font-size: 12.5px;
-  line-height: 1;
-  font-weight: var(--fw-body-soft);
-  text-decoration-thickness: 1px;
-  text-decoration-color: oklch(68% 0.02 230 / 0.7);
-  font-variant-numeric: tabular-nums;
+  gap: 8px;
 }
 
 .off {
@@ -300,20 +312,7 @@
     display: flex;
     align-items: baseline;
     flex-wrap: wrap;
-    gap: 5px 10px;
-  }
-
-  .price b {
-    order: 1;
-  }
-
-  .price small {
-    order: 2;
-  }
-
-  .compare {
-    order: 3;
-    margin-bottom: 0;
-    margin-left: auto;
+    justify-content: flex-start;
+    gap: 5px 12px;
   }
 }
