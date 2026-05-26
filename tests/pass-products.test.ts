@@ -24,7 +24,6 @@ describe("pass products", () => {
   });
 
   it("returns undefined for an unknown product id", () => {
-    // @ts-expect-error unknown id is rejected at the type level but guarded at runtime
     expect(getPassProduct("month")).toBeUndefined();
   });
 });
