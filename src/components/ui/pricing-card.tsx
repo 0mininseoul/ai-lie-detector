@@ -10,9 +10,10 @@ type Selection = "trial" | PassId;
 export default function PricingCard() {
   const [selected, setSelected] = useState<Selection>("day");
 
-  const total = useMemo(() => {
-    if (selected === "trial") return 0;
-    return PASS_PRODUCTS.find((product) => product.id === selected)?.price ?? 0;
+  const summary = useMemo(() => {
+    if (selected === "trial") return { name: "무료 체험", priceLabel: "무료" };
+    const product = PASS_PRODUCTS.find((item) => item.id === selected);
+    return { name: product?.name ?? "", priceLabel: product ? formatWon(product.price) : "" };
   }, [selected]);
 
   const ctaLabel = selected === "trial" ? "무료로 시작하기" : "결제 연결은 곧 열려요";
@@ -44,7 +45,6 @@ export default function PricingCard() {
               priceLabel={formatWon(product.price)}
               originalPriceLabel={product.originalPrice ? formatWon(product.originalPrice) : undefined}
               discountLabel={discount ? `${discount}% OFF` : undefined}
-              unitLabel="무제한"
               badge={product.badge}
               selected={selected === product.id}
               onSelect={() => setSelected(product.id)}
@@ -54,9 +54,12 @@ export default function PricingCard() {
       </div>
 
       <footer className={styles.footer}>
-        <div className={styles.totalRow}>
-          <span>예상 결제 금액</span>
-          <strong>{formatWon(total)}</strong>
+        <div className={styles.summary}>
+          <span className={styles.summaryLabel}>
+            <em>결제 금액</em>
+            <strong>{summary.name}</strong>
+          </span>
+          <strong className={styles.summaryPrice}>{summary.priceLabel}</strong>
         </div>
         {selected === "trial" ? (
           <Link className={styles.cta} href="/new">
@@ -78,7 +81,7 @@ type PlanProps = {
   priceLabel: string;
   originalPriceLabel?: string;
   discountLabel?: string;
-  unitLabel: string;
+  unitLabel?: string;
   badge?: string;
   selected: boolean;
   onSelect: () => void;
@@ -131,10 +134,12 @@ function Plan({
             ) : null}
             <b>{priceLabel}</b>
           </span>
-          <span className={styles.priceMeta}>
-            {discountLabel ? <em className={styles.off}>{discountLabel}</em> : null}
-            <small>{unitLabel}</small>
-          </span>
+          {discountLabel || unitLabel ? (
+            <span className={styles.priceMeta}>
+              {discountLabel ? <em className={styles.off}>{discountLabel}</em> : null}
+              {unitLabel ? <small>{unitLabel}</small> : null}
+            </span>
+          ) : null}
         </div>
       </div>
     </div>

@@ -234,22 +234,39 @@
   margin-top: 4px;
 }
 
-.totalRow {
+/* Order summary above the CTA: which pass is chosen + its price, sized as a
+ * quiet confirmation rather than the loudest number on the card. */
+.summary {
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 14px;
 }
 
-.totalRow span {
-  color: var(--muted-text);
-  font-size: 13px;
-  font-weight: var(--fw-body-soft);
+.summaryLabel {
+  display: grid;
+  gap: 3px;
 }
 
-.totalRow strong {
+.summaryLabel em {
+  color: var(--muted-text);
+  font-size: 12px;
+  line-height: 1;
+  font-style: normal;
+  font-weight: var(--fw-body-soft);
+  letter-spacing: 0.02em;
+}
+
+.summaryLabel strong {
   color: var(--text);
-  font-size: 32px;
+  font-size: 16px;
+  line-height: 1.1;
+  font-weight: var(--fw-body-strong);
+}
+
+.summaryPrice {
+  color: var(--text);
+  font-size: 24px;
   line-height: 1;
   font-weight: var(--fw-display);
   letter-spacing: -0.012em;
