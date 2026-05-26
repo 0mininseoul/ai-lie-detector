@@ -35,7 +35,6 @@ export default function PricingCard() {
 
       <div className={styles.planList}>
         <Plan
-          id="trial"
           name="무료 체험"
           tagline="처음 한 번 무료"
           priceLabel="무료"
@@ -47,7 +46,6 @@ export default function PricingCard() {
         {PASS_PRODUCTS.map((product) => (
           <Plan
             key={product.id}
-            id={product.id}
             name={product.name}
             tagline={product.tagline}
             priceLabel={formatWon(product.price)}
@@ -80,7 +78,6 @@ export default function PricingCard() {
 }
 
 type PlanProps = {
-  id: Selection;
   name: string;
   tagline: string;
   priceLabel: string;
