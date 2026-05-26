@@ -16,6 +16,7 @@ export type EntitlementRecord = {
   free_trials_used: number;
   credits: number;
   source: string;
+  pass_expires_at: string | null;
 };
 
 export function normalizeSource(source: string): EntitlementSource {
@@ -53,6 +54,8 @@ function clampNonNegative(value: number): number {
 export function buildEntitlementState(record: EntitlementRecord): EntitlementState {
   const freeTrialsUsed = clampNonNegative(record.free_trials_used);
   const credits = clampNonNegative(record.credits);
+  const hasActivePass =
+    record.pass_expires_at != null && new Date(record.pass_expires_at).getTime() > Date.now();
 
   return {
     deviceId: record.device_id,
@@ -60,12 +63,18 @@ export function buildEntitlementState(record: EntitlementRecord): EntitlementSta
     kakaoUserId: record.kakao_user_id ?? undefined,
     freeTrialsUsed,
     credits,
-    canStartAnalysis: freeTrialsUsed < FREE_TRIAL_LIMIT || credits > 0,
+    hasActivePass,
+    passExpiresAt: record.pass_expires_at ?? undefined,
+    canStartAnalysis: hasActivePass || freeTrialsUsed < FREE_TRIAL_LIMIT || credits > 0,
     source: normalizeSource(record.source)
   };
 }
 
 export function applyAnalysisConsumption(state: EntitlementState): EntitlementState {
+  if (state.hasActivePass) {
+    return state;
+  }
+
   if (state.freeTrialsUsed < FREE_TRIAL_LIMIT) {
     const freeTrialsUsed = state.freeTrialsUsed + 1;
 

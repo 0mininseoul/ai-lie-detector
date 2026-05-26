@@ -14,7 +14,8 @@ const baseRecord: EntitlementRecord = {
   kakao_user_id: null,
   free_trials_used: 0,
   credits: 0,
-  source: "mvp"
+  source: "mvp",
+  pass_expires_at: null
 };
 
 describe("entitlement policy", () => {
@@ -72,5 +73,48 @@ describe("entitlement policy", () => {
   it("rejects invalid entitlement sources at runtime", () => {
     expect(() => assertValidEntitlementSource("polar")).not.toThrow();
     expect(() => assertValidEntitlementSource("stripe")).toThrow("Invalid entitlement source");
+  });
+
+  it("allows analysis with an active pass even after the free trial is used", () => {
+    const future = new Date(Date.now() + 60_000).toISOString();
+    const state = buildEntitlementState({
+      ...baseRecord,
+      free_trials_used: 1,
+      credits: 0,
+      pass_expires_at: future
+    });
+
+    expect(state.hasActivePass).toBe(true);
+    expect(state.canStartAnalysis).toBe(true);
+  });
+
+  it("does not consume free trials or credits while a pass is active", () => {
+    const future = new Date(Date.now() + 60_000).toISOString();
+    const state = buildEntitlementState({
+      ...baseRecord,
+      free_trials_used: 0,
+      credits: 3,
+      pass_expires_at: future
+    });
+
+    expect(applyAnalysisConsumption(state)).toMatchObject({
+      freeTrialsUsed: 0,
+      credits: 3,
+      hasActivePass: true,
+      canStartAnalysis: true
+    });
+  });
+
+  it("treats an expired pass as no pass", () => {
+    const past = new Date(Date.now() - 60_000).toISOString();
+    const state = buildEntitlementState({
+      ...baseRecord,
+      free_trials_used: 1,
+      credits: 0,
+      pass_expires_at: past
+    });
+
+    expect(state.hasActivePass).toBe(false);
+    expect(state.canStartAnalysis).toBe(false);
   });
 });
