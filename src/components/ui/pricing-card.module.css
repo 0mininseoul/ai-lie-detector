@@ -49,19 +49,24 @@
   font-weight: var(--fw-body-soft);
 }
 
+/* Floats over the top edge so it doesn't add height to the featured plan —
+ * all cards keep the same height and their radios stay aligned. */
 .savingsBadge {
-  width: fit-content;
-  margin: 12px 0 0 18px;
-  padding: 4px 11px;
+  position: absolute;
+  top: -10px;
+  left: 16px;
+  z-index: 2;
+  padding: 3px 10px;
   border-radius: 999px;
   background: linear-gradient(135deg, var(--mint), var(--mint-deep));
   color: var(--text-on-mint);
   font-size: 11px;
+  line-height: 1.35;
   font-weight: var(--fw-display-on-color);
   letter-spacing: 0.005em;
   box-shadow:
     0 1px 0 oklch(100% 0 0 / 0.32) inset,
-    0 4px 12px oklch(54% 0.16 152 / 0.32);
+    0 4px 12px oklch(54% 0.16 152 / 0.4);
 }
 
 .planList {
@@ -90,7 +95,6 @@
     background 280ms var(--ease-standard);
   backdrop-filter: blur(20px) saturate(1.5);
   cursor: pointer;
-  overflow: hidden;
 }
 
 .plan:hover {
