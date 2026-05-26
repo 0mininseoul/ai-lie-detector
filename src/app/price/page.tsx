@@ -13,7 +13,10 @@ export default function PricePage() {
       <section className={styles.hero} aria-labelledby="price-title">
         <div className={styles.copy}>
           <span className={styles.kicker}>AI 거짓말탐지기 가격</span>
-          <h1 id="price-title">커피보다 싼 값에 진실을 마주하세요.</h1>
+          <h1 id="price-title">
+            <span className={styles.headlineLine}>찝찝하게 밤새 고민하지 마세요.</span>
+            <span className={styles.headlineLine}>2,900원으로 팩트 확인하세요.</span>
+          </h1>
           <p>
             첫 판은 무료로 분위기를 보고, 다음부터는 1회권이나 묶음권으로
             결제하시면 됩니다. 결제 연결은 곧 열려요.
