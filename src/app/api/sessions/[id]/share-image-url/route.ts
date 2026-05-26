@@ -24,7 +24,7 @@ function badRequest(error: unknown) {
 }
 
 function buildShareImageObjectKey(sessionId: string) {
-  return `share-images/${sessionId}/preview-20260526-question-only.jpg`;
+  return `share-images/${sessionId}/preview-20260526-centered-question.jpg`;
 }
 
 export async function POST(request: Request, context: RouteContext) {

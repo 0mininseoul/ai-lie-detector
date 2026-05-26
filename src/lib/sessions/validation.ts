@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { assertValidSessionTimings } from "@/lib/recording/features";
+import { targetQuestionMaxLength, targetQuestionMinLength } from "@/lib/sessions/question-limits";
 
 const warmupQuestion = "오늘 하루 중 제일 기억나는 일이 뭐야?";
 
@@ -88,7 +89,7 @@ export const featurePayloadSchema = z.object({
 
 export const createSessionSchema = z.object({
   creatorDeviceId: z.string().trim().min(8).max(128),
-  targetQuestion: z.string().trim().min(3).max(160),
+  targetQuestion: z.string().trim().min(targetQuestionMinLength).max(targetQuestionMaxLength),
   locale: z.literal("ko").default("ko")
 }).strict();
 

@@ -70,7 +70,7 @@ type FeaturePayloadRow = {
 };
 
 const defaultGeminiModel = "gemini-2.5-flash";
-const workerVersion = "2026-05-26-question-only-share-v1";
+const workerVersion = "2026-05-26-centered-share-v1";
 const promptVersion = 1;
 const resultExpiresInMs = 7 * 24 * 60 * 60 * 1000;
 const inlineVideoMaxBytes = 8 * 1024 * 1024;
@@ -270,7 +270,7 @@ async function handleShareImageDownload(request: Request, env: Env, url: URL, he
 }
 
 function buildShareImageObjectKey(sessionId: string) {
-  return `share-images/${sessionId}/preview-20260526-question-only.jpg`;
+  return `share-images/${sessionId}/preview-20260526-centered-question.jpg`;
 }
 
 function buildFallbackShareImageSvg() {

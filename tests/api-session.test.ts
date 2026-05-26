@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { assertR2KeyMatchesSession, parseCompleteUploadInput, parseCreateSessionInput } from "@/lib/sessions/validation";
 import { createEmptyFeaturePayload } from "@/lib/recording/features";
+import { targetQuestionMaxLength } from "@/lib/sessions/question-limits";
 
 const validTimings = {
   durationMs: 10_000,
@@ -47,7 +48,7 @@ describe("session API validation", () => {
     expect(() =>
       parseCreateSessionInput({
         creatorDeviceId: "device-123456",
-        targetQuestion: "x".repeat(161)
+        targetQuestion: "x".repeat(targetQuestionMaxLength + 1)
       })
     ).toThrow();
   });

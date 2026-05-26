@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: ResultPageProps): Promise<Met
   const pageUrl = `${siteUrl}/result/${id}`;
   const imageUrl = shareImageUrl(id);
   const title = sessionResponse.data?.target_question || "AI 거짓말탐지기";
-  const description = "지금 AI 거짓말탐지기에서 결과를 확인하세요.";
+  const description = "아래 버튼을 눌러 결과를 확인하세요.";
 
   if (sessionResponse.error || !sessionResponse.data) {
     return {

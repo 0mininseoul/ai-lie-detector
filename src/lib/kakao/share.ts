@@ -1,7 +1,7 @@
 "use client";
 
 const kakaoSdkUrl = "https://t1.kakaocdn.net/kakao_js_sdk/2.8.1/kakao.min.js";
-const kakaoShareDescription = "지금 AI 거짓말탐지기에서 결과를 확인하세요.";
+const kakaoShareDescription = "아래 버튼을 눌러 결과를 확인하세요.";
 
 type KakaoShareLink = {
   mobileWebUrl: string;

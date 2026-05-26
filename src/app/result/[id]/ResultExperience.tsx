@@ -51,6 +51,10 @@ type ShareImageUploadUrlResponse = {
 const pollIntervalMs = 1500;
 const shareImageWidth = 1080;
 const shareImageHeight = 1440;
+const shareQuestionMinFontPx = 70;
+const shareQuestionMaxFontPx = 118;
+const shareQuestionMaxLines = 3;
+const shareQuestionSidePadding = 48;
 
 function getFriendlyStatusError(data: Pick<StatusResponse, "status" | "errorCode" | "errorDetail">) {
   if (data.status === "expired") return "세션이 만료되었어요.";
@@ -424,10 +428,44 @@ function drawShareImage(
   ctx.shadowBlur = 24;
   ctx.shadowOffsetY = 5;
   ctx.fillStyle = "#f7faf8";
-  ctx.font = "900 70px Pretendard, system-ui, sans-serif";
-  fitText(ctx, question, 72, 1190, shareImageWidth - 144);
+  drawShareQuestion(ctx, question);
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;
+}
+
+function drawShareQuestion(ctx: CanvasRenderingContext2D, question: string) {
+  const text = normalizeCanvasText(question);
+  const maxW = shareImageWidth - shareQuestionSidePadding * 2;
+  const linesAtMinimum = layoutQuestionLines(ctx, text, shareQuestionMinFontPx, maxW, shareQuestionMaxLines);
+  const targetLineCount = linesAtMinimum.fits
+    ? linesAtMinimum.lines.length
+    : shareQuestionMaxLines;
+
+  let fontSize = shareQuestionMinFontPx;
+  let lines = linesAtMinimum.lines;
+
+  for (let candidate = shareQuestionMaxFontPx; candidate >= shareQuestionMinFontPx; candidate -= 2) {
+    const layout = layoutQuestionLines(ctx, text, candidate, maxW, targetLineCount);
+    if (layout.fits) {
+      fontSize = candidate;
+      lines = layout.lines;
+      break;
+    }
+  }
+
+  if (fontSize === shareQuestionMinFontPx && !linesAtMinimum.fits) {
+    lines = layoutQuestionLines(ctx, text, shareQuestionMinFontPx, maxW, shareQuestionMaxLines, true).lines;
+  }
+
+  const lineHeight = Math.round(fontSize * 1.14);
+  const blockCenterY = 1170;
+  const firstBaselineY = blockCenterY - ((lines.length - 1) * lineHeight) / 2;
+
+  ctx.font = canvasQuestionFont(fontSize);
+  ctx.textAlign = "center";
+  lines.forEach((line, index) => {
+    ctx.fillText(line, shareImageWidth / 2, firstBaselineY + index * lineHeight);
+  });
 }
 
 function drawFallbackShareImageBackground(ctx: CanvasRenderingContext2D) {
@@ -466,12 +504,63 @@ function drawCoverVideoMirrored(
   ctx.restore();
 }
 
-function fitText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number) {
-  let output = text;
-  while (output.length > 0 && ctx.measureText(output).width > maxW) {
-    output = output.slice(0, -1);
+function normalizeCanvasText(text: string) {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function canvasQuestionFont(fontSize: number) {
+  return `900 ${fontSize}px Pretendard, system-ui, sans-serif`;
+}
+
+function layoutQuestionLines(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  fontSize: number,
+  maxW: number,
+  maxLines: number,
+  truncate = false
+) {
+  ctx.font = canvasQuestionFont(fontSize);
+  const units = Array.from(text);
+  const lines: string[] = [];
+  let current = "";
+  let index = 0;
+
+  while (index < units.length) {
+    const next = `${current}${units[index]}`;
+    if (current && ctx.measureText(next.trim()).width > maxW) {
+      lines.push(current.trimEnd());
+      current = "";
+      if (lines.length === maxLines) {
+        return {
+          lines: truncate ? ellipsizeLastLine(ctx, lines, maxW) : lines,
+          fits: false
+        };
+      }
+      continue;
+    }
+
+    current = next;
+    index += 1;
   }
-  ctx.fillText(output.length < text.length ? `${output.slice(0, -1)}…` : output, x, y);
+
+  if (current) lines.push(current.trimEnd());
+  const fits = lines.length <= maxLines && lines.every((line) => ctx.measureText(line).width <= maxW);
+  return {
+    lines: fits || !truncate ? lines.slice(0, maxLines) : ellipsizeLastLine(ctx, lines.slice(0, maxLines), maxW),
+    fits
+  };
+}
+
+function ellipsizeLastLine(ctx: CanvasRenderingContext2D, lines: string[], maxW: number) {
+  if (lines.length === 0) return lines;
+  const next = [...lines];
+  let last = next[next.length - 1] ?? "";
+  while (last.length > 0 && ctx.measureText(`${last}…`).width > maxW) {
+    last = last.slice(0, -1);
+  }
+  next[next.length - 1] = `${last}…`;
+  return next;
 }
 
 function coercePlaybackClip(

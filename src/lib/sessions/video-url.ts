@@ -8,7 +8,7 @@ function workerBaseUrl() {
   );
 }
 
-const sharePreviewVersion = "20260526-question-only";
+const sharePreviewVersion = "20260526-centered-question";
 
 export function recordingDownloadUrl(sessionId: string): string {
   const base = workerBaseUrl();

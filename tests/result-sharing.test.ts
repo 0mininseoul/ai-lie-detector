@@ -6,6 +6,7 @@ const actionsTsx = readFileSync(join(process.cwd(), "src/app/result/[id]/ResultA
 const experienceTsx = readFileSync(join(process.cwd(), "src/app/result/[id]/ResultExperience.tsx"), "utf8");
 const kakaoShareTs = readFileSync(join(process.cwd(), "src/lib/kakao/share.ts"), "utf8");
 const pageTsx = readFileSync(join(process.cwd(), "src/app/result/[id]/page.tsx"), "utf8");
+const newPageTsx = readFileSync(join(process.cwd(), "src/app/new/page.tsx"), "utf8");
 const completeUploadRoute = readFileSync(join(process.cwd(), "src/app/api/sessions/[id]/complete-upload/route.ts"), "utf8");
 const r2Lifecycle = readFileSync(join(process.cwd(), "worker/r2-lifecycle.json"), "utf8");
 const worker = readFileSync(join(process.cwd(), "worker/src/index.ts"), "utf8");
@@ -29,6 +30,7 @@ describe("result sharing", () => {
     expect(kakaoShareTs).toContain('objectType: "feed"');
     expect(kakaoShareTs).toContain('title: question');
     expect(kakaoShareTs).toContain('description: kakaoShareDescription');
+    expect(kakaoShareTs).toContain("아래 버튼을 눌러 결과를 확인하세요.");
     expect(kakaoShareTs).toContain('title: "결과 보러가기"');
     expect(kakaoShareTs).not.toContain("scrapImage");
     expect(kakaoShareTs).not.toContain("headline");
@@ -39,12 +41,12 @@ describe("result sharing", () => {
     expect(pageTsx).toContain("generateMetadata");
     expect(pageTsx).toContain("shareImageUrl(id)");
     expect(pageTsx).toContain('const title = sessionResponse.data?.target_question || "AI 거짓말탐지기"');
-    expect(pageTsx).toContain('const description = "지금 AI 거짓말탐지기에서 결과를 확인하세요."');
+    expect(pageTsx).toContain('const description = "아래 버튼을 눌러 결과를 확인하세요."');
     expect(pageTsx).toContain("width: 1080");
     expect(pageTsx).toContain("height: 1440");
     expect(pageTsx).not.toContain("roast_comment");
     expect(worker).toContain("/share-image/");
-    expect(worker).toContain("share-images/${sessionId}/preview-20260526-question-only.jpg");
+    expect(worker).toContain("share-images/${sessionId}/preview-20260526-centered-question.jpg");
   });
 
   it("keeps the generated Kakao preview image to one bottom question line", () => {
@@ -54,7 +56,11 @@ describe("result sharing", () => {
     expect(experienceTsx).toContain("drawFallbackShareImageBackground(ctx)");
     expect(experienceTsx).toContain("video?.videoWidth && video.videoHeight");
     expect(experienceTsx).toContain("videoSrc={recordingUnavailable ? null : videoSrc}");
-    expect(experienceTsx).toContain("fitText(ctx, question, 72, 1190, shareImageWidth - 144)");
+    expect(experienceTsx).toContain("shareQuestionMinFontPx = 70");
+    expect(experienceTsx).toContain("shareQuestionMaxLines = 3");
+    expect(experienceTsx).toContain('ctx.textAlign = "center"');
+    expect(experienceTsx).toContain("drawShareQuestion(ctx, question)");
+    expect(experienceTsx).toContain("layoutQuestionLines");
     expect(experienceTsx).not.toContain("shareImageCallToAction");
     expect(experienceTsx).not.toContain("roundRect(ctx");
     expect(experienceTsx).not.toContain("ctx.fillText(headline");
@@ -67,5 +73,11 @@ describe("result sharing", () => {
     expect(worker).toContain("7 * 24 * 60 * 60 * 1000");
     expect(r2Lifecycle).toContain('"id": "delete-recordings-after-7-days"');
     expect(r2Lifecycle).toContain('"maxAge": 604800');
+  });
+
+  it("uses the shared target question length limit on the question form", () => {
+    expect(newPageTsx).toContain("targetQuestionMaxLength");
+    expect(newPageTsx).toContain("maxLength={targetQuestionMaxLength}");
+    expect(newPageTsx).toContain("{trimmedQuestion.length}/{targetQuestionMaxLength}");
   });
 });

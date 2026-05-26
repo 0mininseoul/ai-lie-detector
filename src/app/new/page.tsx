@@ -7,6 +7,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { KakaoIcon } from "@/components/icons/KakaoIcon";
 import { getAvatarUrl, getDisplayName, useSupabaseUser } from "@/hooks/useSupabaseUser";
 import { signInWithKakao } from "@/lib/auth/kakao";
+import { targetQuestionMaxLength } from "@/lib/sessions/question-limits";
 import styles from "./new.module.css";
 
 const sampleQuestions = [
@@ -130,7 +131,7 @@ export default function NewQuestionPage() {
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
               placeholder="어제 누구랑 있었어?"
-              maxLength={160}
+              maxLength={targetQuestionMaxLength}
               rows={4}
             />
 
@@ -143,7 +144,7 @@ export default function NewQuestionPage() {
             </div>
 
             <div className={styles.actionRow}>
-              <span className={styles.counter}>{trimmedQuestion.length}/160</span>
+              <span className={styles.counter}>{trimmedQuestion.length}/{targetQuestionMaxLength}</span>
               <button className={styles.lockButton} type="submit" disabled={!canSubmit}>
                 {isSubmitting ? "준비 중" : "질문하기"}
               </button>
