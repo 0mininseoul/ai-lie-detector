@@ -64,16 +64,6 @@
     0 4px 12px oklch(54% 0.16 152 / 0.32);
 }
 
-.perQuestion {
-  display: block;
-  margin-top: 3px;
-  color: var(--mint);
-  font-size: 11px;
-  font-weight: var(--fw-body-strong);
-  font-style: normal;
-  letter-spacing: 0.01em;
-}
-
 .planList {
   display: grid;
   gap: 10px;
@@ -193,127 +183,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.divider {
-  height: 1px;
-  margin-bottom: 14px;
-  background: linear-gradient(90deg, transparent, var(--mint), transparent);
-  opacity: 0.42;
-}
-
-.counterRow {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 14px;
-}
-
-.counterCopy {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.avatar {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  color: var(--mint);
-  background: var(--glass-tint-mint);
-  box-shadow:
-    0 1px 0 var(--liquid-highlight) inset,
-    0 8px 22px oklch(58% 0.18 152 / 0.28);
-}
-
-.counterCopy strong,
-.counterCopy span {
-  display: block;
-}
-
-.counterCopy strong {
-  color: var(--text);
-  font-size: 14px;
-  font-weight: var(--fw-body-strong);
-}
-
-.counterCopy span {
-  margin-top: 3px;
-  color: var(--muted-text);
-  font-size: 12.5px;
-  font-weight: var(--fw-caption);
-}
-
-.stepper {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px;
-  border: 1px solid var(--glass-edge);
-  border-radius: calc(var(--radius) * 1.4);
-  background: var(--glass);
-  box-shadow: var(--shadow-soft);
-}
-
-.stepper button {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: var(--radius);
-  color: var(--muted-text);
-  background: transparent;
-  transition: background 200ms var(--ease-standard), color 200ms var(--ease-standard), transform 160ms var(--ease-standard);
-}
-
-.stepper button:not(:disabled):hover {
-  color: var(--text);
-  background: var(--glass-strong);
-  transform: translateY(-1px);
-}
-
-.stepper button:disabled {
-  cursor: not-allowed;
-  opacity: 0.34;
-}
-
-.stepper span {
-  min-width: 18px;
-  color: var(--text);
-  text-align: center;
-  font-size: 14px;
-  font-weight: var(--fw-body-strong);
-  font-variant-numeric: tabular-nums;
-}
-
-.stepper input {
-  width: 36px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text);
-  text-align: center;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  font-weight: var(--fw-body-strong);
-  font-variant-numeric: tabular-nums;
-  outline: none;
-  transition: color 200ms var(--ease-standard);
-}
-
-.stepper input:focus {
-  color: var(--mint);
-}
-
-.stepper input::-webkit-outer-spin-button,
-.stepper input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
 .footer {
   display: grid;
   gap: 14px;
@@ -371,20 +240,16 @@
     border-radius: calc(var(--radius) * 2.2);
   }
 
+  /* The hero column already pitches "첫 판 무료 + 무제한 패스" right above the
+   * card on phones, so this restates it — drop it and let "요금 고르기" stand
+   * as a clean section title. Restored at wider widths where the hero sits
+   * beside the card. */
+  .header p {
+    display: none;
+  }
+
   .planTop {
-    grid-template-columns: auto 1fr;
-  }
-
-  .price {
-    grid-column: 2;
-    justify-items: start;
-  }
-
-  .counterRow {
-    grid-template-columns: 1fr;
-  }
-
-  .stepper {
-    width: fit-content;
+    gap: 12px;
+    padding: 16px 16px 15px;
   }
 }

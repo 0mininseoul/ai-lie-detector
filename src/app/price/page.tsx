@@ -48,7 +48,6 @@ export default function PricePage() {
               지금 질문하기
               <ArrowRight size={16} aria-hidden />
             </Link>
-            <span className={styles.ctaNote}>결제 연결은 곧 열려요</span>
           </div>
         </div>
         <PricingCard />

@@ -61,7 +61,7 @@
   display: grid;
   gap: 6px;
   color: var(--text);
-  font-size: clamp(18px, 5.7vw, 32px);
+  font-size: clamp(20px, 6.7vw, 30px);
   line-height: 1.12;
   letter-spacing: -0.02em;
   font-weight: var(--fw-display);
@@ -154,12 +154,6 @@
 .cta:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-action-hover);
-}
-
-.ctaNote {
-  color: var(--muted-text);
-  font-size: 13px;
-  font-weight: var(--fw-body-soft);
 }
 
 @media (min-width: 720px) {
