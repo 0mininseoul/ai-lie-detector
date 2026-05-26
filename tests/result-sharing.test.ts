@@ -6,13 +6,15 @@ const actionsTsx = readFileSync(join(process.cwd(), "src/app/result/[id]/ResultA
 const experienceTsx = readFileSync(join(process.cwd(), "src/app/result/[id]/ResultExperience.tsx"), "utf8");
 const kakaoShareTs = readFileSync(join(process.cwd(), "src/lib/kakao/share.ts"), "utf8");
 const pageTsx = readFileSync(join(process.cwd(), "src/app/result/[id]/page.tsx"), "utf8");
+const completeUploadRoute = readFileSync(join(process.cwd(), "src/app/api/sessions/[id]/complete-upload/route.ts"), "utf8");
+const r2Lifecycle = readFileSync(join(process.cwd(), "worker/r2-lifecycle.json"), "utf8");
 const worker = readFileSync(join(process.cwd(), "worker/src/index.ts"), "utf8");
 
 describe("result sharing", () => {
   it("shares a Kakao feed card before falling back to Web Share and clipboard", () => {
     expect(actionsTsx).toContain("prepareKakaoShare");
     expect(actionsTsx).toContain("!shareImageReady");
-    expect(actionsTsx).toContain("void ensureShareImage?.()");
+    expect(actionsTsx).toContain("await ensureShareImage?.()");
     expect(actionsTsx).toContain("shareResultWithKakao");
     expect(actionsTsx).toContain("shareImageUrl(sessionId)");
     expect(actionsTsx.indexOf("shareResultWithKakao")).toBeLessThan(actionsTsx.indexOf("navigator.share({ url: shareUrl })"));
@@ -50,8 +52,18 @@ describe("result sharing", () => {
     expect(experienceTsx).toContain("const shareImageHeight = 1440");
     expect(experienceTsx).toContain("shareImageCallToAction");
     expect(experienceTsx).toContain("setShareImageReady(uploaded)");
+    expect(experienceTsx).toContain("drawFallbackShareImageBackground(ctx)");
+    expect(experienceTsx).toContain("video?.videoWidth && video.videoHeight");
+    expect(experienceTsx).toContain("videoSrc={recordingUnavailable ? null : videoSrc}");
     expect(experienceTsx).not.toContain("ctx.fillText(headline");
     expect(experienceTsx).not.toContain("wrapCanvasText(ctx, roast");
     expect(worker).toContain('width="1080" height="1440"');
+  });
+
+  it("keeps recordings for the same public result retention window", () => {
+    expect(completeUploadRoute).toContain("7 * 24 * 60 * 60 * 1000");
+    expect(worker).toContain("7 * 24 * 60 * 60 * 1000");
+    expect(r2Lifecycle).toContain('"id": "delete-recordings-after-7-days"');
+    expect(r2Lifecycle).toContain('"maxAge": 604800');
   });
 });

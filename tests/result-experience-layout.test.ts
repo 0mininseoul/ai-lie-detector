@@ -53,6 +53,7 @@ describe("result experience mobile layout", () => {
     expect(video).toContain("object-fit: cover");
     expect(video).toContain("object-position: center center");
     expect(videoOnly).toContain("transform: scaleX(-1)");
+    expect(css).toContain(".videoPlaceholder p");
   });
 
   it("loops only the target-answer segment during analysis playback", () => {

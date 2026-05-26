@@ -34,6 +34,26 @@
   filter: none;
   transform: scaleX(-1);
 }
+.videoPlaceholder {
+  display: grid;
+  place-items: center;
+  padding: 28px;
+}
+.videoPlaceholder p {
+  max-width: 26ch;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid oklch(74% 0.16 158 / 0.28);
+  border-radius: 16px;
+  background: oklch(6% 0.014 230 / 0.58);
+  backdrop-filter: blur(14px) saturate(1.4);
+  color: oklch(88% 0.03 158 / 0.88);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+  word-break: keep-all;
+}
 
 .muteButton {
   position: absolute;

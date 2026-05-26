@@ -83,15 +83,18 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
   const [videoAspect, setVideoAspect] = useState("3 / 4");
   const [videoMaxWidth, setVideoMaxWidth] = useState("75dvh");
   const [shareImageReady, setShareImageReady] = useState(false);
+  const [recordingUnavailable, setRecordingUnavailable] = useState(false);
 
   useEffect(() => {
     const local = recordingLocalStore.toUrl(sessionId);
     if (local) {
+      setRecordingUnavailable(false);
       setVideoSrc(local);
       setClip(coercePlaybackClip(recordingLocalStore.getTiming(sessionId)) ?? null);
       return;
     }
     const remote = recordingDownloadUrl(sessionId);
+    setRecordingUnavailable(false);
     setVideoSrc(remote || null);
   }, [sessionId]);
 
@@ -235,13 +238,14 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
   useEffect(() => {
     setShareImageReady(false);
     shareImagePromiseRef.current = null;
+    setRecordingUnavailable(false);
   }, [sessionId]);
 
   useEffect(() => {
-    if (headline && videoSrc) {
+    if (headline) {
       void ensureShareImage();
     }
-  }, [ensureShareImage, headline, videoSrc]);
+  }, [ensureShareImage, headline]);
 
   return (
     <main className={styles.shell}>
@@ -251,7 +255,7 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
         data-revealing={revealing}
         style={{ "--result-aspect": videoAspect, "--result-max-width": videoMaxWidth } as CSSProperties}
       >
-        {videoSrc ? (
+        {videoSrc && !recordingUnavailable ? (
           <video
             ref={videoRef}
             className={styles.video}
@@ -265,9 +269,14 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
             onLoadedMetadata={handleVideoLoadedMetadata}
             onTimeUpdate={loopTargetClip}
             onEnded={loopTargetClip}
+            onError={() => setRecordingUnavailable(true)}
           />
         ) : (
-          <div className={styles.videoPlaceholder} aria-hidden />
+          <div className={styles.videoPlaceholder} data-unavailable={recordingUnavailable || undefined}>
+            {recordingUnavailable ? (
+              <p>녹화 영상 보관 기간이 지나 원본 영상은 더 이상 재생할 수 없어요.</p>
+            ) : null}
+          </div>
         )}
 
         <button
@@ -307,7 +316,7 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
         <ResultActions
           sessionId={sessionId}
           question={question}
-          videoSrc={videoSrc}
+          videoSrc={recordingUnavailable ? null : videoSrc}
           headline={headline}
           roastComment={roast}
           ensureShareImage={ensureShareImage}
@@ -328,16 +337,15 @@ async function uploadShareImagePreview({
   question: string;
   video: HTMLVideoElement | null;
 }) {
-  if (!video) return false;
-  await waitForVideoData(video);
-
-  if (!video.videoWidth || !video.videoHeight) return false;
-
   const canvas = document.createElement("canvas");
   canvas.width = shareImageWidth;
   canvas.height = shareImageHeight;
   const ctx = canvas.getContext("2d");
   if (!ctx) return false;
+
+  if (video) {
+    await waitForVideoData(video);
+  }
 
   drawShareImage(ctx, video, question);
   const blob = await canvasToJpeg(canvas);
@@ -372,13 +380,15 @@ function waitForVideoData(video: HTMLVideoElement) {
   if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return Promise.resolve();
 
   return new Promise<void>((resolve) => {
-    const timeout = window.setTimeout(done, 900);
+    const timeout = window.setTimeout(done, 2500);
     function done() {
       window.clearTimeout(timeout);
       video.removeEventListener("loadeddata", done);
+      video.removeEventListener("error", done);
       resolve();
     }
     video.addEventListener("loadeddata", done, { once: true });
+    video.addEventListener("error", done, { once: true });
   });
 }
 
@@ -390,12 +400,16 @@ function canvasToJpeg(canvas: HTMLCanvasElement) {
 
 function drawShareImage(
   ctx: CanvasRenderingContext2D,
-  video: HTMLVideoElement,
+  video: HTMLVideoElement | null,
   question: string
 ) {
   ctx.fillStyle = "#02070a";
   ctx.fillRect(0, 0, shareImageWidth, shareImageHeight);
-  drawCoverVideoMirrored(ctx, video, shareImageWidth, shareImageHeight);
+  if (video?.videoWidth && video.videoHeight) {
+    drawCoverVideoMirrored(ctx, video, shareImageWidth, shareImageHeight);
+  } else {
+    drawFallbackShareImageBackground(ctx);
+  }
 
   const gradient = ctx.createLinearGradient(0, 0, 0, shareImageHeight);
   gradient.addColorStop(0, "rgba(0, 0, 0, 0.42)");
@@ -425,6 +439,22 @@ function drawShareImage(
   ctx.font = "700 34px Pretendard, system-ui, sans-serif";
   ctx.fillStyle = "rgba(244, 247, 251, 0.82)";
   fitText(ctx, shareImageCallToAction, panelX + 42, panelY + 154, panelW - 84);
+}
+
+function drawFallbackShareImageBackground(ctx: CanvasRenderingContext2D) {
+  const base = ctx.createLinearGradient(0, 0, shareImageWidth, shareImageHeight);
+  base.addColorStop(0, "#04130c");
+  base.addColorStop(0.48, "#071018");
+  base.addColorStop(1, "#020408");
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, shareImageWidth, shareImageHeight);
+
+  const glow = ctx.createRadialGradient(540, 420, 0, 540, 420, 680);
+  glow.addColorStop(0, "rgba(142, 240, 191, 0.22)");
+  glow.addColorStop(0.42, "rgba(52, 92, 126, 0.16)");
+  glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, shareImageWidth, shareImageHeight);
 }
 
 function drawCoverVideoMirrored(

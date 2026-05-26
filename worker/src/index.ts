@@ -70,9 +70,9 @@ type FeaturePayloadRow = {
 };
 
 const defaultGeminiModel = "gemini-2.5-flash";
-const workerVersion = "2026-05-25-share-preview-v7";
+const workerVersion = "2026-05-26-retention-v1";
 const promptVersion = 1;
-const resultExpiresInMs = 48 * 60 * 60 * 1000;
+const resultExpiresInMs = 7 * 24 * 60 * 60 * 1000;
 const inlineVideoMaxBytes = 8 * 1024 * 1024;
 const geminiUploadTimeoutMs = 45_000;
 const geminiGenerateTimeoutMs = 75_000;

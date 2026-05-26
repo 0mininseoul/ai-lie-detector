@@ -56,9 +56,13 @@ export function ResultActions({
     const shareUrl = `${window.location.origin}/result/${sessionId}`;
 
     if (!shareImageReady) {
-      void ensureShareImage?.();
-      showToast("공유 이미지를 준비 중이에요. 잠시 후 다시 눌러 주세요.");
-      return;
+      showToast("공유 이미지를 준비하고 있어요.");
+      const ready = await ensureShareImage?.();
+      if (!ready) {
+        showToast("공유 이미지를 만들지 못했어요. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+      setToast("");
     }
 
     const kakaoShared = shareResultWithKakao({

@@ -12,7 +12,7 @@ type RouteContext = {
 };
 
 const sessionIdSchema = z.uuid();
-const recordingExpiresInMs = 24 * 60 * 60 * 1000;
+const recordingExpiresInMs = 7 * 24 * 60 * 60 * 1000;
 
 function badRequest(error: unknown, sessionId?: string) {
   const message = error instanceof ZodError ? error.issues[0]?.message : error instanceof Error ? error.message : "Invalid request";
