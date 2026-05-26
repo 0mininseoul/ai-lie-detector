@@ -1,6 +1,7 @@
 "use client";
 
 const kakaoSdkUrl = "https://t1.kakaocdn.net/kakao_js_sdk/2.8.1/kakao.min.js";
+const kakaoShareTitle = "AI 거짓말탐지기";
 const kakaoShareDescription = "아래 버튼을 눌러 결과를 확인하세요.";
 
 type KakaoShareLink = {
@@ -57,11 +58,9 @@ export async function prepareKakaoShare() {
 
 export function shareResultWithKakao({
   url,
-  question,
   imageUrl
 }: {
   url: string;
-  question: string;
   imageUrl: string;
 }) {
   const jsKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
@@ -79,7 +78,7 @@ export function shareResultWithKakao({
     kakao.Share.sendDefault({
       objectType: "feed",
       content: {
-        title: question,
+        title: kakaoShareTitle,
         description: kakaoShareDescription,
         imageUrl,
         link

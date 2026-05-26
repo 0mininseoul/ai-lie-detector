@@ -67,7 +67,6 @@ export function ResultActions({
 
     const kakaoShared = shareResultWithKakao({
       url: shareUrl,
-      question,
       imageUrl: shareImageUrl(sessionId)
     });
     if (kakaoShared) return;

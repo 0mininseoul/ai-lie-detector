@@ -28,7 +28,8 @@ describe("result sharing", () => {
     expect(kakaoShareTs).toContain("prepareKakaoShare");
     expect(kakaoShareTs).toContain("sendDefault");
     expect(kakaoShareTs).toContain('objectType: "feed"');
-    expect(kakaoShareTs).toContain('title: question');
+    expect(kakaoShareTs).toContain('const kakaoShareTitle = "AI 거짓말탐지기"');
+    expect(kakaoShareTs).toContain("title: kakaoShareTitle");
     expect(kakaoShareTs).toContain('description: kakaoShareDescription');
     expect(kakaoShareTs).toContain("아래 버튼을 눌러 결과를 확인하세요.");
     expect(kakaoShareTs).toContain('title: "결과 보러가기"');
@@ -40,7 +41,7 @@ describe("result sharing", () => {
   it("publishes a dynamic Open Graph image route backed by the worker share image", () => {
     expect(pageTsx).toContain("generateMetadata");
     expect(pageTsx).toContain("shareImageUrl(id)");
-    expect(pageTsx).toContain('const title = sessionResponse.data?.target_question || "AI 거짓말탐지기"');
+    expect(pageTsx).toContain('const title = "AI 거짓말탐지기"');
     expect(pageTsx).toContain('const description = "아래 버튼을 눌러 결과를 확인하세요."');
     expect(pageTsx).toContain("width: 1080");
     expect(pageTsx).toContain("height: 1440");
