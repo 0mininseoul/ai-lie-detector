@@ -9,6 +9,10 @@ type RouteContext = {
   }>;
 };
 
+// The worker runs the Gemini analysis synchronously and we await it via
+// triggerAnalysis, so this retry route must stay open for the full analysis.
+export const maxDuration = 60;
+
 const sessionIdSchema = z.uuid();
 
 export async function POST(_request: Request, context: RouteContext) {

@@ -11,6 +11,11 @@ type RouteContext = {
   }>;
 };
 
+// The worker runs the Gemini analysis synchronously and we await it below, so
+// this function must stay open for the full analysis. 60s is the Vercel Hobby
+// ceiling; the worker self-caps under that. On a Pro plan this can go higher.
+export const maxDuration = 60;
+
 const sessionIdSchema = z.uuid();
 const recordingExpiresInMs = 7 * 24 * 60 * 60 * 1000;
 

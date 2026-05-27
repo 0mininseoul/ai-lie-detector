@@ -70,12 +70,19 @@ type FeaturePayloadRow = {
 };
 
 const defaultGeminiModel = "gemini-2.5-flash";
-const workerVersion = "2026-05-26-centered-share-v1";
+const workerVersion = "2026-05-27-analysis-logging-v1";
 const promptVersion = 1;
 const resultExpiresInMs = 7 * 24 * 60 * 60 * 1000;
 const inlineVideoMaxBytes = 8 * 1024 * 1024;
-const geminiUploadTimeoutMs = 45_000;
-const geminiGenerateTimeoutMs = 75_000;
+// The worker now runs analysis synchronously inside the trigger request, so
+// its total budget must stay under the caller's Vercel maxDuration (60s). The
+// inline path (videos ≤ 8MB, the common case) is generate-only ≈ 52s worst
+// case, leaving headroom. The rare file-upload path (> 8MB) can exceed 60s; if
+// you move the Vercel route to a Pro plan you can raise both budgets together.
+const geminiUploadTimeoutMs = 30_000;
+const geminiGenerateTimeoutMs = 50_000;
+const geminiFileMaxPollAttempts = 8;
+const heartbeatIntervalMs = 10_000;
 
 const systemPrompt = `
 당신은 "AI 거짓말탐지기"의 멀티모달 분석 모델입니다.
@@ -161,6 +168,7 @@ export default {
       return Response.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
+    console.log("[analyze] received", JSON.stringify({ sessionId, workerVersion }));
     recordWorkerEvent(context, env, {
       event: "analysis_queued",
       level: "info",
@@ -169,11 +177,21 @@ export default {
       workerVersion
     });
 
-    context.waitUntil(
-      analyzeSession(sessionId, env, context).catch((error) => markSessionFailed(sessionId, env, error, context))
-    );
-
-    return Response.json({ status: "queued", sessionId });
+    // Run the analysis synchronously within this request. The caller (the
+    // Next.js trigger route) holds the connection open until we finish, so
+    // Cloudflare keeps the worker alive the whole time. A detached
+    // context.waitUntil() task is evicted mid-Gemini-call — that was the silent
+    // ~33% failure that the status route later swept as analysis_timeout.
+    // The result is written to the DB regardless; the result page polls for it.
+    try {
+      await analyzeSession(sessionId, env, context);
+      return Response.json({ status: "complete", sessionId });
+    } catch (error) {
+      await markSessionFailed(sessionId, env, error, context);
+      // 200 so the trigger doesn't read this as a *trigger* failure — the
+      // session is already marked failed and surfaced via status polling.
+      return Response.json({ status: "failed", sessionId });
+    }
   }
 };
 
@@ -302,6 +320,10 @@ function downloadCorsHeaders(request: Request) {
 async function analyzeSession(sessionId: string, env: Env, context: WorkerContext) {
   const startedAt = Date.now();
   const logStage = (stage: string, fields: Record<string, unknown> = {}) => {
+    const elapsedMs = Date.now() - startedAt;
+    // Mirror every stage to the Cloudflare console so `wrangler tail` and the
+    // Workers dashboard show the live analysis progress, not just Axiom.
+    console.log("[analyze]", stage, JSON.stringify({ sessionId, elapsedMs, ...fields }));
     recordWorkerEvent(context, env, {
       event: "analysis_stage",
       level: "info",
@@ -309,7 +331,7 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
       sessionId,
       workerVersion,
       stage,
-      elapsedMs: Date.now() - startedAt,
+      elapsedMs,
       ...fields
     });
   };
@@ -399,46 +421,60 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
     logStage
   });
 
-  logStage("gemini_generate_started", { modelName });
-  const response = await withTimeout(
-    ai.models.generateContent({
-      model: modelName,
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              ...videoPart
-            },
-            {
-              text: buildTextPayload({
-                session,
-                recording,
-                featurePayload: featurePayloadResult.data?.payload_json ?? null
-              })
-            }
-          ]
+  const videoSource = "inlineData" in videoPart ? "inline" : "file";
+  logStage("gemini_generate_started", { modelName, videoSource });
+
+  // The generateContent call is the longest, riskiest leg (the silent-death
+  // zone in past failures). Emit a heartbeat every ~10s so the runtime logs
+  // show whether the worker is still alive and how far it gets — a missing
+  // heartbeat pinpoints where execution stopped.
+  const heartbeat = startHeartbeat(context, env, sessionId, startedAt, "gemini_generate");
+  let response;
+  try {
+    response = await withTimeout(
+      ai.models.generateContent({
+        model: modelName,
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                ...videoPart
+              },
+              {
+                text: buildTextPayload({
+                  session,
+                  recording,
+                  featurePayload: featurePayloadResult.data?.payload_json ?? null
+                })
+              }
+            ]
+          }
+        ],
+        config: {
+          systemInstruction: systemPrompt,
+          mediaResolution: MediaResolution.MEDIA_RESOLUTION_LOW,
+          maxOutputTokens: 900,
+          thinkingConfig: { thinkingBudget: 0 },
+          responseMimeType: "application/json",
+          // Force exact JSON structure; Gemini sometimes omits or guesses
+          // optional-looking fields when only given a text prompt.
+          responseSchema: geminiResponseSchema as unknown as Record<string, unknown>
         }
-      ],
-      config: {
-        systemInstruction: systemPrompt,
-        mediaResolution: MediaResolution.MEDIA_RESOLUTION_LOW,
-        maxOutputTokens: 900,
-        thinkingConfig: { thinkingBudget: 0 },
-        responseMimeType: "application/json",
-        // Force exact JSON structure; Gemini sometimes omits or guesses
-        // optional-looking fields when only given a text prompt.
-        responseSchema: geminiResponseSchema as unknown as Record<string, unknown>
-      }
-    }),
-    geminiGenerateTimeoutMs,
-    "Gemini generation timed out"
-  );
-  logStage("gemini_generate_completed");
+      }),
+      geminiGenerateTimeoutMs,
+      "Gemini generation timed out"
+    );
+  } finally {
+    heartbeat.stop();
+  }
+  logStage("gemini_generate_completed", { textLength: response.text?.length ?? 0 });
 
   if (!response.text) {
     throw new Error("Gemini returned empty text");
   }
+
+  logStage("parsing_result");
 
   const parsed = parseGeminiResult(parseJsonObject(response.text));
   const expiresAt = new Date(Date.now() + resultExpiresInMs).toISOString();
@@ -460,6 +496,8 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
     ),
     "Failed to save analysis result"
   );
+
+  logStage("result_saved", { verdict: parsed.public_result.verdict });
 
   await requireNoSupabaseError(
     supabase.from("sessions").update({ status: "complete" }).eq("id", sessionId),
@@ -548,7 +586,7 @@ async function waitForGeminiFile(ai: GoogleGenAI, file: GeminiFile) {
   }
 
   let current = file;
-  for (let attempt = 0; attempt < 24; attempt += 1) {
+  for (let attempt = 0; attempt < geminiFileMaxPollAttempts; attempt += 1) {
     if (!current.state || current.state === "ACTIVE") {
       return current;
     }
@@ -747,6 +785,43 @@ function sleep(ms: number) {
 
 function recordWorkerEvent(context: WorkerContext, env: Env, event: AxiomEvent) {
   context.waitUntil(logAxiomEvent(env, event).catch(() => undefined));
+}
+
+/*
+ * Emit a periodic "still alive" event while a long async leg runs. The last
+ * heartbeat before silence tells us exactly how long the worker survived —
+ * the key signal for diagnosing background-execution eviction during the
+ * Gemini call. Stops emitting once the caller calls stop().
+ */
+function startHeartbeat(
+  context: WorkerContext,
+  env: Env,
+  sessionId: string,
+  startedAt: number,
+  phase: string
+) {
+  let beat = 0;
+  const id = setInterval(() => {
+    beat += 1;
+    const elapsedMs = Date.now() - startedAt;
+    console.log("[analyze] heartbeat", JSON.stringify({ sessionId, phase, beat, elapsedMs }));
+    recordWorkerEvent(context, env, {
+      event: "analysis_heartbeat",
+      level: "info",
+      source: "worker_analyze_session",
+      sessionId,
+      workerVersion,
+      phase,
+      beat,
+      elapsedMs
+    });
+  }, heartbeatIntervalMs);
+
+  return {
+    stop() {
+      clearInterval(id);
+    }
+  };
 }
 
 function withTimeout<T>(promise: PromiseLike<T>, ms: number, message: string) {
