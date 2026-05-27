@@ -31,7 +31,7 @@ describe("result experience mobile layout", () => {
     expect(topMeta).toContain("transform: translateX(-50%)");
     expect(topMeta).toContain("align-items: center");
     expect(question).toContain("text-align: center");
-    expect(question).toContain("font-size: clamp(18px");
+    expect(question).toContain("font-size: clamp(21px");
   });
 
   it("keeps the analyzing and failure cards out of awkward face/text overlaps", () => {
@@ -40,7 +40,7 @@ describe("result experience mobile layout", () => {
     const failedCopyLine = selectorBlock(".failedCopyLine");
 
     expect(analyzingLayer).toContain("align-items: end");
-    expect(analyzingLayer).toContain("padding-bottom: max(106px, 17dvh)");
+    expect(analyzingLayer).toContain("padding-bottom: max(72px, 12dvh)");
     expect(failedCard).toContain("max-width: min(88vw, 390px)");
     expect(failedCopyLine).toContain("display: block");
     expect(failedCopyLine).toContain("white-space: nowrap");

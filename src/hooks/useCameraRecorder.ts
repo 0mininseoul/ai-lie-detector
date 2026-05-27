@@ -53,11 +53,18 @@ async function applyWidestCameraView(stream: MediaStream) {
   const minZoom = capabilities?.zoom?.min;
   if (typeof minZoom !== "number" || !Number.isFinite(minZoom)) return;
 
+  // Zoom all the way out to the widest framing the lens supports. Try the
+  // `advanced` form first (most browsers), then a top-level constraint as a
+  // fallback for builds that only honor that shape.
   try {
     await zoomTrack.applyConstraints({ advanced: [{ zoom: minZoom }] });
   } catch {
-    // Some iOS browser builds expose zoom but reject applying it. The stream is
-    // still usable, so keep recording with the browser default.
+    try {
+      await zoomTrack.applyConstraints({ zoom: minZoom } as MediaTrackConstraints);
+    } catch {
+      // Some iOS browser builds expose zoom but reject applying it. The stream
+      // is still usable, so keep recording with the browser default.
+    }
   }
 }
 
@@ -132,12 +139,18 @@ export function useCameraRecorder() {
       const requestToken = cameraStartTokenRef.current + 1;
       cameraStartTokenRef.current = requestToken;
 
+      // iOS Safari/Chrome crop (zoom into) the front camera when we pin a high
+      // portrait resolution or aspect ratio — the browser picks the capture
+      // format closest to the request, and a tall 3:4 request makes it choose a
+      // narrow, center-cropped readout. Requesting only the facing mode (plus a
+      // gentle resolution floor for Android) lets it fall back to the widest
+      // default preview, which is far closer to the native Camera app's selfie
+      // field of view. `resizeMode: none` blocks an extra software crop, and CSS
+      // `object-fit` handles the portrait display crop instead.
       const videoConstraints: CameraVideoConstraints = {
         facingMode: "user",
-        width: { ideal: 960 },
-        height: { ideal: 1280 },
-        aspectRatio: { ideal: 3 / 4 },
-        frameRate: { ideal: 24, max: 24 },
+        width: { ideal: 1280 },
+        frameRate: { ideal: 24, max: 30 },
         resizeMode: { ideal: "none" }
       };
 

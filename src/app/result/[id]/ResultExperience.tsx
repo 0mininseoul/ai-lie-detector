@@ -598,7 +598,14 @@ function AnalyzingOverlay({ isTakingLong }: { isTakingLong: boolean }) {
           <i style={{ animationDelay: "480ms" }} />
         </div>
         <p className={styles.analyzingLog}>
-          {isTakingLong ? "분석이 길어지고 있어요. 결과가 준비되면 바로 표시됩니다." : "표정 · 시선 · 음성 · 지연 패턴 교차 검증"}
+          {isTakingLong ? (
+            <>
+              <span className={styles.analyzingLogLine}>분석이 길어지고 있어요.</span>
+              <span className={styles.analyzingLogLine}>결과가 준비되면 바로 표시됩니다.</span>
+            </>
+          ) : (
+            "표정 · 시선 · 음성 · 지연 패턴 교차 검증"
+          )}
         </p>
       </div>
     </div>

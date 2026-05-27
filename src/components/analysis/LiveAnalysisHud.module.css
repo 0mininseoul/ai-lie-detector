@@ -202,9 +202,10 @@
 /* ─ Mobile tightening ─ */
 @media (max-width: 720px) {
   .cornerTl, .cornerTr, .cornerBl, .cornerBr {
-    width: 22px;
-    height: 22px;
-    opacity: 0.7;
+    width: 26px;
+    height: 26px;
+    border-color: oklch(78% 0.17 158 / 0.92);
+    opacity: 1;
   }
   .topBar {
     top: 118px;
@@ -212,20 +213,23 @@
     right: 18px;
     display: flex;
     gap: 5px;
-    opacity: 0.88;
+    opacity: 1;
   }
   .topChip {
     padding: 4px 7px;
     border-radius: 6px;
     font-size: 8px;
-    background: oklch(4% 0.012 230 / 0.34);
+    border-color: oklch(74% 0.16 158 / 0.55);
+    background: oklch(5% 0.012 230 / 0.5);
   }
   .topChip:nth-child(3) {
     margin-left: auto;
   }
+  /* Mobile face overlay was dialed way down; bring the forensic mesh back up so
+     the green analysis layer reads clearly over the live face. */
   .faceMesh {
-    color: oklch(82% 0.16 158 / 0.46);
-    filter: drop-shadow(0 0 8px oklch(74% 0.16 158 / 0.16));
+    color: oklch(85% 0.17 158 / 0.82);
+    filter: drop-shadow(0 0 12px oklch(76% 0.17 158 / 0.45));
   }
   .sideMetrics {
     top: auto;

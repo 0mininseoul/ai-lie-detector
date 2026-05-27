@@ -883,16 +883,20 @@
 
   .stage[data-phase="warmup"] .questionPanel,
   .stage[data-phase="target"] .targetPanel {
+    position: relative;
     width: 100%;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-      "label timer"
-      "question question";
+      "label"
+      "question";
     align-items: start;
-    column-gap: 14px;
-    row-gap: 12px;
-    padding: 14px 16px 16px;
+    row-gap: 9px;
+    /* The countdown ring is floated top-right (out of flow), so the question
+       copy can sit tight under the label instead of being pushed down by the
+       ring's height. Reserve right padding so the label/first line clear it. */
+    padding: 13px 16px 15px;
+    padding-right: 74px;
     border-color: oklch(100% 0 0 / 0.14);
     border-radius: 18px;
     container-type: inline-size;
@@ -910,9 +914,9 @@
   }
 
   .questionHeader > :last-child {
-    grid-area: timer;
-    justify-self: end;
-    align-self: start;
+    position: absolute;
+    top: 11px;
+    right: 11px;
   }
 
   .panel {
