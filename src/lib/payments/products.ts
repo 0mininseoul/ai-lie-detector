@@ -5,6 +5,7 @@ export type PassProduct = {
   name: string;
   tagline: string;
   price: number; // KRW
+  originalPrice?: number; // KRW — struck-through anchor price
   durationSeconds: number;
   badge?: string;
 };
@@ -13,26 +14,35 @@ export const PASS_PRODUCTS: PassProduct[] = [
   {
     id: "day",
     name: "오늘 무제한",
-    tagline: "결제 후 24시간 무제한",
+    tagline: "결제 후 24시간 동안",
     price: 2900,
+    originalPrice: 4900,
     durationSeconds: 86_400,
     badge: "🔥 인기"
   },
   {
     id: "weekend",
-    name: "주말 무제한",
-    tagline: "3일 동안 무제한",
+    name: "3일 무제한",
+    tagline: "결제 후 3일 동안",
     price: 4900,
+    originalPrice: 9900,
     durationSeconds: 259_200
   },
   {
     id: "week",
     name: "1주 무제한",
-    tagline: "7일 동안 무제한",
+    tagline: "결제 후 7일 동안",
     price: 7900,
+    originalPrice: 19_900,
     durationSeconds: 604_800
   }
 ];
+
+/** Rounded percentage off vs the original anchor price (e.g. 41 → "41%"). */
+export function discountPercent(product: PassProduct): number | null {
+  if (!product.originalPrice || product.originalPrice <= product.price) return null;
+  return Math.round((1 - product.price / product.originalPrice) * 100);
+}
 
 const wonFormatter = new Intl.NumberFormat("ko-KR", {
   style: "currency",

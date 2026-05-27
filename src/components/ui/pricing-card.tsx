@@ -1,26 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { Check } from "lucide-react";
 import { useMemo, useState } from "react";
-import { PASS_PRODUCTS, formatWon, type PassId } from "@/lib/payments/products";
+import { PASS_PRODUCTS, discountPercent, formatWon, type PassId } from "@/lib/payments/products";
 import styles from "./pricing-card.module.css";
 
 type Selection = "trial" | PassId;
 
-const features: Record<Selection, string[]> = {
-  trial: ["1회 무료 사용", "결과 카드 자동 생성", "공유 문구 추천"],
-  day: ["오늘 하루 판정 무제한", "친구 여러 명 연속 테스트", "결과 카드 무제한 공유"],
-  weekend: ["3일 동안 판정 무제한", "여행·모임 내내 사용", "결과 카드 무제한 공유"],
-  week: ["7일 동안 판정 무제한", "가장 자주 쓰는 사람용", "결과 카드 무제한 공유"]
-};
-
 export default function PricingCard() {
   const [selected, setSelected] = useState<Selection>("day");
 
-  const total = useMemo(() => {
-    if (selected === "trial") return 0;
-    return PASS_PRODUCTS.find((product) => product.id === selected)?.price ?? 0;
+  const summary = useMemo(() => {
+    if (selected === "trial") return { name: "무료 체험", priceLabel: "무료" };
+    const product = PASS_PRODUCTS.find((item) => item.id === selected);
+    return { name: product?.name ?? "", priceLabel: product ? formatWon(product.price) : "" };
   }, [selected]);
 
   const ctaLabel = selected === "trial" ? "무료로 시작하기" : "결제 연결은 곧 열려요";
@@ -41,27 +34,32 @@ export default function PricingCard() {
           unitLabel="1회 체험"
           selected={selected === "trial"}
           onSelect={() => setSelected("trial")}
-          features={features.trial}
         />
-        {PASS_PRODUCTS.map((product) => (
-          <Plan
-            key={product.id}
-            name={product.name}
-            tagline={product.tagline}
-            priceLabel={formatWon(product.price)}
-            unitLabel="무제한"
-            badge={product.badge}
-            selected={selected === product.id}
-            onSelect={() => setSelected(product.id)}
-            features={features[product.id]}
-          />
-        ))}
+        {PASS_PRODUCTS.map((product) => {
+          const discount = discountPercent(product);
+          return (
+            <Plan
+              key={product.id}
+              name={product.name}
+              tagline={product.tagline}
+              priceLabel={formatWon(product.price)}
+              originalPriceLabel={product.originalPrice ? formatWon(product.originalPrice) : undefined}
+              discountLabel={discount ? `${discount}% OFF` : undefined}
+              badge={product.badge}
+              selected={selected === product.id}
+              onSelect={() => setSelected(product.id)}
+            />
+          );
+        })}
       </div>
 
       <footer className={styles.footer}>
-        <div className={styles.totalRow}>
-          <span>예상 결제 금액</span>
-          <strong>{formatWon(total)}</strong>
+        <div className={styles.summary}>
+          <span className={styles.summaryLabel}>
+            <em>결제 금액</em>
+            <strong>{summary.name}</strong>
+          </span>
+          <strong className={styles.summaryPrice}>{summary.priceLabel}</strong>
         </div>
         {selected === "trial" ? (
           <Link className={styles.cta} href="/new">
@@ -81,14 +79,25 @@ type PlanProps = {
   name: string;
   tagline: string;
   priceLabel: string;
-  unitLabel: string;
+  originalPriceLabel?: string;
+  discountLabel?: string;
+  unitLabel?: string;
   badge?: string;
   selected: boolean;
   onSelect: () => void;
-  features: string[];
 };
 
-function Plan({ name, tagline, priceLabel, unitLabel, badge, selected, onSelect, features }: PlanProps) {
+function Plan({
+  name,
+  tagline,
+  priceLabel,
+  originalPriceLabel,
+  discountLabel,
+  unitLabel,
+  badge,
+  selected,
+  onSelect
+}: PlanProps) {
   return (
     <div
       role="button"
@@ -114,20 +123,23 @@ function Plan({ name, tagline, priceLabel, unitLabel, badge, selected, onSelect,
           <small>{tagline}</small>
         </div>
         <div className={styles.price}>
-          <b>{priceLabel}</b>
-          <small>{unitLabel}</small>
-        </div>
-      </div>
-      <div className={styles.planReveal} data-open={selected}>
-        <div className={styles.planRevealInner}>
-          <div className={styles.features}>
-            {features.map((feature, index) => (
-              <div key={feature} style={{ transitionDelay: `${index * 60}ms` }}>
-                <Check size={14} aria-hidden />
-                <span>{feature}</span>
-              </div>
-            ))}
-          </div>
+          <span className={styles.anchor}>
+            {originalPriceLabel ? (
+              <>
+                <s>{originalPriceLabel}</s>
+                <span className={styles.arrow} aria-hidden>
+                  →
+                </span>
+              </>
+            ) : null}
+            <b>{priceLabel}</b>
+          </span>
+          {discountLabel || unitLabel ? (
+            <span className={styles.priceMeta}>
+              {discountLabel ? <em className={styles.off}>{discountLabel}</em> : null}
+              {unitLabel ? <small>{unitLabel}</small> : null}
+            </span>
+          ) : null}
         </div>
       </div>
     </div>

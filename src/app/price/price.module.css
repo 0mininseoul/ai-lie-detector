@@ -24,7 +24,7 @@
   width: fit-content;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   padding: 7px 13px;
   border: 1px solid var(--glass-edge);
   border-radius: 999px;
@@ -38,25 +38,53 @@
   text-transform: uppercase;
 }
 
+.kickerDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--mint);
+  box-shadow: 0 0 0 4px oklch(74% 0.16 158 / 0.22);
+  animation: kickerPulse 1.8s var(--ease-standard) infinite;
+}
+
+@keyframes kickerPulse {
+  50% {
+    box-shadow: 0 0 0 9px oklch(74% 0.16 158 / 0.08);
+  }
+}
+
+/* Headline is locked to exactly two lines at every width: each line stays on
+ * one row (nowrap) and the font scales with the viewport so the longest line
+ * fits the available column. */
 .copy h1 {
-  max-width: 660px;
   margin: 0;
+  display: grid;
+  gap: 6px;
   color: var(--text);
-  font-size: clamp(38px, 9vw, 52px);
-  line-height: 1;
-  letter-spacing: -0.018em;
+  font-size: clamp(20px, 6.7vw, 30px);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
   font-weight: var(--fw-display);
   text-shadow: var(--text-shadow-display);
-  text-wrap: balance;
-  word-break: keep-all;
 }
 
 .headlineLine {
   display: block;
+  white-space: nowrap;
 }
 
-.copy p {
-  max-width: 540px;
+.headlineAccent {
+  color: var(--mint);
+  text-shadow:
+    0 8px 22px oklch(58% 0.17 152 / 0.42),
+    0 22px 56px oklch(46% 0.13 230 / 0.22);
+}
+
+/* Lead paragraph is supporting detail — hidden on phones to keep the column
+ * compact, shown from tablet up. */
+.lead {
+  display: none;
+  max-width: 460px;
   margin: 0;
   color: var(--muted-text);
   font-size: 15px;
@@ -65,14 +93,54 @@
   word-break: keep-all;
 }
 
-.copy a {
-  width: fit-content;
+.valueList {
+  display: grid;
+  gap: 11px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.valueList li {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: var(--fw-body-strong);
+}
+
+.valueIcon {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--glass-edge);
+  border-radius: calc(var(--radius) * 1.4);
+  color: var(--mint);
+  background: var(--glass-tint-mint);
+  box-shadow:
+    0 1px 0 var(--liquid-highlight) inset,
+    0 6px 16px oklch(58% 0.18 152 / 0.2);
+  backdrop-filter: blur(16px) saturate(1.4);
+}
+
+.ctaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-top: 6px;
+}
+
+.cta {
   min-height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 0 18px;
+  padding: 0 20px;
   border-radius: calc(var(--radius) * 1.6);
   color: var(--text-on-mint);
   background: linear-gradient(135deg, var(--mint), var(--mint-deep));
@@ -83,7 +151,7 @@
   transition: transform 220ms var(--ease-standard), box-shadow 240ms var(--ease-standard);
 }
 
-.copy a:hover {
+.cta:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-action-hover);
 }
@@ -93,11 +161,16 @@
     padding: 32px 28px 60px;
   }
 
-  .copy h1 {
-    font-size: clamp(48px, 6vw, 64px);
+  .copy {
+    gap: 20px;
   }
 
-  .copy p {
+  .copy h1 {
+    font-size: clamp(28px, 4.6vw, 42px);
+  }
+
+  .lead {
+    display: block;
     font-size: 16px;
   }
 }
@@ -105,22 +178,22 @@
 @media (min-width: 1024px) {
   .hero {
     grid-template-columns: minmax(0, 1fr) minmax(380px, 470px);
-    gap: clamp(40px, 6vw, 96px);
+    gap: clamp(40px, 6vw, 88px);
     align-items: center;
     min-height: calc(100vh - 100px);
   }
 
+  .copy {
+    gap: 22px;
+  }
+
   .copy h1 {
-    max-width: none;
-    font-size: clamp(34px, 3.4vw, 36px);
-    line-height: 1.08;
+    font-size: clamp(26px, 2.6vw, 37px);
+    line-height: 1.14;
   }
 
-  .headlineLine {
-    white-space: nowrap;
-  }
-
-  .copy p {
-    font-size: 18px;
+  .lead {
+    max-width: 480px;
+    font-size: 17px;
   }
 }

@@ -35,9 +35,9 @@
 .header h1 {
   margin: 0;
   color: var(--text);
-  font-size: 28px;
-  line-height: 1.08;
-  letter-spacing: -0.012em;
+  font-size: 23px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
   font-weight: var(--fw-display);
 }
 
@@ -49,33 +49,24 @@
   font-weight: var(--fw-body-soft);
 }
 
+/* Floats over the top edge so it doesn't add height to the featured plan —
+ * all cards keep the same height and their radios stay aligned. */
 .savingsBadge {
-  width: fit-content;
-  margin: 12px 0 0 18px;
-  padding: 4px 11px;
+  position: absolute;
+  top: -10px;
+  left: 16px;
+  z-index: 2;
+  padding: 3px 10px;
   border-radius: 999px;
   background: linear-gradient(135deg, var(--mint), var(--mint-deep));
   color: var(--text-on-mint);
   font-size: 11px;
+  line-height: 1.35;
   font-weight: var(--fw-display-on-color);
   letter-spacing: 0.005em;
   box-shadow:
     0 1px 0 oklch(100% 0 0 / 0.32) inset,
-    0 4px 12px oklch(54% 0.16 152 / 0.32);
-}
-
-.plan[data-selected="true"] > .planTop {
-  padding-top: 12px;
-}
-
-.perQuestion {
-  display: block;
-  margin-top: 3px;
-  color: var(--mint);
-  font-size: 11px;
-  font-weight: var(--fw-body-strong);
-  font-style: normal;
-  letter-spacing: 0.01em;
+    0 4px 12px oklch(54% 0.16 152 / 0.4);
 }
 
 .planList {
@@ -104,7 +95,6 @@
     background 280ms var(--ease-standard);
   backdrop-filter: blur(20px) saturate(1.5);
   cursor: pointer;
-  overflow: hidden;
 }
 
 .plan:hover {
@@ -173,6 +163,7 @@
   font-size: 17px;
   line-height: 1.15;
   font-weight: var(--fw-title);
+  word-break: keep-all;
 }
 
 .planCopy small,
@@ -186,182 +177,63 @@
 .price {
   display: grid;
   justify-items: end;
-  gap: 4px;
+  gap: 5px;
+}
+
+/* Anchor flow: original price → live price, reading left-to-right so the
+ * discount lands on the current amount. */
+.anchor {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.anchor s {
+  display: inline-block;
+  min-width: 4.7em;
+  text-align: right;
+  color: var(--muted-text);
+  font-size: 13px;
+  line-height: 1;
+  font-weight: var(--fw-body-soft);
+  text-decoration-thickness: 1px;
+  text-decoration-color: oklch(68% 0.02 230 / 0.7);
+  font-variant-numeric: tabular-nums;
+}
+
+.arrow {
+  color: var(--muted-text);
+  font-size: 13px;
+  line-height: 1;
+  transform: translateY(-1px);
 }
 
 .price b {
   color: var(--text);
   font-size: 19px;
-  line-height: 1.1;
+  line-height: 1.05;
   font-weight: var(--fw-title);
   font-variant-numeric: tabular-nums;
 }
 
-.planReveal {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 360ms var(--ease-out-glass);
-}
-
-.planReveal[data-open="true"] {
-  grid-template-rows: 1fr;
-}
-
-.planRevealInner {
-  overflow: hidden;
-  min-height: 0;
-}
-
-.planReveal[data-open="true"] .planRevealInner {
-  padding: 4px 18px 18px;
-}
-
-.features {
-  display: grid;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.features div {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text);
-  font-size: 13.5px;
-  font-weight: var(--fw-body);
-  opacity: 0;
-  transform: translateY(4px);
-  transition: opacity 240ms var(--ease-standard), transform 240ms var(--ease-standard);
-}
-
-.planReveal[data-open="true"] .features div {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.features svg {
-  color: var(--mint);
-}
-
-.divider {
-  height: 1px;
-  margin-bottom: 14px;
-  background: linear-gradient(90deg, transparent, var(--mint), transparent);
-  opacity: 0.42;
-}
-
-.counterRow {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 14px;
-}
-
-.counterCopy {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.avatar {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  color: var(--mint);
-  background: var(--glass-tint-mint);
-  box-shadow:
-    0 1px 0 var(--liquid-highlight) inset,
-    0 8px 22px oklch(58% 0.18 152 / 0.28);
-}
-
-.counterCopy strong,
-.counterCopy span {
-  display: block;
-}
-
-.counterCopy strong {
-  color: var(--text);
-  font-size: 14px;
-  font-weight: var(--fw-body-strong);
-}
-
-.counterCopy span {
-  margin-top: 3px;
-  color: var(--muted-text);
-  font-size: 12.5px;
-  font-weight: var(--fw-caption);
-}
-
-.stepper {
+.priceMeta {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 5px;
-  border: 1px solid var(--glass-edge);
-  border-radius: calc(var(--radius) * 1.4);
-  background: var(--glass);
-  box-shadow: var(--shadow-soft);
 }
 
-.stepper button {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: var(--radius);
-  color: var(--muted-text);
-  background: transparent;
-  transition: background 200ms var(--ease-standard), color 200ms var(--ease-standard), transform 160ms var(--ease-standard);
-}
-
-.stepper button:not(:disabled):hover {
-  color: var(--text);
-  background: var(--glass-strong);
-  transform: translateY(-1px);
-}
-
-.stepper button:disabled {
-  cursor: not-allowed;
-  opacity: 0.34;
-}
-
-.stepper span {
-  min-width: 18px;
-  color: var(--text);
-  text-align: center;
-  font-size: 14px;
-  font-weight: var(--fw-body-strong);
-  font-variant-numeric: tabular-nums;
-}
-
-.stepper input {
-  width: 36px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text);
-  text-align: center;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  font-weight: var(--fw-body-strong);
-  font-variant-numeric: tabular-nums;
-  outline: none;
-  transition: color 200ms var(--ease-standard);
-}
-
-.stepper input:focus {
+.off {
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--mint-line);
   color: var(--mint);
-}
-
-.stepper input::-webkit-outer-spin-button,
-.stepper input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+  background: var(--glass-tint-mint);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: var(--fw-display-on-color);
+  font-style: normal;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .footer {
@@ -370,22 +242,39 @@
   margin-top: 4px;
 }
 
-.totalRow {
+/* Order summary above the CTA: which pass is chosen + its price, sized as a
+ * quiet confirmation rather than the loudest number on the card. */
+.summary {
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 14px;
 }
 
-.totalRow span {
-  color: var(--muted-text);
-  font-size: 13px;
-  font-weight: var(--fw-body-soft);
+.summaryLabel {
+  display: grid;
+  gap: 3px;
 }
 
-.totalRow strong {
+.summaryLabel em {
+  color: var(--muted-text);
+  font-size: 12px;
+  line-height: 1;
+  font-style: normal;
+  font-weight: var(--fw-body-soft);
+  letter-spacing: 0.02em;
+}
+
+.summaryLabel strong {
   color: var(--text);
-  font-size: 32px;
+  font-size: 16px;
+  line-height: 1.1;
+  font-weight: var(--fw-body-strong);
+}
+
+.summaryPrice {
+  color: var(--text);
+  font-size: 24px;
   line-height: 1;
   font-weight: var(--fw-display);
   letter-spacing: -0.012em;
@@ -394,6 +283,10 @@
 
 .cta {
   min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
   border: 0;
   border-radius: calc(var(--radius) * 1.6);
   color: var(--text-on-mint);
@@ -402,6 +295,8 @@
   font-size: 16px;
   font-weight: var(--fw-action);
   letter-spacing: -0.005em;
+  text-align: center;
+  text-decoration: none;
   transition: transform 200ms var(--ease-standard), box-shadow 240ms var(--ease-standard);
 }
 
@@ -415,20 +310,34 @@
     border-radius: calc(var(--radius) * 2.2);
   }
 
+  /* The hero column already pitches "첫 판 무료 + 무제한 패스" right above the
+   * card on phones, so this restates it — drop it and let "요금 고르기" stand
+   * as a clean section title. Restored at wider widths where the hero sits
+   * beside the card. */
+  .header p {
+    display: none;
+  }
+
+  /* On phones the price drops to its own full-width row under the name so the
+   * amount has horizontal room instead of being squeezed into a thin column
+   * beside the name. The live price leads; the strike + discount trail right. */
   .planTop {
     grid-template-columns: auto 1fr;
+    column-gap: 14px;
+    row-gap: 12px;
+    padding: 18px 17px 18px;
+  }
+
+  .planCopy {
+    grid-column: 2;
   }
 
   .price {
     grid-column: 2;
-    justify-items: start;
-  }
-
-  .counterRow {
-    grid-template-columns: 1fr;
-  }
-
-  .stepper {
-    width: fit-content;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 4px 7px;
   }
 }
