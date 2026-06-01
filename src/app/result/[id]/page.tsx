@@ -23,7 +23,7 @@ type RecordingTiming = {
 };
 
 function getSiteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://dontlie.vercel.app").replace(/\/$/, "");
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://nogoora.vercel.app").replace(/\/$/, "");
 }
 
 export async function generateMetadata({ params }: ResultPageProps): Promise<Metadata> {

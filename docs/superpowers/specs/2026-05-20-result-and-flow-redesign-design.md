@@ -159,7 +159,7 @@ function ReelsComposer({ videoSrc, question, headline, roastComment }: Props) {
 - 상단: brand `AI 거짓말탐지기`
 - 중단: 질문 카드
 - 하단: 답변 종료 후 2초 동안 판정 SLAM 애니메이션
-- 워터마크: `ai-lie-detector.vercel.app`
+- 워터마크: `nogoora.vercel.app`
 
 Mobile Safari `captureStream` 미지원 시: 원본 R2 영상 직접 다운로드로 폴백 (`<a download>`).
 

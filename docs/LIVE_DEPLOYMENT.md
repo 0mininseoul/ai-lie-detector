@@ -1,11 +1,11 @@
 # Live Deployment
 
-마지막 업데이트: 2026-05-18
+마지막 업데이트: 2026-06-01
 
 ## Provisioned Resources
 
 - Vercel project: `0minseouls-projects/ai-lie-detector`
-- Production URL: `https://dontlie.vercel.app`
+- Production URL: `https://nogoora.vercel.app`
 - Latest production deployment: `https://ai-lie-detector-ccm93ma40-0minseouls-projects.vercel.app`
 - Supabase project ref: `btifyegcjbknhxynkxpl`
 - Supabase URL: `https://btifyegcjbknhxynkxpl.supabase.co`
@@ -41,11 +41,11 @@ Set these in Supabase Dashboard → Authentication → URL Configuration:
 
 ```text
 Site URL:
-https://dontlie.vercel.app
+https://nogoora.vercel.app
 
 Redirect URLs:
 http://localhost:3000/auth/callback
-https://dontlie.vercel.app/auth/callback
+https://nogoora.vercel.app/auth/callback
 https://ai-lie-detector-ccm93ma40-0minseouls-projects.vercel.app/auth/callback
 https://*-0minseouls-projects.vercel.app/**
 ```

@@ -1137,7 +1137,7 @@ function drawVerdict(ctx: CanvasRenderingContext2D, headline: Headline, roast: s
   wrap(ctx, roast, 80, CANVAS_H * 0.78, CANVAS_W - 160, 54, 3);
   ctx.font = "600 24px Pretendard, system-ui, sans-serif";
   ctx.fillStyle = "rgba(244, 247, 251, 0.6)";
-  ctx.fillText("ai-lie-detector.vercel.app", 80, CANVAS_H - 80);
+  ctx.fillText("nogoora.vercel.app", 80, CANVAS_H - 80);
   ctx.restore();
 }
 

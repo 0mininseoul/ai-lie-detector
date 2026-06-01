@@ -94,7 +94,7 @@ export function ProfessionalOverlay() {
           <span className={styles.kicker}>LIVE MULTIMODAL ANALYSIS</span>
           <strong>판정 엔진 가동 중</strong>
           <em className={styles.engineMeta}>
-            neural_engine · vision-2.6.1 · dontlie-core
+            neural_engine · vision-2.6.1 · nogoora-core
           </em>
         </div>
         <div className={styles.headerStream} aria-hidden>
