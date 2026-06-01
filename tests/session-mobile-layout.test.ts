@@ -54,4 +54,20 @@ describe("session recorder mobile layout", () => {
     expect(video).toContain("object-fit: cover");
     expect(video).toContain("object-position: center center");
   });
+
+  it("keeps the mobile countdown timer in the question card flow", () => {
+    const timer = selectorBlock(".questionHeader > :last-child");
+    const text = selectorBlock(".questionText");
+    const warmupText = selectorBlock('.questionPanel[data-kind="warmup"] .questionText');
+    const targetText = selectorBlock('.stage[data-phase="target"] .questionText');
+
+    expect(mobileCss).toContain('"label timer"');
+    expect(mobileCss).toContain('"question timer"');
+    expect(timer).toContain("grid-area: timer");
+    expect(timer).toContain("position: static");
+    expect(timer).not.toContain("position: absolute");
+    expect(text).toContain("overflow-wrap: anywhere");
+    expect(warmupText).toContain("white-space: normal");
+    expect(targetText).toContain("white-space: normal");
+  });
 });

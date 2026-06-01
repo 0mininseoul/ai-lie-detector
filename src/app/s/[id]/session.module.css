@@ -886,19 +886,16 @@
     position: relative;
     width: 100%;
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
-      "label"
-      "question";
-    align-items: start;
-    row-gap: 9px;
-    /* The countdown ring is floated top-right (out of flow), so the question
-       copy can sit tight under the label instead of being pushed down by the
-       ring's height. Reserve right padding so the label/first line clear it. */
-    padding: 13px 16px 15px;
-    padding-right: 74px;
+      "label timer"
+      "question timer";
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 7px;
+    padding: 13px 13px 14px 15px;
     border-color: oklch(100% 0 0 / 0.14);
-    border-radius: 18px;
+    border-radius: 20px;
     container-type: inline-size;
     background:
       linear-gradient(180deg, oklch(5% 0.012 230 / 0.64), oklch(7% 0.018 230 / 0.42)),
@@ -914,9 +911,10 @@
   }
 
   .questionHeader > :last-child {
-    position: absolute;
-    top: 11px;
-    right: 11px;
+    grid-area: timer;
+    position: static;
+    align-self: center;
+    justify-self: end;
   }
 
   .panel {
@@ -947,22 +945,26 @@
   .questionPanel h2,
   .questionPanel .questionText {
     color: oklch(98% 0.005 150);
-    font-size: clamp(23px, 6.4cqi, 30px);
-    line-height: 1.02;
+    font-size: 23px;
+    line-height: 1.08;
+    letter-spacing: 0;
     text-shadow: 0 10px 28px oklch(8% 0.018 230 / 0.5);
+    min-width: 0;
+    overflow-wrap: anywhere;
     animation: questionTextIn 320ms var(--ease-out-glass) 60ms both;
   }
 
   .questionPanel[data-kind="warmup"] .questionText {
-    font-size: clamp(21px, 5.8cqi, 26px);
-    white-space: nowrap;
+    font-size: 21px;
+    white-space: normal;
     overflow: visible;
     text-overflow: clip;
-    text-wrap: nowrap;
+    text-wrap: balance;
   }
 
   .targetPanel {
-    gap: 11px;
+    column-gap: 12px;
+    row-gap: 7px;
   }
 
   .targetPanel::before {
@@ -986,16 +988,19 @@
   .questionText {
     grid-area: question;
     color: oklch(98% 0.005 150);
-    font-size: clamp(24px, 6.8cqi, 32px);
-    line-height: 1.02;
+    font-size: 23px;
+    line-height: 1.08;
+    letter-spacing: 0;
     text-shadow: 0 10px 28px oklch(8% 0.018 230 / 0.54);
+    min-width: 0;
+    overflow-wrap: anywhere;
     animation: questionTextIn 320ms var(--ease-out-glass) 60ms both;
   }
 
   .stage[data-phase="target"] .questionText {
-    font-size: clamp(28px, 7.6cqi, 36px);
-    white-space: nowrap;
-    text-wrap: nowrap;
+    font-size: 24px;
+    white-space: normal;
+    text-wrap: balance;
   }
 
   .countdownRow {
