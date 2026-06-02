@@ -14,4 +14,18 @@ describe("worker Gemini video request", () => {
     expect(worker).toContain("normalizeGeminiVideoMimeType(recording.mime_type)");
     expect(worker).toContain("mimeType: geminiMimeType");
   });
+
+  it("uses Vertex AI service account credentials instead of a Gemini API key", () => {
+    expect(worker).not.toContain("GEMINI_API_KEY");
+    expect(worker).not.toContain("new GoogleGenAI({ apiKey");
+    expect(worker).toContain("GOOGLE_SERVICE_ACCOUNT_KEY_BASE64");
+    expect(worker).toContain("buildVertexGenerateUrl");
+  });
+
+  it("stages videos over the inline limit in Cloud Storage for Vertex AI fileData", () => {
+    expect(worker).not.toContain("Vertex AI inline video limit exceeded");
+    expect(worker).toContain("VERTEX_AI_GCS_BUCKET");
+    expect(worker).toContain("uploadVertexVideoToGcs");
+    expect(worker).toContain("fileData: { fileUri: gcsFileUri");
+  });
 });

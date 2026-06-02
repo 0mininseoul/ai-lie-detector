@@ -303,19 +303,20 @@ MVP 인프라:
 - Supabase Free
 - Cloudflare R2 Free
 - Cloudflare Worker Free
-- Gemini API
+- Vertex AI Gemini
 
 제약:
 
 - Vercel API를 통해 큰 영상을 업로드하지 않는다.
 - Supabase Storage에 원본 영상을 저장하지 않는다.
-- R2 영상은 짧게 보관한다.
-- Gemini Files API 파일은 임시 분석용으로만 사용한다.
+- R2 영상은 7일만 보관한다.
+- Vertex AI 호출 비용은 Google Cloud 결제 계정으로 귀속된다.
+- 현재 Worker 분석은 8MB 이하 inline video, 8MB 초과 GCS staging 경로를 사용한다.
 
 ## 15. 참고 자료
 
-- Gemini video understanding: https://ai.google.dev/gemini-api/docs/video-understanding
-- Gemini pricing: https://ai.google.dev/gemini-api/docs/pricing
+- Vertex AI Gemini generate content: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference
+- Vertex AI pricing: https://cloud.google.com/vertex-ai/generative-ai/pricing
 - Gemini structured output: https://ai.google.dev/gemini-api/docs/structured-output
 - MediaPipe Face Landmarker: https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker/web_js
 - MediaRecorder: https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder

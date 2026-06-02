@@ -27,8 +27,8 @@ Cloudflare Worker
   - enforce upload size/content guardrails
   - write upload to R2
   - read R2 object
-  - upload video to Gemini Files API
-  - call Gemini generateContent
+  - stage videos over 8MB to Google Cloud Storage
+  - call Vertex AI Gemini generateContent
   - write analysis result to Supabase
 
 Supabase Free
@@ -43,7 +43,7 @@ Cloudflare R2 Free
   - optional exported video
   - short TTL cleanup
 
-Gemini API
+Vertex AI Gemini
   - full session video at 1 FPS
   - target question interval at 5 FPS
   - local feature JSON
@@ -261,13 +261,17 @@ UI 문구:
 
 ## 6. Gemini 분석 요청
 
-### 6.1 파일 업로드
+### 6.1 Vertex AI 요청
 
 1. 브라우저가 Worker `/upload`로 원본 영상을 업로드한다.
 2. Next.js가 Supabase에 recording row를 만든다.
 3. Cloudflare Worker가 R2 object를 읽는다.
-4. Worker가 Gemini Files API로 영상을 업로드한다.
-5. Worker가 Gemini `generateContent`를 호출한다.
+4. Worker가 서비스 계정 JWT로 Google OAuth access token을 발급받는다.
+5. 8MB 이하 영상은 inline base64 part로 보낸다.
+6. 8MB 초과 영상은 같은 GCP 프로젝트의 GCS 임시 버킷에 업로드한 뒤 `fileData.fileUri=gs://...`로 보낸다.
+7. Worker가 Vertex AI Gemini `generateContent`를 호출한다.
+
+GCS staging bucket은 7일 lifecycle 삭제 정책을 가지며, 정상 분석 경로에서는 Worker가 Vertex 응답 후 임시 객체 삭제도 예약한다.
 
 ### 6.2 Gemini parts
 
@@ -418,11 +422,11 @@ MVP 기본값은 전체 1 FPS + 진짜 질문 5 FPS다.
 
 ## 11. 보안/운영
 
-- Gemini API key는 Cloudflare Worker secret으로 둔다.
+- Vertex AI 서비스 계정 JSON은 `.secrets/`에 두고, 배포 환경에는 base64 secret으로만 넣는다.
 - Worker upload token은 짧은 TTL로 발급한다.
 - R2 object key는 session id 기반으로 예측 어렵게 만든다.
-- 영상은 R2 lifecycle로 1일 후 삭제한다.
-- 브라우저 업로드는 95MB 이하만 허용한다.
+- 영상은 R2 lifecycle로 7일 후 삭제한다.
+- 브라우저 업로드는 32MB 이하만 허용한다.
 - 결제 미연동 상태에서는 세션 생성 시 무료 1회 또는 저장된 credit을 반드시 소비한다.
 - Supabase row는 새 세션 생성 시 `cleanup_expired_sessions` RPC로 만료분을 점진 삭제한다.
 - Supabase public anon key는 RLS 정책으로 제한한다.
@@ -436,6 +440,12 @@ MVP 기본값은 전체 1 FPS + 진짜 질문 5 FPS다.
 
 - `ANALYSIS_WORKER_URL`
 - `WORKER_SHARED_SECRET`
+- `GOOGLE_CLOUD_PROJECT`
+- `GOOGLE_CLOUD_LOCATION`
+- `GOOGLE_GENAI_USE_VERTEXAI`
+- `VERTEX_AI_MODEL`
+- `VERTEX_AI_GCS_BUCKET`
+- `GOOGLE_SERVICE_ACCOUNT_KEY_BASE64`
 
 Worker 큐잉이 실패하면 업로드 완료 API는 실패 응답을 반환한다. 이렇게 해야 사용자가 분석 화면에서 결과 없이 기다리는 상태를 막을 수 있다.
 
@@ -464,10 +474,10 @@ Kakao 로그인은 Supabase Auth OAuth provider를 통해 처리한다.
 
 ## 12. 참고 자료
 
-- Gemini video understanding: https://ai.google.dev/gemini-api/docs/video-understanding
-- Gemini Files API: https://ai.google.dev/gemini-api/docs/files
-- Gemini pricing: https://ai.google.dev/gemini-api/docs/pricing
-- Gemini structured output: https://ai.google.dev/gemini-api/docs/structured-output
+- Vertex AI Gemini generate content: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference
+- Google Gen AI SDK on Vertex AI: https://cloud.google.com/vertex-ai/generative-ai/docs/sdks/overview
+- Vertex AI pricing: https://cloud.google.com/vertex-ai/generative-ai/pricing
+- Vertex AI structured output: https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/control-generated-output
 - MediaPipe Face Landmarker: https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker/web_js
 - MediaRecorder: https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder
 - canvas.captureStream: https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/captureStream

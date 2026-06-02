@@ -1,9 +1,3 @@
-import {
-  GoogleGenAI,
-  MediaResolution,
-  type File as GeminiFile,
-  type Part
-} from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
 import { normalizeGeminiVideoMimeType } from "../../src/lib/gemini/mime";
 import { geminiResponseSchema, parseGeminiResult } from "../../src/lib/gemini/schema";
@@ -34,8 +28,12 @@ type WorkerContext = {
 
 type Env = {
   RECORDINGS: R2Bucket;
-  GEMINI_API_KEY: string;
-  GEMINI_MODEL?: string;
+  GOOGLE_CLOUD_PROJECT: string;
+  GOOGLE_CLOUD_LOCATION?: string;
+  GOOGLE_GENAI_USE_VERTEXAI?: string;
+  VERTEX_AI_MODEL?: string;
+  VERTEX_AI_GCS_BUCKET?: string;
+  GOOGLE_SERVICE_ACCOUNT_KEY_BASE64: string;
   SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
   WORKER_SHARED_SECRET?: string;
@@ -69,7 +67,57 @@ type FeaturePayloadRow = {
   schema_version: number;
 };
 
-const defaultGeminiModel = "gemini-2.5-flash";
+type VertexVideoPart = {
+  videoMetadata: {
+    startOffset: string;
+    endOffset: string;
+    fps: number;
+  };
+} & (
+  | {
+      inlineData: {
+        data: string;
+        mimeType: string;
+      };
+    }
+  | {
+      fileData: {
+        fileUri: string;
+        mimeType: string;
+      };
+    }
+);
+
+type VertexVideoPartResult = {
+  part: VertexVideoPart;
+  source: "inline" | "gcs";
+  gcsObjectName?: string;
+};
+
+type VertexGenerateResponse = {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        text?: string;
+      }>;
+    };
+    finishReason?: string;
+  }>;
+};
+
+type ServiceAccountKey = {
+  client_email: string;
+  private_key: string;
+  token_uri?: string;
+};
+
+type CachedAccessToken = {
+  serviceAccountEmail: string;
+  accessToken: string;
+  expiresAtMs: number;
+};
+
+const defaultVertexModel = "gemini-2.5-flash";
 const workerVersion = "2026-05-27-analysis-logging-v1";
 const promptVersion = 1;
 const resultExpiresInMs = 7 * 24 * 60 * 60 * 1000;
@@ -79,10 +127,11 @@ const inlineVideoMaxBytes = 8 * 1024 * 1024;
 // inline path (videos ≤ 8MB, the common case) is generate-only ≈ 52s worst
 // case, leaving headroom. The rare file-upload path (> 8MB) can exceed 60s; if
 // you move the Vercel route to a Pro plan you can raise both budgets together.
-const geminiUploadTimeoutMs = 30_000;
 const geminiGenerateTimeoutMs = 50_000;
-const geminiFileMaxPollAttempts = 8;
 const heartbeatIntervalMs = 10_000;
+const googleCloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform";
+const defaultGoogleTokenUri = "https://oauth2.googleapis.com/token";
+let cachedAccessToken: CachedAccessToken | undefined;
 
 const systemPrompt = `
 당신은 "AI 거짓말탐지기"의 멀티모달 분석 모델입니다.
@@ -339,8 +388,7 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
   logStage("started");
 
   const supabase = createSupabase(env);
-  const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
-  const modelName = env.GEMINI_MODEL ?? defaultGeminiModel;
+  const vertexConfig = getVertexConfig(env);
 
   const { data: session, error: sessionError } = await supabase
     .from("sessions")
@@ -413,34 +461,31 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
   const videoBytes = await r2Object.arrayBuffer();
   logStage("r2_downloaded", { byteSize: videoBytes.byteLength });
 
-  const videoPart = await buildGeminiVideoPart({
-    ai,
+  const videoPartResult = await buildGeminiVideoPart({
+    env,
+    vertexConfig,
     sessionId,
     recording,
     videoBytes,
     logStage
   });
 
-  const videoSource = "inlineData" in videoPart ? "inline" : "file";
-  logStage("gemini_generate_started", { modelName, videoSource });
+  logStage("vertex_generate_started", { modelName: vertexConfig.model, videoSource: videoPartResult.source });
 
   // The generateContent call is the longest, riskiest leg (the silent-death
   // zone in past failures). Emit a heartbeat every ~10s so the runtime logs
   // show whether the worker is still alive and how far it gets — a missing
   // heartbeat pinpoints where execution stopped.
-  const heartbeat = startHeartbeat(context, env, sessionId, startedAt, "gemini_generate");
-  let response;
+  const heartbeat = startHeartbeat(context, env, sessionId, startedAt, "vertex_generate");
+  let responseText: string;
   try {
-    response = await withTimeout(
-      ai.models.generateContent({
-        model: modelName,
+    responseText = await withTimeout(
+      generateVertexContent(env, vertexConfig, {
         contents: [
           {
             role: "user",
             parts: [
-              {
-                ...videoPart
-              },
+              videoPartResult.part,
               {
                 text: buildTextPayload({
                   session,
@@ -451,32 +496,47 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
             ]
           }
         ],
-        config: {
-          systemInstruction: systemPrompt,
-          mediaResolution: MediaResolution.MEDIA_RESOLUTION_LOW,
+        systemInstruction: {
+          parts: [{ text: systemPrompt }]
+        },
+        generationConfig: {
+          mediaResolution: "MEDIA_RESOLUTION_LOW",
           maxOutputTokens: 900,
           thinkingConfig: { thinkingBudget: 0 },
           responseMimeType: "application/json",
           // Force exact JSON structure; Gemini sometimes omits or guesses
           // optional-looking fields when only given a text prompt.
-          responseSchema: geminiResponseSchema as unknown as Record<string, unknown>
+          responseSchema: geminiResponseSchema
         }
       }),
       geminiGenerateTimeoutMs,
-      "Gemini generation timed out"
+      "Vertex AI generation timed out"
     );
   } finally {
     heartbeat.stop();
+    if (videoPartResult.gcsObjectName) {
+      context.waitUntil(
+        deleteVertexGcsObject(env, vertexConfig, videoPartResult.gcsObjectName)
+          .then(() => {
+            logStage("vertex_gcs_video_deleted");
+          })
+          .catch((error) => {
+            logStage("vertex_gcs_video_delete_failed", {
+              error: error instanceof Error ? error.message : String(error)
+            });
+          })
+      );
+    }
   }
-  logStage("gemini_generate_completed", { textLength: response.text?.length ?? 0 });
+  logStage("vertex_generate_completed", { textLength: responseText.length });
 
-  if (!response.text) {
-    throw new Error("Gemini returned empty text");
+  if (!responseText) {
+    throw new Error("Vertex AI returned empty text");
   }
 
   logStage("parsing_result");
 
-  const parsed = parseGeminiResult(parseJsonObject(response.text));
+  const parsed = parseGeminiResult(parseJsonObject(responseText));
   const expiresAt = new Date(Date.now() + resultExpiresInMs).toISOString();
 
   await requireNoSupabaseError(
@@ -488,7 +548,7 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
         roast_comment: parsed.public_result.roast_comment,
         public_json: parsed.public_result,
         private_json: parsed.private_diagnostics,
-        model_name: modelName,
+        model_name: vertexConfig.model,
         prompt_version: promptVersion,
         expires_at: expiresAt
       },
@@ -504,22 +564,24 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
     "Failed to mark session complete"
   );
 
-  logStage("completed", { totalMs: Date.now() - startedAt, modelName });
+  logStage("completed", { totalMs: Date.now() - startedAt, modelName: vertexConfig.model });
 }
 
 async function buildGeminiVideoPart({
-  ai,
+  env,
+  vertexConfig,
   sessionId,
   recording,
   videoBytes,
   logStage
 }: {
-  ai: GoogleGenAI;
+  env: Env;
+  vertexConfig: ReturnType<typeof getVertexConfig>;
   sessionId: string;
   recording: RecordingRow;
   videoBytes: ArrayBuffer;
   logStage: (stage: string, fields?: Record<string, unknown>) => void;
-}): Promise<Part> {
+}): Promise<VertexVideoPartResult> {
   const videoMetadata = {
     startOffset: `${Math.max(0, Math.floor(recording.target_start_ms / 1000))}s`,
     endOffset: `${Math.max(1, Math.ceil(recording.target_end_ms / 1000))}s`,
@@ -534,37 +596,38 @@ async function buildGeminiVideoPart({
       geminiMimeType
     });
     return {
-      inlineData: {
-        data: arrayBufferToBase64(videoBytes),
-        mimeType: geminiMimeType
+      source: "inline",
+      part: {
+        inlineData: {
+          data: arrayBufferToBase64(videoBytes),
+          mimeType: geminiMimeType
+        },
+        videoMetadata
       },
-      videoMetadata
     };
   }
 
-  const geminiFile = await withTimeout(
-    ai.files.upload({
-      file: new Blob([videoBytes], { type: geminiMimeType }),
-      config: {
-        mimeType: geminiMimeType,
-        displayName: `${sessionId}.${recording.mime_type.startsWith("video/mp4") ? "mp4" : "webm"}`
-      }
-    }),
-    geminiUploadTimeoutMs,
-    "Gemini file upload timed out"
-  );
-  logStage("gemini_uploaded", { fileName: geminiFile.name ?? null, fileState: geminiFile.state ?? null });
-
-  const activeFile = await waitForGeminiFile(ai, geminiFile);
-  logStage("gemini_file_active", { fileName: activeFile.name ?? null });
-
-  if (!activeFile.uri) {
-    throw new Error("Gemini file URI is missing");
-  }
+  const { gcsFileUri, gcsObjectName } = await uploadVertexVideoToGcs({
+    env,
+    vertexConfig,
+    sessionId,
+    recording,
+    videoBytes,
+    mimeType: geminiMimeType
+  });
+  logStage("vertex_gcs_video_prepared", {
+    byteSize: videoBytes.byteLength,
+    originalMimeType: recording.mime_type,
+    geminiMimeType
+  });
 
   return {
-    fileData: { fileUri: activeFile.uri, mimeType: geminiMimeType },
-    videoMetadata
+    source: "gcs",
+    gcsObjectName,
+    part: {
+      fileData: { fileUri: gcsFileUri, mimeType: geminiMimeType },
+      videoMetadata
+    }
   };
 }
 
@@ -580,26 +643,286 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
   return btoa(binary);
 }
 
-async function waitForGeminiFile(ai: GoogleGenAI, file: GeminiFile) {
-  if (!file.name) {
-    return file;
+async function uploadVertexVideoToGcs({
+  env,
+  vertexConfig,
+  sessionId,
+  recording,
+  videoBytes,
+  mimeType
+}: {
+  env: Env;
+  vertexConfig: ReturnType<typeof getVertexConfig>;
+  sessionId: string;
+  recording: RecordingRow;
+  videoBytes: ArrayBuffer;
+  mimeType: string;
+}) {
+  const bucket = vertexConfig.gcsBucket;
+  if (!bucket) {
+    throw new Error("VERTEX_AI_GCS_BUCKET is required for videos over the inline limit");
   }
 
-  let current = file;
-  for (let attempt = 0; attempt < geminiFileMaxPollAttempts; attempt += 1) {
-    if (!current.state || current.state === "ACTIVE") {
-      return current;
-    }
+  const extension = recording.mime_type.startsWith("video/mp4") ? "mp4" : "webm";
+  const gcsObjectName = `vertex-inputs/${sessionId}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+  const accessToken = await getVertexAccessToken(env);
+  const uploadUrl = new URL(`https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(bucket)}/o`);
+  uploadUrl.searchParams.set("uploadType", "media");
+  uploadUrl.searchParams.set("name", gcsObjectName);
 
-    if (current.state === "FAILED") {
-      throw new Error("Gemini file processing failed");
-    }
+  const response = await fetch(uploadUrl.toString(), {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      "content-type": mimeType,
+      "content-length": String(videoBytes.byteLength)
+    },
+    body: videoBytes
+  });
 
-    await sleep(2500);
-    current = await ai.files.get({ name: file.name });
+  if (!response.ok) {
+    throw new Error(`Vertex AI GCS staging upload failed with status ${response.status}: ${await readErrorBody(response)}`);
   }
 
-  throw new Error("Gemini file processing timed out");
+  return {
+    gcsObjectName,
+    gcsFileUri: `gs://${bucket}/${gcsObjectName}`
+  };
+}
+
+async function deleteVertexGcsObject(
+  env: Env,
+  vertexConfig: ReturnType<typeof getVertexConfig>,
+  gcsObjectName: string
+) {
+  if (!vertexConfig.gcsBucket) return;
+
+  const accessToken = await getVertexAccessToken(env);
+  const deleteUrl = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(vertexConfig.gcsBucket)}/o/${encodeURIComponent(gcsObjectName)}`;
+  const response = await fetch(deleteUrl, {
+    method: "DELETE",
+    headers: {
+      authorization: `Bearer ${accessToken}`
+    }
+  });
+
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`Vertex AI GCS staging delete failed with status ${response.status}: ${await readErrorBody(response)}`);
+  }
+}
+
+function getVertexConfig(env: Env) {
+  if ((env.GOOGLE_GENAI_USE_VERTEXAI ?? "true").toLowerCase() !== "true") {
+    throw new Error("GOOGLE_GENAI_USE_VERTEXAI must be true");
+  }
+
+  const project = env.GOOGLE_CLOUD_PROJECT?.trim();
+  if (!project) {
+    throw new Error("GOOGLE_CLOUD_PROJECT is required");
+  }
+
+  return {
+    project,
+    location: env.GOOGLE_CLOUD_LOCATION?.trim() || "global",
+    model: env.VERTEX_AI_MODEL?.trim() || defaultVertexModel,
+    gcsBucket: env.VERTEX_AI_GCS_BUCKET?.trim() || ""
+  };
+}
+
+async function generateVertexContent(
+  env: Env,
+  config: ReturnType<typeof getVertexConfig>,
+  body: Record<string, unknown>
+) {
+  const accessToken = await getVertexAccessToken(env);
+  const response = await fetch(buildVertexGenerateUrl(config), {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Vertex AI generateContent failed with status ${response.status}: ${await readErrorBody(response)}`);
+  }
+
+  const json = (await response.json()) as VertexGenerateResponse;
+  return extractVertexText(json);
+}
+
+function buildVertexGenerateUrl({
+  project,
+  location,
+  model
+}: {
+  project: string;
+  location: string;
+  model: string;
+}) {
+  const modelPath = model.includes("/") ? model : `publishers/google/models/${model}`;
+  const fullPath = modelPath.startsWith("projects/")
+    ? modelPath
+    : `projects/${project}/locations/${location}/${modelPath}`;
+
+  return `https://aiplatform.googleapis.com/v1/${encodePath(fullPath)}:generateContent`;
+}
+
+async function getVertexAccessToken(env: Env) {
+  const serviceAccount = decodeServiceAccountKey(env.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64);
+  const nowMs = Date.now();
+  if (
+    cachedAccessToken?.serviceAccountEmail === serviceAccount.client_email &&
+    cachedAccessToken.expiresAtMs - 60_000 > nowMs
+  ) {
+    return cachedAccessToken.accessToken;
+  }
+
+  const tokenUri = serviceAccount.token_uri?.trim() || defaultGoogleTokenUri;
+  const assertion = await createServiceAccountJwt(serviceAccount, tokenUri, Math.floor(nowMs / 1000));
+  const response = await fetch(tokenUri, {
+    method: "POST",
+    headers: {
+      "content-type": "application/x-www-form-urlencoded"
+    },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Vertex AI auth failed with status ${response.status}: ${await readErrorBody(response)}`);
+  }
+
+  const tokenResponse = (await response.json()) as {
+    access_token?: unknown;
+    expires_in?: unknown;
+  };
+  if (typeof tokenResponse.access_token !== "string" || !tokenResponse.access_token) {
+    throw new Error("Vertex AI auth response did not include an access token");
+  }
+
+  const expiresInSeconds = typeof tokenResponse.expires_in === "number" ? tokenResponse.expires_in : 3600;
+  cachedAccessToken = {
+    serviceAccountEmail: serviceAccount.client_email,
+    accessToken: tokenResponse.access_token,
+    expiresAtMs: nowMs + expiresInSeconds * 1000
+  };
+
+  return tokenResponse.access_token;
+}
+
+function decodeServiceAccountKey(encodedKey: string) {
+  if (!encodedKey?.trim()) {
+    throw new Error("GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 is required");
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(atob(encodedKey.replace(/\s/g, "")));
+  } catch {
+    throw new Error("GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 is not valid base64 JSON");
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Google service account key must be a JSON object");
+  }
+
+  const candidate = parsed as Record<string, unknown>;
+  if (typeof candidate.client_email !== "string" || typeof candidate.private_key !== "string") {
+    throw new Error("Google service account key is missing client_email or private_key");
+  }
+
+  return {
+    client_email: candidate.client_email,
+    private_key: candidate.private_key,
+    token_uri: typeof candidate.token_uri === "string" ? candidate.token_uri : undefined
+  } satisfies ServiceAccountKey;
+}
+
+async function createServiceAccountJwt(serviceAccount: ServiceAccountKey, tokenUri: string, issuedAtSeconds: number) {
+  const header = base64UrlEncodeJson({ alg: "RS256", typ: "JWT" });
+  const payload = base64UrlEncodeJson({
+    iss: serviceAccount.client_email,
+    scope: googleCloudPlatformScope,
+    aud: tokenUri,
+    iat: issuedAtSeconds,
+    exp: issuedAtSeconds + 3600
+  });
+  const signingInput = `${header}.${payload}`;
+  const key = await crypto.subtle.importKey(
+    "pkcs8",
+    pemPrivateKeyToArrayBuffer(serviceAccount.private_key),
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(signingInput));
+  return `${signingInput}.${base64UrlEncodeBytes(new Uint8Array(signature))}`;
+}
+
+function pemPrivateKeyToArrayBuffer(privateKey: string) {
+  const base64 = privateKey
+    .replace("-----BEGIN PRIVATE KEY-----", "")
+    .replace("-----END PRIVATE KEY-----", "")
+    .replace(/\s/g, "");
+  return base64ToBytes(base64).buffer;
+}
+
+function base64ToBytes(value: string) {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
+}
+
+function base64UrlEncodeJson(value: unknown) {
+  return base64UrlEncodeBytes(new TextEncoder().encode(JSON.stringify(value)));
+}
+
+function base64UrlEncodeBytes(bytes: Uint8Array) {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function extractVertexText(response: VertexGenerateResponse) {
+  const text = response.candidates?.[0]?.content?.parts
+    ?.map((part) => part.text ?? "")
+    .join("")
+    .trim();
+
+  if (!text) {
+    throw new Error(`Vertex AI returned no text; finishReason=${response.candidates?.[0]?.finishReason ?? "unknown"}`);
+  }
+
+  return text;
+}
+
+async function readErrorBody(response: Response) {
+  const raw = await response.text();
+  if (!raw.trim()) {
+    return response.statusText || "empty error body";
+  }
+
+  try {
+    const json = JSON.parse(raw) as { error?: { message?: unknown; status?: unknown } };
+    const message = typeof json.error?.message === "string" ? json.error.message : raw;
+    const status = typeof json.error?.status === "string" ? ` (${json.error.status})` : "";
+    return `${message}${status}`.slice(0, 800);
+  } catch {
+    return raw.slice(0, 800);
+  }
+}
+
+function encodePath(path: string) {
+  return path.split("/").map(encodeURIComponent).join("/");
 }
 
 function classifyError(error: unknown): { code: string; message: string } {
@@ -612,14 +935,17 @@ function classifyError(error: unknown): { code: string; message: string } {
   else if (lower.includes("recording not found")) code = "recording_missing";
   else if (lower.includes("feature payload not found")) code = "feature_payload_missing";
   else if (lower.includes("r2 recording object")) code = "r2_object_missing";
-  else if (lower.includes("gemini file uri")) code = "gemini_file_uri_missing";
-  else if (lower.includes("gemini returned empty")) code = "gemini_empty_response";
-  else if (lower.includes("gemini file processing failed")) code = "gemini_processing_failed";
+  else if (lower.includes("vertex_ai_gcs_bucket")) code = "vertex_gcs_bucket_missing";
+  else if (lower.includes("vertex ai gcs staging upload failed")) code = "vertex_gcs_upload_failed";
+  else if (lower.includes("vertex ai gcs staging delete failed")) code = "vertex_gcs_delete_failed";
+  else if (lower.includes("vertex ai returned empty") || lower.includes("vertex ai returned no text")) {
+    code = "vertex_empty_response";
+  }
+  else if (lower.includes("vertex ai auth failed")) code = "vertex_auth_failed";
+  else if (lower.includes("vertex ai generatecontent failed")) code = "vertex_generate_failed";
   else if (lower.includes("user location is not supported")) code = "gemini_region_unsupported";
   else if (lower.includes("invalid_argument") || lower.includes("invalid argument")) code = "gemini_invalid_argument";
-  else if (lower.includes("gemini file upload timed out")) code = "gemini_upload_timeout";
-  else if (lower.includes("gemini file processing timed out")) code = "gemini_file_timeout";
-  else if (lower.includes("gemini generation timed out")) code = "gemini_generation_timeout";
+  else if (lower.includes("vertex ai generation timed out")) code = "vertex_generation_timeout";
   else if (lower.includes("timed out") || lower.includes("timeout") || lower.includes("deadline")) {
     code = "analysis_timeout";
   }

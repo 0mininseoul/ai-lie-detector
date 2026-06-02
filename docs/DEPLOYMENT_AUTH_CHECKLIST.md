@@ -60,7 +60,7 @@ https://<VERCEL_DOMAIN>/auth/callback
 필요 작업:
 
 1. R2 bucket을 만든다.
-2. bucket lifecycle rule을 넣어 `recordings/` object를 1일 후 삭제한다.
+2. bucket lifecycle rule을 넣어 `recordings/` object를 7일 후 삭제한다.
 3. Worker R2 binding이 이 bucket을 바라보게 한다.
 4. 브라우저가 Worker를 거쳐 업로드하므로 Vercel에는 R2 access key를 넣지 않는다.
 
@@ -68,8 +68,9 @@ https://<VERCEL_DOMAIN>/auth/callback
 
 - bucket: `ai-lie-detector-recordings`
 - prefix: `recordings/`
-- lifecycle: 1일 후 자동 삭제
-- 앱 업로드 제한: 95MB
+- lifecycle: 7일 후 자동 삭제
+- 앱 업로드 제한: 32MB
+- Vertex AI 분석 경로: 8MB 이하는 inline, 8MB 초과는 GCS staging 후 `fileData`로 처리
 - R2 S3 access key: 사용 안 함
 
 Worker 업로드를 쓰므로 R2 CORS는 필수 경로가 아니다. 직접 업로드 테스트가 필요할 때만 아래처럼 제한적으로 둔다.
@@ -99,11 +100,15 @@ Worker secrets:
 ```bash
 cd worker
 pnpm install
-pnpm exec wrangler secret put GEMINI_API_KEY
+pnpm exec wrangler secret put GOOGLE_CLOUD_PROJECT
+pnpm exec wrangler secret put GOOGLE_CLOUD_LOCATION
+pnpm exec wrangler secret put GOOGLE_GENAI_USE_VERTEXAI
+pnpm exec wrangler secret put VERTEX_AI_MODEL
+pnpm exec wrangler secret put VERTEX_AI_GCS_BUCKET
+pnpm exec wrangler secret put GOOGLE_SERVICE_ACCOUNT_KEY_BASE64
 pnpm exec wrangler secret put SUPABASE_URL
 pnpm exec wrangler secret put SUPABASE_SERVICE_ROLE_KEY
 pnpm exec wrangler secret put WORKER_SHARED_SECRET
-pnpm exec wrangler secret put GEMINI_MODEL
 pnpm exec wrangler deploy
 ```
 
@@ -118,22 +123,38 @@ WORKER_SHARED_SECRET=<same value as worker secret>
 
 - `/api/sessions/[id]/upload-url`이 5분짜리 Worker 업로드 토큰을 발급한다.
 - 브라우저는 Worker `/upload`로 영상 파일을 보낸다.
-- Worker는 Content-Type, Content-Length, 토큰 서명, 95MB 상한을 확인한 뒤 R2에 저장한다.
+- Worker는 Content-Type, Content-Length, 토큰 서명, 32MB 상한을 확인한 뒤 R2에 저장한다.
 - `/api/sessions/[id]/complete-upload`가 업로드 완료 후 Worker `/analyze`를 호출한다.
 - Worker 호출이 실패하면 API가 `502` 또는 `503`으로 실패해 사용자가 무한 대기하지 않는다.
 
-## 5. Gemini
+## 5. Vertex AI Gemini
 
 필요 작업:
 
-1. Google AI Studio에서 API key를 발급한다.
-2. Worker secret `GEMINI_API_KEY`에 넣는다.
-3. 기본 모델은 `gemini-2.5-flash`다.
+1. Google Cloud 프로젝트에서 Vertex AI API를 활성화한다.
+2. 서비스 계정을 만들고 `roles/aiplatform.user`만 부여한다.
+3. 서비스 계정 JSON 키를 `.secrets/`에 저장한다. 이 디렉터리는 gitignore에 포함되어야 한다.
+4. 로컬에는 아래 env를 사용한다.
+
+```bash
+GOOGLE_CLOUD_PROJECT=
+GOOGLE_CLOUD_LOCATION=global
+GOOGLE_GENAI_USE_VERTEXAI=true
+VERTEX_AI_MODEL=gemini-2.5-flash
+VERTEX_AI_GCS_BUCKET=ai-baram-detector-vertex-staging
+GOOGLE_APPLICATION_CREDENTIALS=.secrets/ai-lie-detector-vertex-ai.json
+GOOGLE_SERVICE_ACCOUNT_KEY_BASE64=
+```
+
+5. Vercel과 Cloudflare Worker에는 `GOOGLE_SERVICE_ACCOUNT_KEY_BASE64`와 `VERTEX_AI_GCS_BUCKET`을 secret/env로 넣는다. JSON 키 내용과 base64 값은 출력하지 않는다.
 
 주의:
 
-- Gemini 호출은 Worker에서만 한다.
-- Vercel에는 `GEMINI_API_KEY`를 넣지 않아도 된다.
+- Gemini 호출은 Worker에서 Vertex AI REST API를 통해 한다.
+- Cloudflare Worker 런타임에서는 `@google/genai`의 서비스 계정 ADC 경로가 맞지 않으므로 Worker가 서비스 계정 JWT로 OAuth 토큰을 받아 Vertex AI에 호출한다.
+- Vertex AI 전환 후 Gemini Files API 업로드 경로는 사용하지 않는다. 8MB를 넘는 녹화는 같은 GCP 프로젝트의 GCS 임시 버킷에 staging하고 `fileData.fileUri=gs://...`로 넘긴다.
+- GCS staging 버킷은 7일 lifecycle 삭제 정책을 둔다. Worker는 정상 경로에서 Vertex 응답 후 staging 객체 삭제도 예약한다.
+- Vercel에는 `GEMINI_API_KEY`를 넣지 않는다.
 
 ## 6. Vercel
 
