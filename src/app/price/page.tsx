@@ -24,14 +24,14 @@ export default function PricePage() {
             AI 거짓말탐지기 가격
           </span>
           <h1 id="price-title">
-            <span className={styles.headlineLine}>찝찝하게 밤새 고민하지 마세요.</span>
+            <span className={styles.headlineLine}>친구도 애인도, 오늘 다 검사해 봐요.</span>
             <span className={`${styles.headlineLine} ${styles.headlineAccent}`}>
-              단돈 2,900원에 팩트체크하세요.
+              하루 패스 2,900원, 무제한.
             </span>
           </h1>
           <p className={styles.lead}>
-            첫 판은 무료로 분위기를 보고, 마음에 들면 오늘 하루부터 일주일까지
-            무제한 패스를 켜서 마음껏 확인하세요.
+            첫 판은 무료로 분위기 보고, 재밌으면 하루·주말·일주일 패스로 끝까지
+            돌려보세요. 구독 아니에요, 켠 만큼만.
           </p>
           <ul className={styles.valueList}>
             {valuePoints.map((point) => (

@@ -180,7 +180,7 @@ export default function HomePage() {
             이제 당신 차례
           </span>
           <h2 id="final-title">진실이 궁금하신가요?</h2>
-          <p>첫 판은 무료입니다. 마음에 들면 묶음권으로 친구들 분량까지 챙겨가세요.</p>
+          <p>첫 판은 무료입니다. 마음에 들면 하루 패스로 친구들 분량까지 챙겨가세요.</p>
           <div className={styles.heroCtas}>
             <Link href="/new" className={styles.primaryCta} data-on-mint>
               지금 질문하기
