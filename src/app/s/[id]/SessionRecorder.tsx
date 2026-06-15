@@ -22,7 +22,13 @@ type SessionRecorderProps = {
   };
 };
 
-type FlowPhase = "setup" | "warmup" | "target" | "error";
+type FlowPhase = "setup" | "warmup" | "transition" | "target" | "error";
+
+// Fullscreen beat shown after the warmup question, before the real one. Long
+// enough for the shift in stakes to land, short enough to never read as a
+// loading hang. Camera keeps recording through it; the target analysis window
+// only opens after it (see the transition effect).
+const TRANSITION_MS = 1500;
 
 type UploadUrlResponse = {
   uploadUrl?: string;
@@ -134,10 +140,18 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
   const finishWarmup = useCallback(() => {
     featureCollector.markWarmupEnd();
+    setPhase("transition");
+  }, [featureCollector]);
+
+  // Open the real-question window only when the transition beat ends. Keeping
+  // markTargetStart() out of finishWarmup means the ~1.5s overlay never lands
+  // inside the analyzed target window.
+  const startTarget = useCallback(() => {
     featureCollector.markTargetStart();
     setPhase("target");
   }, [featureCollector]);
 
+  const startTargetRef = useRef<() => void>(() => undefined);
   const finishTargetRef = useRef<() => void>(() => undefined);
 
   async function uploadRecordingForAnalysis(
@@ -241,7 +255,17 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
   useEffect(() => {
     finishTargetRef.current = finishTarget;
+    startTargetRef.current = startTarget;
   });
+
+  // Hold the fullscreen "이제, 진짜 질문입니다" beat, then advance to the real
+  // question. Cleanup clears the timer if the phase changes (e.g. error) or the
+  // component unmounts before it fires.
+  useEffect(() => {
+    if (phase !== "transition") return;
+    const timer = setTimeout(() => startTargetRef.current(), TRANSITION_MS);
+    return () => clearTimeout(timer);
+  }, [phase]);
 
   async function restart() {
     await recorder.resetRecording();
@@ -432,6 +456,12 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
       {phase === "target" ? (
         <div className={styles.telemetryWrap}>
           <TelemetryStrip />
+        </div>
+      ) : null}
+
+      {phase === "transition" ? (
+        <div className={styles.transitionOverlay} role="status" aria-live="assertive">
+          <p className={styles.transitionCopy}>이제, 진짜 질문입니다</p>
         </div>
       ) : null}
 

@@ -1084,3 +1084,90 @@
     transform: translateY(0);
   }
 }
+
+/*
+ * Warmup -> real-question beat. The veil dims the respondent's own camera
+ * (spotlight off, serious mode) while the line leans in, then both fade out as
+ * the target panel animates in underneath. The whole arc fits inside
+ * TRANSITION_MS so the unmount at the end is invisible.
+ */
+.transitionOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: oklch(6% 0.014 230 / 0.82);
+  backdrop-filter: blur(18px);
+  animation: transitionVeil 1500ms var(--ease-standard) both;
+}
+
+.transitionCopy {
+  margin: 0;
+  max-width: 16ch;
+  text-align: center;
+  color: var(--text);
+  font-size: clamp(26px, 7vw, 40px);
+  line-height: 1.18;
+  letter-spacing: -0.012em;
+  font-weight: var(--fw-display);
+  word-break: keep-all;
+  animation: transitionCopyIn 1500ms var(--ease-out-glass) both;
+}
+
+@keyframes transitionVeil {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes transitionCopyIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  18% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  72% {
+    opacity: 1;
+    transform: translateY(0) scale(1.015);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px) scale(1.04);
+  }
+}
+
+/* Reduced motion: keep the veil + copy as a state signal, drop the lean-in. */
+@media (prefers-reduced-motion: reduce) {
+  .transitionCopy {
+    animation: transitionCopyFade 1500ms var(--ease-standard) both;
+  }
+
+  @keyframes transitionCopyFade {
+    0% {
+      opacity: 0;
+    }
+    20% {
+      opacity: 1;
+    }
+    82% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+}

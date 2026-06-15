@@ -24,6 +24,22 @@ describe("session recorder mobile flow", () => {
     expect((recorder.match(/durationMs=\{5000\}/g) ?? []).length).toBeGreaterThanOrEqual(2);
   });
 
+  it("plays an automatic fullscreen beat between warmup and the real question", () => {
+    // The beat is its own phase and advances on a timer, never a tap — manual
+    // friction stays banished while the shift in stakes gets a moment to land.
+    expect(recorder).toContain('phase === "transition"');
+    expect(recorder).toContain("이제, 진짜 질문입니다");
+    expect(recorder).toContain("startTargetRef.current()");
+    expect(recorder).toContain("const TRANSITION_MS");
+    // markTargetStart must fire when the beat ends, not when warmup ends, so the
+    // overlay never lands inside the analyzed target window.
+    const warmupEndIndex = recorder.indexOf("markWarmupEnd()");
+    const targetStartIndex = recorder.indexOf("markTargetStart()");
+    const transitionPhaseIndex = recorder.indexOf('setPhase("transition")');
+    expect(transitionPhaseIndex).toBeGreaterThan(warmupEndIndex);
+    expect(targetStartIndex).toBeGreaterThan(transitionPhaseIndex);
+  });
+
   it("keeps setup guidance scannable in a single checklist card", () => {
     expect(recorder).toContain("styles.guidanceCard");
     expect(recorder).toContain("styles.guidanceRow");
