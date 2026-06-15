@@ -7,8 +7,9 @@ describe("getWarmupQuestion", () => {
   });
 
   it("varies across sessions (random pick from a pool)", () => {
-    // 6 options over 50 draws — all-identical is astronomically unlikely, so a
-    // single value here means randomization regressed to a constant.
+    // Over 50 draws, all-identical is astronomically unlikely for any pool of
+    // 2+, so a single distinct value here means randomization regressed to a
+    // constant.
     const seen = new Set(Array.from({ length: 50 }, () => getWarmupQuestion()));
     expect(seen.size).toBeGreaterThan(1);
   });
