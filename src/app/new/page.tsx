@@ -10,10 +10,12 @@ import { signInWithKakao } from "@/lib/auth/kakao";
 import { targetQuestionMaxLength } from "@/lib/sessions/question-limits";
 import styles from "./new.module.css";
 
+// YES/NO로 바로 답이 갈리는 '나는 ~다' 선언형. 진실/거짓 판정과 잘 맞고,
+// 주관식보다 5초 답변 윈도우에 깔끔하게 잡힘. 유저가 같은 형태로 쓰도록 유도.
 const sampleQuestions = [
-  "어제 누구랑 있었어?",
-  "나 몰래 연락하는 사람 있어?",
-  "최근에 숨긴 거 하나라도 있어?"
+  "나는 몰래 연락하는 사람이 있다",
+  "나는 최근에 숨긴 게 하나라도 있다",
+  "나는 아직 전 애인이 신경 쓰인다"
 ];
 
 export default function NewQuestionPage() {
@@ -130,11 +132,14 @@ export default function NewQuestionPage() {
               className={styles.questionInput}
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
-              placeholder="어제 누구랑 있었어?"
+              placeholder="나는 몰래 연락하는 사람이 있다"
               maxLength={targetQuestionMaxLength}
               rows={4}
             />
 
+            <p className={styles.sampleHint}>
+              예 / 아니오로 답이 갈리는 <strong>‘나는 ~다’</strong> 문장이 제일 잘 잡혀요.
+            </p>
             <div className={styles.sampleRow} aria-label="예시 질문">
               {sampleQuestions.map((sample) => (
                 <button key={sample} type="button" onClick={() => setQuestion(sample)}>
