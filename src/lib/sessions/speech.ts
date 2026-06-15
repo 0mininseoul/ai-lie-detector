@@ -5,7 +5,7 @@ export const LONG_QUESTION_SPEECH_RATE = 1.25;
 
 // Pitch range is 0–2 (default 1). Above 1 reads brighter/more playful, which
 // matches the "fun game" framing rather than a serious interrogator.
-export const QUESTION_SPEECH_PITCH = 1.25;
+export const QUESTION_SPEECH_PITCH = 1.15;
 
 /*
  * The answer-analysis window opens only when narration ends (so the analyzed
