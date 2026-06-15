@@ -94,11 +94,16 @@
 }
 
 .brand {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.22em;
-  color: oklch(82% 0.16 158);
-  font-weight: 700;
+  color: oklch(88% 0.15 158);
+  font-weight: 800;
   text-transform: uppercase;
+  /* Layered dark halo so the label stays legible over any camera background. */
+  text-shadow:
+    0 0 4px oklch(0% 0 0 / 0.95),
+    0 1px 4px oklch(0% 0 0 / 0.92),
+    0 2px 14px oklch(0% 0 0 / 0.7);
 }
 
 .question {
@@ -216,15 +221,20 @@
   position: absolute;
   inset: 0;
   z-index: 18;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-items: center;
-  padding: min(14dvh, 130px) 24px 0;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0 24px;
+  /* Keep the verdict + roast in the lower third (over the chest/shirt, not the
+     centered face) and clear the stacked action column at the bottom. */
+  padding-bottom: max(190px, 23dvh);
   pointer-events: none;
 }
 .headline {
   margin: 0;
-  font-size: clamp(108px, 32vw, 240px);
+  font-size: clamp(76px, 21vw, 150px);
   font-weight: 900;
   letter-spacing: -0.04em;
   line-height: 0.9;
@@ -240,18 +250,18 @@
   color: oklch(78% 0.18 158);
 }
 .roast {
-  position: absolute;
-  bottom: 22%;
-  left: 0;
-  right: 0;
+  align-self: stretch;
   text-align: center;
   margin: 0;
-  padding: 0 32px;
-  font-size: clamp(16px, 4.4vw, 22px);
+  padding: 0 12px;
+  font-size: clamp(15px, 4.2vw, 21px);
   font-weight: 700;
   line-height: 1.4;
   color: oklch(96% 0.02 158);
-  text-shadow: 0 2px 12px oklch(6% 0.014 230 / 0.85);
+  text-shadow:
+    0 1px 3px oklch(0% 0 0 / 0.9),
+    0 2px 14px oklch(6% 0.014 230 / 0.85);
+  word-break: keep-all;
   animation: fadeUp 600ms ease 360ms backwards;
 }
 @keyframes slamIn {
@@ -355,11 +365,11 @@
   right: 0;
   z-index: 25;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   gap: 10px;
   padding: 0 20px;
-  flex-wrap: wrap;
   transition: opacity 200ms ease;
 }
 .actionBar[data-disabled="true"] {
