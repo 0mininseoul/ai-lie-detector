@@ -7,7 +7,9 @@ import { targetQuestionMaxLength, targetQuestionMinLength } from "@/lib/sessions
 const warmupQuestions = [
   "오늘 하루 중 제일 기억나는 일이 뭐야?",
   "지금 제일 가고 싶은 곳 어디야?",
-  "주말에 보통 뭐 하면서 쉬어?"
+  "주말에 보통 뭐 하면서 쉬어?",
+  "기분 지금 어때?",
+  "오늘 날씨 어땠어?"
 ];
 
 /*
