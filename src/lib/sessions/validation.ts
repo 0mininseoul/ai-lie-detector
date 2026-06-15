@@ -6,9 +6,6 @@ import { targetQuestionMaxLength, targetQuestionMinLength } from "@/lib/sessions
 // One is picked at random per session so repeat plays don't feel scripted.
 const warmupQuestions = [
   "오늘 하루 중 제일 기억나는 일이 뭐야?",
-  "요즘 제일 자주 듣는 노래 뭐야?",
-  "어제 저녁에 뭐 먹었어?",
-  "최근에 본 것 중에 제일 웃겼던 거 뭐야?",
   "지금 제일 가고 싶은 곳 어디야?",
   "주말에 보통 뭐 하면서 쉬어?"
 ];
