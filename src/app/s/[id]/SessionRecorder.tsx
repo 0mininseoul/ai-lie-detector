@@ -460,7 +460,12 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
       ) : null}
 
       {phase === "transition" ? (
-        <div className={styles.transitionOverlay} role="status" aria-live="assertive">
+        <div
+          className={styles.transitionOverlay}
+          role="status"
+          aria-live="assertive"
+          style={{ "--transition-ms": `${TRANSITION_MS}ms` } as CSSProperties}
+        >
           <p className={styles.transitionCopy}>이제, 진짜 질문입니다</p>
         </div>
       ) : null}
