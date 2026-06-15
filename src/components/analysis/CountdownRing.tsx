@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import styles from "./CountdownRing.module.css";
 
 /*
@@ -8,9 +8,13 @@ import styles from "./CountdownRing.module.css";
  * center counts down whole seconds. Color shifts to amber at ≤2s and red
  * at ≤1s. Fires `onComplete()` exactly once when time hits zero.
  *
- * Implementation uses requestAnimationFrame instead of setInterval so the
- * ring animation stays smooth even on slow tabs, and the final-tick race
- * (timer = 0 before onComplete fires) is impossible.
+ * Timing must survive a saturated main thread: this screen runs the camera,
+ * MediaRecorder, and a 10fps synchronous feature sampler (canvas diff +
+ * MediaPipe FaceLandmarker), which starves requestAnimationFrame on iOS
+ * WebKit. So the ring drains via a declarative CSS animation (compositor
+ * timeline, no JS per frame — see .progress), the digit ticks off a coarse
+ * setInterval that re-reads the clock so it self-corrects after any stall,
+ * and completion is a single setTimeout that never waits on a paint frame.
  */
 
 type Props = {
@@ -24,7 +28,8 @@ const RADIUS = 56;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export function CountdownRing({ durationMs = 5000, active, onComplete, size = "default" }: Props) {
-  const [remainingMs, setRemainingMs] = useState(durationMs);
+  const totalSeconds = Math.ceil(durationMs / 1000);
+  const [seconds, setSeconds] = useState(totalSeconds);
   const firedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
 
@@ -34,37 +39,38 @@ export function CountdownRing({ durationMs = 5000, active, onComplete, size = "d
 
   useEffect(() => {
     if (!active) {
+      setSeconds(totalSeconds);
       return;
     }
 
     firedRef.current = false;
-    setRemainingMs(durationMs);
-    let raf = 0;
+    setSeconds(totalSeconds);
     const startedAt = performance.now();
-    const tick = (now: number) => {
-      const elapsed = now - startedAt;
-      const remaining = Math.max(0, durationMs - elapsed);
-      setRemainingMs(remaining);
-      if (remaining > 0) {
-        raf = requestAnimationFrame(tick);
-        return;
-      }
+
+    const interval = window.setInterval(() => {
+      const remaining = Math.max(0, durationMs - (performance.now() - startedAt));
+      setSeconds(Math.ceil(remaining / 1000));
+    }, 200);
+
+    const done = window.setTimeout(() => {
       if (firedRef.current) return;
       firedRef.current = true;
-      try {
-        onCompleteRef.current();
-      } catch {
-        // Caller is responsible for surfacing its own errors.
-      }
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [active, durationMs]);
+      setSeconds(0);
+      onCompleteRef.current();
+    }, durationMs);
 
-  const progress = Math.max(0, Math.min(1, remainingMs / durationMs));
-  const offset = CIRCUMFERENCE * (1 - progress);
-  const seconds = Math.ceil(remainingMs / 1000);
-  const tone = remainingMs <= 1000 ? "danger" : remainingMs <= 2000 ? "warn" : "live";
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(done);
+    };
+  }, [active, durationMs, totalSeconds]);
+
+  const tone = seconds <= 1 ? "danger" : seconds <= 2 ? "warn" : "live";
+
+  const progressStyle = {
+    "--ring-duration": `${durationMs}ms`,
+    "--ring-circumference": `${CIRCUMFERENCE}`
+  } as CSSProperties;
 
   return (
     <div className={styles.ring} data-tone={tone} data-size={size} aria-live="polite">
@@ -75,8 +81,9 @@ export function CountdownRing({ durationMs = 5000, active, onComplete, size = "d
           cy="64"
           r={RADIUS}
           className={styles.progress}
+          data-active={active}
           strokeDasharray={CIRCUMFERENCE}
-          strokeDashoffset={offset}
+          style={progressStyle}
         />
       </svg>
       <div className={styles.center}>
