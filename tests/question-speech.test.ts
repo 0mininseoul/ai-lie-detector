@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   LONG_QUESTION_SPEECH_RATE,
   NORMAL_SPEECH_RATE,
+  QUESTION_SPEECH_PITCH,
   questionSpeechRate,
   speakQuestion
 } from "@/lib/sessions/speech";
@@ -27,6 +28,11 @@ describe("questionSpeechRate", () => {
 
   it("measures the trimmed length", () => {
     expect(questionSpeechRate(`   ${"가".repeat(10)}   `)).toBe(NORMAL_SPEECH_RATE);
+  });
+
+  it("uses a bright, playful pitch (above the neutral 1.0)", () => {
+    expect(QUESTION_SPEECH_PITCH).toBeGreaterThan(1);
+    expect(QUESTION_SPEECH_PITCH).toBeLessThanOrEqual(2); // valid Web Speech range
   });
 });
 
