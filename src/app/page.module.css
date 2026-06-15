@@ -542,7 +542,6 @@
   line-height: 1.2;
   font-weight: var(--fw-title);
   letter-spacing: -0.005em;
-  font-feature-settings: "ss03", "ss04";
 }
 
 .signalLabel em {

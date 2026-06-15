@@ -11,7 +11,7 @@
 세 가지 톤이 동시에 살아야 합니다.
 
 1. **Liquid Glass** — 떠 있는 듯한 카드, 깊은 backdrop-filter, 빛이 위에서 떨어지는 inset highlight, 다층 컬러 그림자가 카드를 표면에서 들어올림.
-2. **한국어 디스플레이 타이포 우위** — Pretendard Variable의 850~900 굵기로 큰 한글 표제를 과감하게 사용. 영문 sans-serif 디스플레이 폰트는 쓰지 않음. 자간(`letter-spacing`)은 큰 글자에서 마이너스, 작은 글자에서 0~0.01em.
+2. **한국어 디스플레이 타이포 우위** — Paperlogy(페이퍼로지) ExtraBold(800)로 큰 한글 표제를 과감하게 사용. 프레젠테이션 특화 폰트라 표제에서 강한 존재감이 난다. 별도 영문 sans-serif 디스플레이 폰트는 쓰지 않음(Paperlogy의 라틴 글리프 사용). 자간(`letter-spacing`)은 큰 글자에서 마이너스, 작은 글자에서 0~0.01em.
 3. **민트 한 점 + 차가운 글래스** — 표면 95%는 흰 글래스/연한 cyan 그라데이션. 그 위에 mint(#72e3ad) 한 점이 강하게 떨어짐. 따뜻한 보색은 경고(red/amber)에만 허용.
 
 **NOT:** 보라색 그라데이션, 무지개, 반짝이는 별, 흰 배경에 떠다니는 보라/핑크 데코, Sparkles/Wand 아이콘. 이건 AI 슬롭 시각입니다. → [[feedback-no-ai-slop-visuals]]
@@ -22,27 +22,39 @@
 
 ### 폰트
 
-- **단일 폰트:** Pretendard Variable. `<head>` `<link>` 로 직접 로딩(`@import` 금지 — Turbopack에서 fetch 누락 사례 있음).
-- **Fallback 체인:** `"Pretendard Variable", Pretendard, system-ui, sans-serif`. `-apple-system` 절대 포함하지 말 것 — 한글이 시스템 폰트(Apple SD Gothic Neo)로 떨어져 serif스럽게 변함.
-- 영문 디스플레이 폰트(Outfit, Inter, Space Grotesk 등) 추가 금지.
+- **시스템 기본 폰트(단일):** **Paperlogy(페이퍼로지)**. OFL 라이선스, self-host woff2를 `globals.css`의 `@font-face`로 직접 선언(`@import` 금지 — Turbopack에서 fetch 누락 사례 있음). 정적(static) face로 `400/500/600/700/800/900` 6종을 선언하고, `<head>`에서 above-the-fold 핵심 2종(800 ExtraBold·500 Medium)만 preload, 나머지는 `font-display: swap`로 lazy.
+- **단일 토큰:** `--font-sans: "Paperlogy", system-ui, sans-serif`. `html`·`body`·`h1~h6`·폼 컨트롤(`button/input/textarea/select`)에 모두 `var(--font-sans)`를 명시 못박음(한국어 lang UA 스타일시트가 heading/폼에 시스템 폰트를 직접 박는 사례 차단).
+- **Fallback 체인:** `"Paperlogy", system-ui, sans-serif`. `-apple-system`·`BlinkMacSystemFont` 절대 포함하지 말 것 — 한글이 시스템 폰트(Apple SD Gothic Neo)로 떨어져 serif스럽게 변함.
+- 별도 영문 디스플레이 폰트(Outfit, Inter, Space Grotesk 등) 추가 금지 — 영문도 Paperlogy 라틴 글리프로 통일.
+- **Pretendard 전용 OpenType 설정 금지:** 과거 `font-feature-settings: "ss03"/"cv11"/"ss04"`는 Pretendard 전용이라 Paperlogy에선 무의미/오작동. 전부 제거됨. Paperlogy는 기본 렌더를 그대로 사용.
 
 ### 폰트 웨이트 스케일
 
-배경 콘트라스트에 따라 굵기를 바꿉니다. CSS 변수로 토큰화되어 있고, 반드시 토큰을 통해 사용:
+위계에 따라 굵기를 단계적으로 변주합니다. CSS 변수로 토큰화되어 있고(`globals.css`), 반드시 토큰을 통해 사용. Paperlogy 정적 face 기준 실제 값:
 
-| 토큰 | 값 | 용도 |
-|---|---|---|
-| `--fw-display` | 900 | 흰 글래스 위 큰 한글 표제(`clamp(48px, 7vw, 92px)`) |
-| `--fw-display-on-color` | 920 | 민트/빨강 같은 채도 높은 fill 위 텍스트 |
-| `--fw-headline` | 840 | 보조 헤드라인, 강한 라벨 |
-| `--fw-title` | 800 | 카드 타이틀, plan 이름 |
-| `--fw-body-strong` | 760 | 라벨, chip 안 텍스트 |
-| `--fw-body` | 620 | 일반 본문 강조 |
-| `--fw-body-soft` | 540 | 보조 카피, 도움말 |
-| `--fw-caption` | 500 | 카운터, 작은 footnote |
-| `--fw-action` | 820 | CTA 버튼 |
+| 토큰 | 값 | Paperlogy face | 용도 |
+|---|---|---|---|
+| `--fw-display` | 800 | ExtraBold | 흰 글래스 위 큰 한글 표제(`clamp(48px, 7vw, 92px)`) |
+| `--fw-display-on-color` | 800 | ExtraBold | 민트/빨강 같은 채도 높은 fill 위 표제 |
+| `--fw-headline` | 700 | Bold | 섹션 헤드라인 |
+| `--fw-title` | 600 | SemiBold | 카드/블록 타이틀, plan 이름 |
+| `--fw-body-strong` | 600 | SemiBold | 라벨, chip 안 텍스트, 강조 본문 |
+| `--fw-body` | 500 | Medium | 일반 본문 |
+| `--fw-body-soft` | 400 | Regular | 보조 카피, 도움말, 롱폼 본문 |
+| `--fw-caption` | 500 | Medium | 카운터, 작은 footnote, 라벨 |
+| `--fw-action` | 600 | SemiBold | CTA 버튼 |
 
-> **원칙:** 흰 글래스 위에서는 800~900, 컬러 fill 위에서는 900+, 회색 본문은 540~620. 같은 화면에서 굵기 종류를 3~4단계로 제한.
+> **원칙:** display→body-soft 로 `800 → 400` 5단 램프. 같은 화면에서 굵기 종류를 3~4단계로 제한. 900(Black) face도 선언돼 있으나 표준 DOM 위계엔 쓰지 않고, result/reels 공유 클립의 canvas 판정 텍스트 같은 특수 대형 강조에만 사용.
+
+### Mono 예외 — 포렌식/계측 라벨
+
+시스템 기본은 Paperlogy지만, **"계측기/포렌식" 느낌을 의도한 곳만** `--font-mono`(`ui-monospace, SFMono-Regular, Menlo, …`)를 씁니다. 이건 폰트 누락이 아니라 의도된 예외입니다:
+
+- 분석 HUD 계열: `LiveAnalysisHud`, `TelemetryStrip`, `CountdownRing`, `ProfessionalOverlay`.
+- 라이브 세션(`/s/[id]`)의 telemetry eyebrow 칩(`.questionLabel` / `.questionEyebrow` — 대문자·tracking·펄스 점).
+- 마크다운 인라인 `<code>`(legal 등) — 코드 표기 보편 관습.
+
+그 외 **모든 화면·페이지·폼·heading은 Paperlogy 일괄 적용.** 새 mono 사용은 위 "계측" 범주에 들 때만 허용.
 
 ### 자간·행간
 
@@ -300,5 +312,5 @@ letter-spacing: -0.005em;
 
 1. 새 컴포넌트 만들 때: 이 문서 7번 패턴부터 차용. 토큰 새로 만들 일이 거의 없음.
 2. 토큰 추가가 필요하면 `globals.css`에 추가하고 본 문서 3~6번에 등록.
-3. 모든 UI 변경은 Playwright로 실제 렌더 검수 후 마무리. h1·body의 computed font-family가 `Pretendard Variable`인지 확인.
+3. 모든 UI 변경은 Playwright로 실제 렌더 검수 후 마무리. h1·body의 computed font-family가 `Paperlogy`인지 확인(분석 HUD·세션 telemetry 칩·`<code>`만 `--font-mono` 예외).
 4. 새 의존성 추가 금지(motion, hugeicons, number-flow 등). 정말 필요하면 사용자 컨펌.

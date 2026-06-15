@@ -182,13 +182,13 @@ function drawTopChrome(ctx: CanvasRenderingContext2D, question: string) {
   ctx.fillStyle = "rgba(7, 11, 16, 0.55)";
   ctx.fillRect(0, 0, CANVAS_W, 220);
   ctx.fillStyle = "#9af2c8";
-  ctx.font = "700 26px Pretendard, system-ui, sans-serif";
+  ctx.font = "700 26px Paperlogy, system-ui, sans-serif";
   ctx.textAlign = "left";
   ctx.fillText("AI 거짓말탐지기", 64, 80);
   ctx.fillStyle = "rgba(7, 11, 16, 0.72)";
   ctx.fillRect(48, 110, CANVAS_W - 96, 96);
   ctx.fillStyle = "#f4f7fb";
-  ctx.font = "800 34px Pretendard, system-ui, sans-serif";
+  ctx.font = "800 34px Paperlogy, system-ui, sans-serif";
   wrap(ctx, question, 72, 158, CANVAS_W - 144, 44, 2);
 }
 
@@ -198,15 +198,15 @@ function drawVerdict(ctx: CanvasRenderingContext2D, headline: Headline, roast: s
   ctx.globalAlpha = eased;
   ctx.fillStyle = "rgba(7, 11, 16, 0.6)";
   ctx.fillRect(0, CANVAS_H * 0.32, CANVAS_W, CANVAS_H * 0.5);
-  ctx.font = "900 280px Pretendard, system-ui, sans-serif";
+  ctx.font = "900 280px Paperlogy, system-ui, sans-serif";
   ctx.fillStyle = headline === "거짓" ? "#ff6b48" : "#72e3ad";
   ctx.textAlign = "center";
   ctx.fillText(headline, CANVAS_W / 2, CANVAS_H * 0.58);
   ctx.textAlign = "left";
-  ctx.font = "700 40px Pretendard, system-ui, sans-serif";
+  ctx.font = "700 40px Paperlogy, system-ui, sans-serif";
   ctx.fillStyle = "#f4f7fb";
   wrap(ctx, roast, 80, CANVAS_H * 0.78, CANVAS_W - 160, 54, 3);
-  ctx.font = "600 24px Pretendard, system-ui, sans-serif";
+  ctx.font = "600 24px Paperlogy, system-ui, sans-serif";
   ctx.fillStyle = "rgba(244, 247, 251, 0.62)";
   ctx.fillText("nogoora.vercel.app", 80, CANVAS_H - 80);
   ctx.restore();

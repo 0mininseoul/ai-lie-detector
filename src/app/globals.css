@@ -1,60 +1,62 @@
 /*
- * Pretendard — static only, self-hosted, with local() probe.
+ * Paperlogy (페이퍼로지) — static weights, self-hosted woff2, url-only.
  *
- * Variable woff2 를 완전히 제거. Safari 에서 variable axis 파싱이 실패해
- * weight 600+ 요청이 fallback 으로 떨어지는 사례를 차단한다. 모든 weight
- * 가 정적 face 로 매칭되어 axis 변수 의존이 0이다.
+ * OFL 라이선스. 100~900 중 UI 위계에 실제로 쓰는 400/500/600/700/800/900
+ * 6종만 선언한다. local() 프로브는 제외 — 시스템 설치가 드문 폰트라 잘못된
+ * 부분 매칭을 피하고 항상 self-host woff2 로 결정적으로 로드한다.
  *
- * 각 face 의 src 는 local() → woff2 순서. 사용자가 Pretendard 를 시스템에
- * 설치해뒀다면 그대로 사용해 네트워크 비용을 없애고, 아니면 self-host woff2
- * 를 받는다. 이 순서는 Pretendard 공식 CSS 와 동일하다.
+ * @font-face 선언만으로는 다운로드되지 않는다. 실제로 그 weight 를 그리는
+ * 글리프가 화면에 있을 때만 fetch 되므로, 안 쓰는 weight 를 선언해도 비용 0.
  */
 @font-face {
-  font-family: "Pretendard";
+  font-family: "Paperlogy";
   font-weight: 400;
   font-style: normal;
   font-display: swap;
-  src: local("Pretendard Regular"),
-       local("Pretendard-Regular"),
-       url("/fonts/Pretendard-Regular.subset.woff2") format("woff2");
+  src: url("/fonts/Paperlogy-4Regular.woff2") format("woff2");
 }
 @font-face {
-  font-family: "Pretendard";
+  font-family: "Paperlogy";
   font-weight: 500;
   font-style: normal;
   font-display: swap;
-  src: local("Pretendard Medium"),
-       local("Pretendard-Medium"),
-       url("/fonts/Pretendard-Medium.subset.woff2") format("woff2");
+  src: url("/fonts/Paperlogy-5Medium.woff2") format("woff2");
 }
 @font-face {
-  font-family: "Pretendard";
+  font-family: "Paperlogy";
   font-weight: 600;
   font-style: normal;
   font-display: swap;
-  src: local("Pretendard SemiBold"),
-       local("Pretendard-SemiBold"),
-       url("/fonts/Pretendard-SemiBold.subset.woff2") format("woff2");
+  src: url("/fonts/Paperlogy-6SemiBold.woff2") format("woff2");
 }
 @font-face {
-  font-family: "Pretendard";
+  font-family: "Paperlogy";
   font-weight: 700;
   font-style: normal;
   font-display: swap;
-  src: local("Pretendard Bold"),
-       local("Pretendard-Bold"),
-       url("/fonts/Pretendard-Bold.subset.woff2") format("woff2");
+  src: url("/fonts/Paperlogy-7Bold.woff2") format("woff2");
 }
-/* 800 (ExtraBold), 900 (Black) 은 의도적으로 미사용. 사용자 요청에 따라
- * 최대 weight 는 700 (Bold). 누군가 font-weight: 800/900 을 지정해도
- * 브라우저가 closest match 알고리즘으로 700 로 매핑된다. */
+@font-face {
+  font-family: "Paperlogy";
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Paperlogy-8ExtraBold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Paperlogy";
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Paperlogy-9Black.woff2") format("woff2");
+}
 
 /*
  * Design tokens — single source of truth.
  *
  *  ─ Hex tokens mirror the 21st palette contract (mint #72e3ad).
  *  ─ OKLCH companions drive shadows, tints, glass surfaces.
- *  ─ Typography is locked to Pretendard Variable everywhere.
+ *  ─ Typography is locked to Paperlogy everywhere.
  *  ─ Surface gradients are tokenised so .dark can cascade through every module.
  */
 
@@ -78,7 +80,7 @@
   --primary: #72e3ad;
   --sidebar: #fcfcfc;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --font-sans: "Pretendard", system-ui, sans-serif;
+  --font-sans: "Paperlogy", system-ui, sans-serif;
   --secondary: #fdfdfd;
   --background: #fcfcfc;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
@@ -184,16 +186,17 @@
     0 8px 22px oklch(79% 0.17 152 / 0.22),
     0 22px 54px oklch(70% 0.14 230 / 0.16);
 
-  /* font-weight scale — 최대 700 (Bold) 로 고정. 정적 Pretendard 400/500/600/700 만 사용. */
-  --fw-display: 700;
-  --fw-headline: 700;
-  --fw-title: 700;
-  --fw-body-strong: 600;
-  --fw-body: 500;
-  --fw-body-soft: 400;
-  --fw-caption: 500;
-  --fw-display-on-color: 700;
-  --fw-action: 600;
+  /* font-weight scale — Paperlogy 400~900 을 UI 위계에 따라 배리에이션.
+   * display → body-soft 로 갈수록 가벼워지는 6단(400/500/600/700/800) 램프. */
+  --fw-display: 800;          /* 히어로·대형 헤드라인 — ExtraBold */
+  --fw-headline: 700;         /* 섹션 헤드라인 — Bold */
+  --fw-title: 600;            /* 카드/블록 타이틀 — SemiBold */
+  --fw-body-strong: 600;      /* 강조 본문 — SemiBold */
+  --fw-body: 500;             /* 기본 본문 — Medium */
+  --fw-body-soft: 400;        /* 보조·롱폼 본문 — Regular */
+  --fw-caption: 500;          /* 캡션·라벨 — Medium */
+  --fw-display-on-color: 800; /* 컬러 슬랩 위 히어로 — ExtraBold */
+  --fw-action: 600;           /* 버튼·CTA — SemiBold */
 
   /* shadow factory */
   --shadow-color-mint: oklch(79% 0.17 152 / 0.36);
@@ -523,7 +526,6 @@ body {
   font-synthesis-weight: auto;
   font-synthesis-style: auto;
   letter-spacing: var(--letter-spacing);
-  font-feature-settings: "ss03", "cv11";
   overflow-x: hidden;
 }
 

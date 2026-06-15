@@ -509,7 +509,7 @@ function normalizeCanvasText(text: string) {
 }
 
 function canvasQuestionFont(fontSize: number) {
-  return `900 ${fontSize}px Pretendard, system-ui, sans-serif`;
+  return `900 ${fontSize}px Paperlogy, system-ui, sans-serif`;
 }
 
 function layoutQuestionLines(
