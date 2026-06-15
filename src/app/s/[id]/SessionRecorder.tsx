@@ -253,7 +253,12 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "대답을 저장하다가 삐끗했습니다.");
       setPhase("error");
-    } finally {
+      // Reset submit state ONLY on the error path. A `finally` here also ran on
+      // the success path (finally runs after the `return`), flipping isSubmitting
+      // back to false and re-activating the countdown ring while router.replace
+      // was still navigating — on slow iOS client-nav the ring visibly reset and
+      // recounted 5,4 before the result page mounted. On success we navigate away
+      // and unmount, so isSubmitting must stay true.
       setIsSubmitting(false);
     }
   }
@@ -464,17 +469,21 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
             <section className={styles.targetPanel}>
               <div className={styles.questionHeader}>
                 <span className={styles.questionLabel}>REAL QUESTION</span>
-                {answerOpen ? (
-                  <CountdownRing
-                    durationMs={5000}
-                    active={!isSubmitting}
-                    onComplete={handleAutoFinish}
-                    size="compact"
-                  />
-                ) : (
+                {!answerOpen ? (
                   <span className={styles.listeningHint} aria-live="polite">
                     질문을 잘 들어 주세요
                   </span>
+                ) : isSubmitting ? (
+                  <span className={styles.listeningHint} aria-live="polite">
+                    분석 중…
+                  </span>
+                ) : (
+                  <CountdownRing
+                    durationMs={5000}
+                    active
+                    onComplete={handleAutoFinish}
+                    size="compact"
+                  />
                 )}
               </div>
               <h2 className={styles.questionText}>{currentQuestion}</h2>

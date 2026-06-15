@@ -40,6 +40,18 @@ describe("session recorder mobile flow", () => {
     expect(targetStartIndex).toBeGreaterThan(transitionPhaseIndex);
   });
 
+  it("resets submit state only on the error path, never after a successful finish", () => {
+    // A `finally` that reset isSubmitting ran on the success path too (finally
+    // runs after the `return`), flipping the countdown ring active again and
+    // making it recount 5,4 during slow iOS client-nav to the result page.
+    // The reset must live in the catch block, after we enter the error phase.
+    expect(recorder).not.toContain("} finally {");
+    const errorIndex = recorder.indexOf('setPhase("error")');
+    const resetSubmitIndex = recorder.indexOf("setIsSubmitting(false)");
+    expect(errorIndex).toBeGreaterThan(-1);
+    expect(resetSubmitIndex).toBeGreaterThan(errorIndex);
+  });
+
   it("keeps setup guidance scannable in a single checklist card", () => {
     expect(recorder).toContain("styles.guidanceCard");
     expect(recorder).toContain("styles.guidanceRow");
