@@ -24,19 +24,22 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           credentials mode 가 안 맞아서 Safari 가 dedup 실패하면서 face
           자체가 broken state 가 되는 사례 발생. 같은 origin 이라도 반드시
           crossOrigin="anonymous" 로 맞춰야 한다.
+
+          above-the-fold 에서 가장 많이 보이는 두 weight 만 preload:
+          ExtraBold(800, 히어로) + Medium(500, 본문). 나머지는 swap 으로 lazy.
         */}
         <link
           rel="preload"
           as="font"
           type="font/woff2"
-          href="/fonts/Pretendard-Bold.subset.woff2"
+          href="/fonts/Paperlogy-8ExtraBold.woff2"
           crossOrigin="anonymous"
         />
         <link
           rel="preload"
           as="font"
           type="font/woff2"
-          href="/fonts/Pretendard-Regular.subset.woff2"
+          href="/fonts/Paperlogy-5Medium.woff2"
           crossOrigin="anonymous"
         />
       </head>
