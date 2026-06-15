@@ -320,6 +320,17 @@
   min-width: 0;
 }
 
+/* Shown in the countdown slot while the question is being read aloud, before
+ * the answer window (and its ring) opens. */
+.listeningHint {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--muted-text);
+  white-space: nowrap;
+}
+
 @keyframes questionLabelPulse {
   50% { opacity: 0.45; }
 }

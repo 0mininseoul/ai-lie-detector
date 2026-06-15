@@ -9,6 +9,7 @@ import { TelemetryStrip } from "@/components/analysis/TelemetryStrip";
 import { useCameraRecorder, type RecordingStopResult } from "@/hooks/useCameraRecorder";
 import { useFeatureCollector } from "@/hooks/useFeatureCollector";
 import { recordingLocalStore } from "@/lib/recording/local-store";
+import { primeSpeech, speakQuestion } from "@/lib/sessions/speech";
 import styles from "./session.module.css";
 
 type RefundState = "idle" | "pending" | "granted" | "failed";
@@ -70,6 +71,9 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   const [requiresNewSession, setRequiresNewSession] = useState(() => ["failed", "expired"].includes(session.status));
   const [refundState, setRefundState] = useState<RefundState>("idle");
   const [cameraAspect, setCameraAspect] = useState("3 / 4");
+  // The real question is read aloud first; the answer window (and its countdown)
+  // only opens once narration ends, so the analyzed audio is the answer.
+  const [answerOpen, setAnswerOpen] = useState(false);
 
   const currentQuestion = useMemo(() => {
     if (phase === "warmup") return session.warmupQuestion;
@@ -122,6 +126,9 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
   async function startWarmup() {
     setError("");
+    // Unlock speech inside this tap so the later auto-narration plays on iOS.
+    primeSpeech();
+    setAnswerOpen(false);
     const started = await recorder.startRecording();
     if (!started) {
       setError(recorder.latestError ?? "녹화를 시작하지 못했습니다.");
@@ -143,15 +150,23 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     setPhase("transition");
   }, [featureCollector]);
 
-  // Open the real-question window only when the transition beat ends. Keeping
-  // markTargetStart() out of finishWarmup means the ~1.5s overlay never lands
-  // inside the analyzed target window.
+  // Transition beat ends -> reveal the real question (and narrate it). The
+  // analyzed window is NOT opened here; it waits for narration to finish so
+  // neither the transition overlay nor the spoken prompt lands inside it.
   const startTarget = useCallback(() => {
-    featureCollector.markTargetStart();
+    setAnswerOpen(false);
     setPhase("target");
+  }, []);
+
+  // Narration finished -> open the analyzed answer window and start the
+  // countdown. This is where markTargetStart() finally fires.
+  const openAnswerWindow = useCallback(() => {
+    featureCollector.markTargetStart();
+    setAnswerOpen(true);
   }, [featureCollector]);
 
   const startTargetRef = useRef<() => void>(() => undefined);
+  const openAnswerWindowRef = useRef<() => void>(() => undefined);
   const finishTargetRef = useRef<() => void>(() => undefined);
 
   async function uploadRecordingForAnalysis(
@@ -238,7 +253,12 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "대답을 저장하다가 삐끗했습니다.");
       setPhase("error");
-    } finally {
+      // Reset submit state ONLY on the error path. A `finally` here also ran on
+      // the success path (finally runs after the `return`), flipping isSubmitting
+      // back to false and re-activating the countdown ring while router.replace
+      // was still navigating — on slow iOS client-nav the ring visibly reset and
+      // recounted 5,4 before the result page mounted. On success we navigate away
+      // and unmount, so isSubmitting must stay true.
       setIsSubmitting(false);
     }
   }
@@ -256,6 +276,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   useEffect(() => {
     finishTargetRef.current = finishTarget;
     startTargetRef.current = startTarget;
+    openAnswerWindowRef.current = openAnswerWindow;
   });
 
   // Hold the fullscreen "이제, 진짜 질문입니다" beat, then advance to the real
@@ -267,12 +288,22 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     return () => clearTimeout(timer);
   }, [phase]);
 
+  // Read the real question aloud (TTS) on reveal; open the answer window only
+  // when narration ends. speakQuestion guarantees the callback fires even if
+  // speech is unavailable/stalls, so the flow never hangs. Cancels on cleanup.
+  useEffect(() => {
+    if (phase !== "target") return;
+    const handle = speakQuestion(session.targetQuestion, () => openAnswerWindowRef.current());
+    return () => handle.cancel();
+  }, [phase, session.targetQuestion]);
+
   async function restart() {
     await recorder.resetRecording();
     featureCollector.reset();
     setError("");
     setRequiresNewSession(false);
     setRefundState("idle");
+    setAnswerOpen(false);
     setPhase("setup");
   }
 
@@ -438,12 +469,22 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
             <section className={styles.targetPanel}>
               <div className={styles.questionHeader}>
                 <span className={styles.questionLabel}>REAL QUESTION</span>
-                <CountdownRing
-                  durationMs={5000}
-                  active={!isSubmitting}
-                  onComplete={handleAutoFinish}
-                  size="compact"
-                />
+                {!answerOpen ? (
+                  <span className={styles.listeningHint} aria-live="polite">
+                    질문을 잘 들어 주세요
+                  </span>
+                ) : isSubmitting ? (
+                  <span className={styles.listeningHint} aria-live="polite">
+                    분석 중…
+                  </span>
+                ) : (
+                  <CountdownRing
+                    durationMs={5000}
+                    active
+                    onComplete={handleAutoFinish}
+                    size="compact"
+                  />
+                )}
               </div>
               <h2 className={styles.questionText}>{currentQuestion}</h2>
             </section>
