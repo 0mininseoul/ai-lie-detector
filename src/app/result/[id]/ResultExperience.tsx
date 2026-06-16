@@ -304,7 +304,15 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
             <h1 className={styles.headline} data-verdict={headline}>
               {headline}
             </h1>
-            {roast ? <p className={styles.roast}>{roast}</p> : null}
+            {roast ? (
+              <p className={styles.roast}>
+                {splitRoastLines(roast).map((line, index) => (
+                  <span className={styles.roastLine} key={`${line}-${index}`}>
+                    {line}
+                  </span>
+                ))}
+              </p>
+            ) : null}
           </div>
         ) : null}
 
@@ -561,6 +569,33 @@ function ellipsizeLastLine(ctx: CanvasRenderingContext2D, lines: string[], maxW:
   }
   next[next.length - 1] = `${last}…`;
   return next;
+}
+
+function splitRoastLines(text: string) {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return [];
+
+  const lines: string[] = [];
+  let current = "";
+  const chars = Array.from(normalized);
+
+  chars.forEach((char, index) => {
+    current += char;
+    const next = chars[index + 1] ?? "";
+    const previous = chars[index - 1] ?? "";
+    const isSinglePeriod = char === "." && previous !== "." && next !== ".";
+    const isSentenceEnd = char === "?" || char === "!" || char === "。" || isSinglePeriod;
+    if (!isSentenceEnd) return;
+    if (next && !/\s/.test(next)) return;
+
+    const line = current.trim();
+    if (line) lines.push(line);
+    current = "";
+  });
+
+  const tail = current.trim();
+  if (tail) lines.push(tail);
+  return lines.length > 0 ? lines : [normalized];
 }
 
 function coercePlaybackClip(

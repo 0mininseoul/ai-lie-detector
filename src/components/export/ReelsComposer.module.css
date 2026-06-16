@@ -1,6 +1,8 @@
 .composer {
   display: inline-flex;
   align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .canvas {
@@ -19,11 +21,15 @@
 .button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 12px 18px;
+  min-height: 50px;
+  padding: 0 12px;
   border-radius: 999px;
   font-weight: 800;
-  font-size: 14px;
+  font-size: clamp(12px, 3.35vw, 14px);
+  line-height: 1;
+  white-space: nowrap;
   text-decoration: none;
   background: oklch(8% 0.018 230 / 0.6);
   color: oklch(94% 0.04 158);

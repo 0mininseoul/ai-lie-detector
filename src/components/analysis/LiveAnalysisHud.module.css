@@ -208,7 +208,7 @@
     opacity: 1;
   }
   .topBar {
-    top: 118px;
+    top: max(150px, calc(env(safe-area-inset-top) + 132px));
     left: 18px;
     right: 18px;
     display: flex;

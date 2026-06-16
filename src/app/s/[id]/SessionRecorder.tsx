@@ -469,11 +469,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
             <section className={styles.targetPanel}>
               <div className={styles.questionHeader}>
                 <span className={styles.questionLabel}>REAL QUESTION</span>
-                {!answerOpen ? (
-                  <span className={styles.listeningHint} aria-live="polite">
-                    질문을 잘 들어 주세요
-                  </span>
-                ) : isSubmitting ? (
+                {!answerOpen ? null : isSubmitting ? (
                   <span className={styles.listeningHint} aria-live="polite">
                     분석 중…
                   </span>

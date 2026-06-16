@@ -11,10 +11,10 @@ import styles from "./CountdownRing.module.css";
  * Timing must survive a saturated main thread: this screen runs the camera,
  * MediaRecorder, and a 10fps synchronous feature sampler (canvas diff +
  * MediaPipe FaceLandmarker), which starves requestAnimationFrame on iOS
- * WebKit. So the ring drains via a declarative CSS animation (compositor
- * timeline, no JS per frame — see .progress), the digit ticks off a coarse
- * setInterval that re-reads the clock so it self-corrects after any stall,
- * and completion is a single setTimeout that never waits on a paint frame.
+ * WebKit. So the ring and visible digit slots drain via declarative CSS
+ * animations (compositor timeline, no JS per frame — see .progress/.digit).
+ * A coarse setInterval only updates tone + aria text, and completion is a
+ * single setTimeout that never waits on a paint frame.
  */
 
 type Props = {
@@ -29,6 +29,7 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export function CountdownRing({ durationMs = 5000, active, onComplete, size = "default" }: Props) {
   const totalSeconds = Math.ceil(durationMs / 1000);
+  const digitSlots = Array.from({ length: totalSeconds + 1 }, (_, index) => totalSeconds - index);
   const [seconds, setSeconds] = useState(totalSeconds);
   const firedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
@@ -73,7 +74,7 @@ export function CountdownRing({ durationMs = 5000, active, onComplete, size = "d
   } as CSSProperties;
 
   return (
-    <div className={styles.ring} data-tone={tone} data-size={size} aria-live="polite">
+    <div className={styles.ring} data-tone={tone} data-size={size} data-active={active} aria-live="polite">
       <svg viewBox="0 0 128 128" aria-hidden>
         <circle cx="64" cy="64" r={RADIUS} className={styles.track} />
         <circle
@@ -86,9 +87,25 @@ export function CountdownRing({ durationMs = 5000, active, onComplete, size = "d
           style={progressStyle}
         />
       </svg>
-      <div className={styles.center}>
-        <strong>{seconds}</strong>
-        <span>sec</span>
+      <div className={styles.center} aria-label={`${seconds}초 남음`}>
+        <span className={styles.digits} aria-hidden>
+          {digitSlots.map((digit, index) => (
+            <strong
+              className={styles.digit}
+              data-start={index === 0}
+              key={digit}
+              style={{
+                "--digit-delay": `${index * 1000}ms`,
+                "--digit-duration": `${digit === 0 ? 160 : Math.min(1000, Math.max(160, durationMs - index * 1000))}ms`
+              } as CSSProperties}
+            >
+              {digit}
+            </strong>
+          ))}
+        </span>
+        <span className={styles.unit} aria-hidden>
+          sec
+        </span>
       </div>
     </div>
   );

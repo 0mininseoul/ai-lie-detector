@@ -21,7 +21,7 @@ describe("CountdownRing timing", () => {
     expect(component).not.toContain("cancelAnimationFrame(");
   });
 
-  it("completes on a single deterministic timer and ticks the digit coarsely", () => {
+  it("completes on a single deterministic timer and updates non-visual state coarsely", () => {
     expect(component).toContain("setTimeout");
     expect(component).toContain("setInterval");
     // onComplete must fire exactly once even if timers double up under
@@ -29,10 +29,13 @@ describe("CountdownRing timing", () => {
     expect(component).toContain("firedRef");
   });
 
-  it("drains the ring on the CSS animation timeline, not React state per frame", () => {
+  it("drains the ring and visible digits on the CSS animation timeline", () => {
     expect(css).toContain("@keyframes ringDrain");
+    expect(css).toContain("@keyframes digitSlot");
     expect(css).toContain("animation-play-state");
     expect(component).toContain('data-active={active}');
     expect(component).toContain("--ring-duration");
+    expect(component).toContain("digitSlots");
+    expect(component).toContain("--digit-delay");
   });
 });

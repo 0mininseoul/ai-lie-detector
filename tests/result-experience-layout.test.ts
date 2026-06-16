@@ -25,13 +25,29 @@ describe("result experience mobile layout", () => {
   it("promotes the question to a centered top card", () => {
     const topMeta = selectorBlock(".topMeta");
     const question = selectorBlock(".question");
+    const brand = selectorBlock(".brand");
 
     expect(topMeta).toContain("left: 50%");
     expect(topMeta).toContain("right: auto");
     expect(topMeta).toContain("transform: translateX(-50%)");
     expect(topMeta).toContain("align-items: center");
+    expect(brand).toContain("font-size: 13px");
     expect(question).toContain("text-align: center");
     expect(question).toContain("font-size: clamp(21px");
+  });
+
+  it("keeps verdict copy readable and action chips in one row", () => {
+    const roast = selectorBlock(".roast");
+    const roastLine = selectorBlock(".roastLine");
+    const actionBar = selectorBlock(".actionBar");
+    const action = selectorBlock(".primaryAction,\n.secondaryAction");
+
+    expect(resultTsx).toContain("splitRoastLines(roast)");
+    expect(roast).toContain("max-width: min(21em, 100%)");
+    expect(roastLine).toContain("display: block");
+    expect(actionBar).toContain("flex-direction: row");
+    expect(actionBar).toContain("flex-wrap: nowrap");
+    expect(action).toContain("white-space: nowrap");
   });
 
   it("keeps the analyzing and failure cards out of awkward face/text overlaps", () => {

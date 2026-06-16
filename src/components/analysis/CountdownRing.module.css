@@ -84,7 +84,20 @@
   pointer-events: none;
 }
 
-.center strong {
+.digits {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 1.65em;
+  height: 1em;
+}
+
+.digit {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
   color: var(--ring-tone);
   font-size: 56px;
   line-height: 1;
@@ -95,12 +108,21 @@
   transition: color 220ms ease;
 }
 
-.ring[data-size="compact"] .center strong {
+.ring:not([data-active="true"]) .digit[data-start="true"] {
+  opacity: 1;
+}
+
+.ring[data-active="true"] .digit {
+  animation: digitSlot var(--digit-duration, 1000ms) step-end forwards;
+  animation-delay: var(--digit-delay, 0ms);
+}
+
+.ring[data-size="compact"] .digit {
   font-size: 25px;
   line-height: 0.92;
 }
 
-.center span {
+.unit {
   color: var(--muted-text);
   font-size: 10px;
   font-weight: var(--fw-body-strong);
@@ -108,11 +130,20 @@
   text-transform: uppercase;
 }
 
-.ring[data-size="compact"] .center span {
+.ring[data-size="compact"] .unit {
   margin-top: 1px;
   font-size: 7px;
   line-height: 0.95;
   letter-spacing: 0.08em;
+}
+
+@keyframes digitSlot {
+  0%, 99% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes ringPulse {
@@ -128,14 +159,14 @@
     width: 58px;
     height: 58px;
   }
-  .center strong {
+  .digit {
     font-size: 46px;
   }
-  .ring[data-size="compact"] .center strong {
+  .ring[data-size="compact"] .digit {
     font-size: 22px;
   }
 
-  .ring[data-size="compact"] .center span {
+  .ring[data-size="compact"] .unit {
     font-size: 6.5px;
   }
 }

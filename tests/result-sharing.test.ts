@@ -80,5 +80,7 @@ describe("result sharing", () => {
     expect(newPageTsx).toContain("targetQuestionMaxLength");
     expect(newPageTsx).toContain("maxLength={targetQuestionMaxLength}");
     expect(newPageTsx).toContain("{trimmedQuestion.length}/{targetQuestionMaxLength}");
+    expect(newPageTsx).not.toContain("예 / 아니오로 답이 갈리는");
+    expect(newPageTsx).not.toContain("문장이 제일 잘 잡혀요");
   });
 });

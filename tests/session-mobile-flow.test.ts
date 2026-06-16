@@ -21,6 +21,7 @@ describe("session recorder mobile flow", () => {
     expect(recorder).not.toContain("지금 끝내기");
     expect(recorder).not.toContain("5초 안에 답해 주세요");
     expect(recorder).not.toContain("0초가 되는 순간");
+    expect(recorder).not.toContain("질문을 잘 들어 주세요");
     expect((recorder.match(/durationMs=\{5000\}/g) ?? []).length).toBeGreaterThanOrEqual(2);
   });
 
@@ -73,7 +74,9 @@ describe("session recorder mobile flow", () => {
 
   it("moves live metrics away from the face center on mobile", () => {
     const sideMetrics = selectorBlock(hudMobileCss, ".sideMetrics");
+    const topBar = selectorBlock(hudMobileCss, ".topBar");
 
+    expect(topBar).toContain("top: max(150px");
     expect(sideMetrics).toContain("top: auto");
     expect(sideMetrics).toContain("bottom: 86px");
     expect(sideMetrics).toContain("transform: none");

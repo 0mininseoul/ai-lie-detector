@@ -63,11 +63,14 @@ describe("session recorder mobile layout", () => {
 
     expect(mobileCss).toContain('"label timer"');
     expect(mobileCss).toContain('"question timer"');
+    expect(mobileCss).toContain(".stage[data-phase=\"target\"] .targetPanel");
+    expect(mobileCss).toContain('"question question"');
     expect(timer).toContain("grid-area: timer");
     expect(timer).toContain("position: static");
     expect(timer).not.toContain("position: absolute");
     expect(text).toContain("overflow-wrap: anywhere");
     expect(warmupText).toContain("white-space: normal");
-    expect(targetText).toContain("white-space: normal");
+    expect(targetText).toContain("white-space: nowrap");
+    expect(targetText).toContain("text-overflow: ellipsis");
   });
 });
