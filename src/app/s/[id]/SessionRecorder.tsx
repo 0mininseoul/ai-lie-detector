@@ -71,6 +71,8 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   const [requiresNewSession, setRequiresNewSession] = useState(() => ["failed", "expired"].includes(session.status));
   const [refundState, setRefundState] = useState<RefundState>("idle");
   const [cameraAspect, setCameraAspect] = useState("3 / 4");
+  const [analysisHudTopPx, setAnalysisHudTopPx] = useState<number | null>(null);
+  const targetPanelRef = useRef<HTMLElement | null>(null);
   // The real question is read aloud first; the answer window (and its countdown)
   // only opens once narration ends, so the analyzed audio is the answer.
   const [answerOpen, setAnswerOpen] = useState(false);
@@ -99,6 +101,10 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   const videoFrameStyle = useMemo(
     () => ({ "--camera-aspect": cameraAspect }) as CSSProperties,
     [cameraAspect]
+  );
+  const stageStyle = useMemo(
+    () => (analysisHudTopPx ? ({ "--analysis-hud-top": `${analysisHudTopPx}px` } as CSSProperties) : undefined),
+    [analysisHudTopPx]
   );
 
   /*
@@ -297,6 +303,36 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     return () => handle.cancel();
   }, [phase, session.targetQuestion]);
 
+  useEffect(() => {
+    if (phase !== "target") {
+      setAnalysisHudTopPx(null);
+      return;
+    }
+
+    const panel = targetPanelRef.current;
+    if (!panel) return;
+
+    const updateHudOffset = () => {
+      const nextTop = Math.max(150, Math.ceil(panel.getBoundingClientRect().bottom + 14));
+      setAnalysisHudTopPx((current) => (current === nextTop ? current : nextTop));
+    };
+
+    updateHudOffset();
+    window.addEventListener("resize", updateHudOffset);
+
+    if (typeof ResizeObserver === "undefined") {
+      return () => window.removeEventListener("resize", updateHudOffset);
+    }
+
+    const observer = new ResizeObserver(updateHudOffset);
+    observer.observe(panel);
+
+    return () => {
+      window.removeEventListener("resize", updateHudOffset);
+      observer.disconnect();
+    };
+  }, [phase, currentQuestion, answerOpen, isSubmitting]);
+
   async function restart() {
     await recorder.resetRecording();
     featureCollector.reset();
@@ -354,7 +390,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
   return (
     <main className={styles.shell}>
-      <section className={styles.stage} data-phase={phase} aria-labelledby="session-title">
+      <section className={styles.stage} data-phase={phase} aria-labelledby="session-title" style={stageStyle}>
         <header className={styles.titleBlock}>
           <span>AI 거짓말탐지기</span>
           <h1 id="session-title">{phase === "setup" ? "이제 상대 차례입니다." : "대답해 주세요."}</h1>
@@ -466,7 +502,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
           ) : null}
 
           {phase === "target" ? (
-            <section className={styles.targetPanel}>
+            <section className={styles.targetPanel} ref={targetPanelRef}>
               <div className={styles.questionHeader}>
                 <span className={styles.questionLabel}>REAL QUESTION</span>
                 {!answerOpen ? null : isSubmitting ? (

@@ -16,6 +16,11 @@ describe("result sharing", () => {
     expect(actionsTsx).toContain("prepareKakaoShare");
     expect(actionsTsx).toContain("!shareImageReady");
     expect(actionsTsx).toContain("await ensureShareImage?.()");
+    expect(actionsTsx).toContain("getResultShareUrl(sessionId)");
+    expect(actionsTsx).toContain("NEXT_PUBLIC_SITE_URL");
+    expect(actionsTsx).toContain("https://nogoora.vercel.app");
+    expect(actionsTsx).toContain("new URL(`/result/${encodeURIComponent(sessionId)}`");
+    expect(actionsTsx).not.toContain("window.location.origin");
     expect(actionsTsx).toContain("shareResultWithKakao");
     expect(actionsTsx).toContain("shareImageUrl(sessionId)");
     expect(actionsTsx.indexOf("shareResultWithKakao")).toBeLessThan(actionsTsx.indexOf("navigator.share({ url: shareUrl })"));

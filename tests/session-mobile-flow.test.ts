@@ -76,7 +76,10 @@ describe("session recorder mobile flow", () => {
     const sideMetrics = selectorBlock(hudMobileCss, ".sideMetrics");
     const topBar = selectorBlock(hudMobileCss, ".topBar");
 
-    expect(topBar).toContain("top: max(150px");
+    expect(recorder).toContain("targetPanelRef");
+    expect(recorder).toContain("ResizeObserver");
+    expect(recorder).toContain("--analysis-hud-top");
+    expect(topBar).toContain("top: var(--analysis-hud-top");
     expect(sideMetrics).toContain("top: auto");
     expect(sideMetrics).toContain("bottom: 86px");
     expect(sideMetrics).toContain("transform: none");

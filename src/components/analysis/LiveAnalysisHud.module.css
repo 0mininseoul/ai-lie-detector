@@ -207,8 +207,11 @@
     border-color: oklch(78% 0.17 158 / 0.92);
     opacity: 1;
   }
+  .cornerTl, .cornerTr {
+    top: var(--analysis-hud-top, max(150px, calc(env(safe-area-inset-top) + 132px)));
+  }
   .topBar {
-    top: max(150px, calc(env(safe-area-inset-top) + 132px));
+    top: var(--analysis-hud-top, max(150px, calc(env(safe-area-inset-top) + 132px)));
     left: 18px;
     right: 18px;
     display: flex;

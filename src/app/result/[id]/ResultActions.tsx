@@ -14,6 +14,8 @@ const ReelsComposer = dynamic(
   { ssr: false }
 );
 
+const defaultPublicSiteUrl = "https://nogoora.vercel.app";
+
 type Props = {
   sessionId: string;
   question: string;
@@ -53,7 +55,7 @@ export function ResultActions({
   }, []);
 
   async function share() {
-    const shareUrl = `${window.location.origin}/result/${sessionId}`;
+    const shareUrl = getResultShareUrl(sessionId);
 
     if (!shareImageReady) {
       showToast("공유 이미지를 준비하고 있어요.");
@@ -126,4 +128,10 @@ export function ResultActions({
 
 function isShareDismissed(error: unknown) {
   return error instanceof DOMException && (error.name === "AbortError" || error.name === "NotAllowedError");
+}
+
+function getResultShareUrl(sessionId: string) {
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  const siteUrl = (configuredSiteUrl || defaultPublicSiteUrl).replace(/\/$/, "");
+  return new URL(`/result/${encodeURIComponent(sessionId)}`, siteUrl).toString();
 }

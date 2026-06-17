@@ -70,7 +70,10 @@ describe("session recorder mobile layout", () => {
     expect(timer).not.toContain("position: absolute");
     expect(text).toContain("overflow-wrap: anywhere");
     expect(warmupText).toContain("white-space: normal");
-    expect(targetText).toContain("white-space: nowrap");
-    expect(targetText).toContain("text-overflow: ellipsis");
+    expect(targetText).toContain("white-space: normal");
+    expect(targetText).toContain("text-wrap: balance");
+    expect(targetText).toContain("overflow: visible");
+    expect(targetText).not.toContain("white-space: nowrap");
+    expect(targetText).not.toContain("text-overflow: ellipsis");
   });
 });
