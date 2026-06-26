@@ -250,10 +250,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
         targetStartMs: timings.targetStartMs,
         targetEndMs: timings.targetEndMs
       });
-      recordingLocalStore.setUploadPromise(
-        session.id,
-        uploadRecordingForAnalysis(recording, timings, featureResult.payload)
-      );
+      await uploadRecordingForAnalysis(recording, timings, featureResult.payload);
       router.replace(`/result/${session.id}`);
       return;
     } catch (caughtError) {

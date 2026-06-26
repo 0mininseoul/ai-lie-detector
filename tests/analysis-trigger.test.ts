@@ -1,7 +1,10 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { buildAnalyzeUrl, triggerAnalysis } from "@/lib/analysis/trigger";
 
 const sessionId = "00000000-0000-4000-8000-000000000001";
+const analyzeRoute = readFileSync(join(process.cwd(), "src/app/api/sessions/[id]/analyze/route.ts"), "utf8");
 
 describe("analysis trigger", () => {
   it("normalizes worker URLs to the analyze endpoint", () => {
@@ -62,5 +65,13 @@ describe("analysis trigger", () => {
       queued: false,
       error: "Worker trigger failed with status 401: Unauthorized"
     });
+  });
+
+  it("marks the session failed when the analysis trigger itself fails", () => {
+    expect(analyzeRoute).toContain("analysis_trigger_failed");
+    expect(analyzeRoute).toContain(".update({");
+    expect(analyzeRoute).toContain('status: "failed"');
+    expect(analyzeRoute).toContain("error_code");
+    expect(analyzeRoute).toContain("logAxiomEvent");
   });
 });

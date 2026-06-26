@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { triggerAnalysis } from "@/lib/analysis/trigger";
+import { logAxiomEvent } from "@/lib/observability/axiom";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 type RouteContext = {
@@ -14,6 +15,7 @@ type RouteContext = {
 export const maxDuration = 60;
 
 const sessionIdSchema = z.uuid();
+const analysisTriggerFailedErrorCode = "analysis_trigger_failed";
 
 export async function POST(_request: Request, context: RouteContext) {
   const { id } = await context.params;
@@ -44,9 +46,31 @@ export async function POST(_request: Request, context: RouteContext) {
 
   const trigger = await triggerAnalysis(sessionId.data);
   if (!trigger.queued) {
+    const errorDetail = trigger.error ?? "Failed to queue analysis";
+    const { error: updateError } = await supabase
+      .from("sessions")
+      .update({
+        status: "failed",
+        error_code: analysisTriggerFailedErrorCode,
+        error_detail: errorDetail,
+        error_at: new Date().toISOString()
+      })
+      .eq("id", sessionId.data)
+      .neq("status", "complete");
+
+    await logAxiomEvent({
+      event: "analysis_trigger_failed",
+      level: "error",
+      source: "next_analyze_route",
+      sessionId: sessionId.data,
+      triggerStatus: trigger.status,
+      error: errorDetail,
+      updateError: updateError?.message ?? null
+    });
+
     return NextResponse.json(
       {
-        error: trigger.error ?? "Failed to queue analysis",
+        error: errorDetail,
         analysisQueued: false
       },
       { status: trigger.status === "disabled" ? 503 : 502 }

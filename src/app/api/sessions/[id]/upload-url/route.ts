@@ -22,8 +22,16 @@ const uploadUrlSchema = z.object({
 
 const uploadUrlExpiresInSeconds = 300;
 
-function badRequest(error: unknown) {
+async function badRequest(error: unknown, sessionId?: string) {
   const message = error instanceof ZodError ? error.issues[0]?.message : error instanceof Error ? error.message : "Invalid request";
+
+  await logAxiomEvent({
+    event: "upload_url_bad_request",
+    level: "error",
+    source: "next_upload_url_route",
+    sessionId,
+    error: message
+  });
 
   return NextResponse.json({ error: message ?? "Invalid request" }, { status: 400 });
 }
@@ -41,7 +49,7 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     input = uploadUrlSchema.parse(await request.json());
   } catch (error) {
-    return badRequest(error);
+    return badRequest(error, sessionId.data);
   }
 
   const supabase = getSupabaseServer();
@@ -53,6 +61,14 @@ export async function POST(request: Request, context: RouteContext) {
 
   if (sessionError) {
     if (sessionError.code !== "PGRST116") {
+      await logAxiomEvent({
+        event: "upload_url_session_load_failed",
+        level: "error",
+        source: "next_upload_url_route",
+        sessionId: sessionId.data,
+        errorCode: sessionError.code,
+        error: sessionError.message
+      });
       return NextResponse.json({ error: "Failed to load session" }, { status: 500 });
     }
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
@@ -63,6 +79,13 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   if (!["created", "recording"].includes(session.status)) {
+    await logAxiomEvent({
+      event: "upload_url_rejected",
+      level: "warn",
+      source: "next_upload_url_route",
+      sessionId: sessionId.data,
+      status: session.status
+    });
     return NextResponse.json({ error: "Session cannot accept a new recording" }, { status: 409 });
   }
 
@@ -94,6 +117,15 @@ export async function POST(request: Request, context: RouteContext) {
     );
     const uploadUrl = new URL("/upload", workerUrl);
     uploadUrl.searchParams.set("token", token);
+
+    await logAxiomEvent({
+      event: "upload_url_created",
+      level: "info",
+      source: "next_upload_url_route",
+      sessionId: sessionId.data,
+      byteSize: input.byteSize,
+      mimeType: input.mimeType
+    });
 
     return NextResponse.json({
       uploadUrl: uploadUrl.toString(),

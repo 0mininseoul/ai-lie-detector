@@ -6,6 +6,11 @@ import {
   analysisTimeoutErrorDetail,
   isAnalysisStale
 } from "@/lib/sessions/analysis-timeout";
+import {
+  isUploadStale,
+  uploadTimeoutErrorCode,
+  uploadTimeoutErrorDetail
+} from "@/lib/sessions/upload-timeout";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 type RouteContext = {
@@ -78,6 +83,47 @@ export async function GET(_request: Request, context: RouteContext) {
         sessionId: sessionId.data,
         staleDurationMs,
         errorCode: analysisTimeoutErrorCode
+      });
+    }
+  }
+
+  if (isUploadStale(effectiveSession.status, effectiveSession.updated_at)) {
+    const staleDurationMs = Date.now() - Date.parse(effectiveSession.updated_at);
+    const { data: updatedSession, error: staleError } = await supabase
+      .from("sessions")
+      .update({
+        status: "failed",
+        error_code: uploadTimeoutErrorCode,
+        error_detail: uploadTimeoutErrorDetail,
+        error_at: new Date().toISOString()
+      })
+      .eq("id", sessionId.data)
+      .in("status", ["created", "recording"])
+      .select("id, status, error_code, error_detail, error_at, updated_at")
+      .maybeSingle();
+
+    if (staleError) {
+      console.error("[status] failed to mark stale upload", {
+        sessionId: sessionId.data,
+        error: staleError.message
+      });
+      await logAxiomEvent({
+        event: "upload_stale_update_failed",
+        level: "error",
+        source: "next_status_route",
+        sessionId: sessionId.data,
+        staleDurationMs,
+        error: staleError.message
+      });
+    } else if (updatedSession) {
+      effectiveSession = updatedSession;
+      await logAxiomEvent({
+        event: "upload_marked_stale",
+        level: "warn",
+        source: "next_status_route",
+        sessionId: sessionId.data,
+        staleDurationMs,
+        errorCode: uploadTimeoutErrorCode
       });
     }
   }

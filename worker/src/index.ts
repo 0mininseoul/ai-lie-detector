@@ -176,7 +176,7 @@ export default {
       }
 
       if (request.method === "PUT") {
-        return handleUpload(request, env, url);
+        return handleUpload(request, env, url, context);
       }
     }
 
@@ -244,43 +244,83 @@ export default {
   }
 };
 
-async function handleUpload(request: Request, env: Env, url: URL) {
+async function handleUpload(request: Request, env: Env, url: URL, context: WorkerContext) {
   const corsHeaders = uploadCorsHeaders(request);
   const token = url.searchParams.get("token");
+  const logUploadFailure = (reason: string, fields: Record<string, unknown> = {}) => {
+    recordWorkerEvent(context, env, {
+      event: "worker_upload_failed",
+      level: "error",
+      source: "worker_upload_route",
+      reason,
+      ...fields
+    });
+  };
 
   if (!env.WORKER_SHARED_SECRET) {
+    logUploadFailure("worker_secret_missing");
     return Response.json({ error: "Upload is not configured" }, { status: 503, headers: corsHeaders });
   }
 
   const verification = await verifyWorkerUploadToken(token, env.WORKER_SHARED_SECRET);
   if (!verification.valid) {
+    logUploadFailure("token_invalid", { error: verification.error });
     return Response.json({ error: verification.error }, { status: 401, headers: corsHeaders });
   }
 
   const { payload } = verification;
   const contentType = request.headers.get("content-type") ?? "";
   if (contentType !== payload.mimeType) {
+    logUploadFailure("content_type_mismatch", {
+      sessionId: payload.sessionId,
+      expectedMimeType: payload.mimeType,
+      actualMimeType: contentType
+    });
     return Response.json({ error: "Upload content type mismatch" }, { status: 400, headers: corsHeaders });
   }
 
   const contentLengthHeader = request.headers.get("content-length");
   const contentLength = Number(contentLengthHeader);
   if (!contentLengthHeader || !Number.isFinite(contentLength) || contentLength <= 0) {
+    logUploadFailure("content_length_missing", { sessionId: payload.sessionId });
     return Response.json({ error: "Upload content length is required" }, { status: 411, headers: corsHeaders });
   }
 
   if (payload.byteSize > maxWorkerUploadByteSize || contentLength > payload.byteSize) {
+    logUploadFailure("body_too_large", {
+      sessionId: payload.sessionId,
+      expectedByteSize: payload.byteSize,
+      contentLength
+    });
     return Response.json({ error: "Upload body is larger than expected" }, { status: 413, headers: corsHeaders });
   }
 
   if (!request.body) {
+    logUploadFailure("body_missing", { sessionId: payload.sessionId });
     return Response.json({ error: "Upload body is required" }, { status: 400, headers: corsHeaders });
   }
 
-  await env.RECORDINGS.put(payload.r2Key, request.body, {
-    httpMetadata: {
-      contentType: payload.mimeType
-    }
+  try {
+    await env.RECORDINGS.put(payload.r2Key, request.body, {
+      httpMetadata: {
+        contentType: payload.mimeType
+      }
+    });
+  } catch (error) {
+    logUploadFailure("r2_put_failed", {
+      sessionId: payload.sessionId,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    return Response.json({ error: "Upload storage failed" }, { status: 500, headers: corsHeaders });
+  }
+
+  recordWorkerEvent(context, env, {
+    event: "worker_upload_completed",
+    level: "info",
+    source: "worker_upload_route",
+    sessionId: payload.sessionId,
+    byteSize: payload.byteSize,
+    mimeType: payload.mimeType
   });
 
   return Response.json({ ok: true, r2Key: payload.r2Key }, { headers: corsHeaders });

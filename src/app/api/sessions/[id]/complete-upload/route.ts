@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { ZodError, z } from "zod";
-import { triggerAnalysis } from "@/lib/analysis/trigger";
 import { logAxiomEvent } from "@/lib/observability/axiom";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { assertR2KeyMatchesSession, parseCompleteUploadInput } from "@/lib/sessions/validation";
@@ -11,20 +10,22 @@ type RouteContext = {
   }>;
 };
 
-// The worker runs the Gemini analysis synchronously and we await it below, so
-// this function must stay open for the full analysis. 60s is the Vercel Hobby
-// ceiling; the worker self-caps under that. On a Pro plan this can go higher.
-export const maxDuration = 60;
-
 const sessionIdSchema = z.uuid();
 const recordingExpiresInMs = 7 * 24 * 60 * 60 * 1000;
 
-function badRequest(error: unknown, sessionId?: string) {
+async function badRequest(error: unknown, sessionId?: string) {
   const message = error instanceof ZodError ? error.issues[0]?.message : error instanceof Error ? error.message : "Invalid request";
   console.error("[complete-upload] bad request", {
     sessionId,
     issues: error instanceof ZodError ? error.issues : undefined,
     message
+  });
+  await logAxiomEvent({
+    event: "complete_upload_bad_request",
+    level: "error",
+    source: "next_complete_upload_route",
+    sessionId,
+    error: message
   });
   return NextResponse.json({ error: message ?? "Invalid request" }, { status: 400 });
 }
@@ -88,32 +89,6 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: message }, { status });
   }
 
-  const trigger = await triggerAnalysis(sessionId.data);
-  if (!trigger.queued) {
-    console.error("[complete-upload] trigger failed", {
-      sessionId: sessionId.data,
-      status: trigger.status,
-      error: trigger.error
-    });
-    await logAxiomEvent({
-      event: "analysis_trigger_failed",
-      level: "error",
-      source: "next_complete_upload_route",
-      sessionId: sessionId.data,
-      byteSize: input.byteSize,
-      durationMs: input.durationMs,
-      triggerStatus: trigger.status,
-      error: trigger.error
-    });
-    return NextResponse.json(
-      {
-        error: trigger.error ?? "Failed to queue analysis",
-        analysisQueued: false
-      },
-      { status: trigger.status === "disabled" ? 503 : 502 }
-    );
-  }
-
   await logAxiomEvent({
     event: "session_upload_completed",
     level: "info",
@@ -122,12 +97,12 @@ export async function POST(request: Request, context: RouteContext) {
     byteSize: input.byteSize,
     durationMs: input.durationMs,
     mimeType: input.mimeType,
-    analysisQueued: true
+    analysisQueued: false
   });
 
   return NextResponse.json({
     id: session.id,
     status: session.status,
-    analysisQueued: true
+    analysisQueued: false
   });
 }

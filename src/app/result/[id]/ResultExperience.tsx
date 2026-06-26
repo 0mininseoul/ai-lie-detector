@@ -75,6 +75,7 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const shareImagePromiseRef = useRef<Promise<boolean> | null>(null);
+  const analysisStartAttemptedRef = useRef(false);
   const [muted, setMuted] = useState(true);
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("pending");
@@ -117,6 +118,25 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
     };
   }, [sessionId]);
 
+  const startAnalysisOnce = useCallback(async () => {
+    if (analysisStartAttemptedRef.current) return;
+    analysisStartAttemptedRef.current = true;
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/analyze`, {
+        method: "POST"
+      });
+
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as { error?: string } | null;
+        setErrorDetail(data?.error ?? "분석 요청을 시작하지 못했어요.");
+        setStatus("failed");
+      }
+    } catch {
+      analysisStartAttemptedRef.current = false;
+    }
+  }, [sessionId]);
+
   useEffect(() => {
     let cancelled = false;
     const startedAt = Date.now();
@@ -148,6 +168,9 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
           setStatus("failed");
           return true;
         }
+        if (data.status === "uploaded") {
+          void startAnalysisOnce();
+        }
         if (Date.now() - startedAt > analysisSlowMs) {
           setIsTakingLong(true);
         }
@@ -168,7 +191,7 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
       cancelled = true;
       if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [sessionId]);
+  }, [sessionId, startAnalysisOnce]);
 
   const toggleMute = useCallback(() => {
     setMuted((current) => {
@@ -241,6 +264,7 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
   useEffect(() => {
     setShareImageReady(false);
     shareImagePromiseRef.current = null;
+    analysisStartAttemptedRef.current = false;
     setRecordingUnavailable(false);
   }, [sessionId]);
 

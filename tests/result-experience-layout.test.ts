@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const resultTsx = readFileSync(join(process.cwd(), "src/app/result/[id]/ResultExperience.tsx"), "utf8");
 const css = readFileSync(join(process.cwd(), "src/app/result/[id]/ResultExperience.module.css"), "utf8");
+const completeUploadRoute = readFileSync(join(process.cwd(), "src/app/api/sessions/[id]/complete-upload/route.ts"), "utf8");
 
 function selectorBlock(selector: string) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -74,10 +75,19 @@ describe("result experience mobile layout", () => {
 
   it("loops only the target-answer segment during analysis playback", () => {
     expect(resultTsx).toContain("recordingLocalStore.getTiming(sessionId)");
-    expect(resultTsx).toContain("recordingLocalStore.getUploadPromise(sessionId)");
     expect(resultTsx).toContain("coercePlaybackClip(data.recording)");
     expect(resultTsx).toContain("loop={!clip}");
     expect(resultTsx).toContain("onTimeUpdate={loopTargetClip}");
     expect(resultTsx).toContain("video.currentTime = clip.startSec");
+  });
+
+  it("starts analysis from the result page after upload completion", () => {
+    expect(completeUploadRoute).not.toContain("triggerAnalysis");
+    expect(completeUploadRoute).toContain("analysisQueued: false");
+    expect(resultTsx).toContain("analysisStartAttemptedRef");
+    expect(resultTsx).toContain('data.status === "uploaded"');
+    expect(resultTsx).toContain("startAnalysisOnce");
+    expect(resultTsx).toContain("fetch(`/api/sessions/${sessionId}/analyze`");
+    expect(resultTsx).toContain('method: "POST"');
   });
 });
