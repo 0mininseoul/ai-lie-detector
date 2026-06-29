@@ -131,7 +131,13 @@ function isShareDismissed(error: unknown) {
 }
 
 function getResultShareUrl(sessionId: string) {
+  const resultPath = `/result/${encodeURIComponent(sessionId)}`;
+
+  if (typeof window !== "undefined" && window.location.origin) {
+    return new URL(resultPath, window.location.origin).toString();
+  }
+
   const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   const siteUrl = (configuredSiteUrl || defaultPublicSiteUrl).replace(/\/$/, "");
-  return new URL(`/result/${encodeURIComponent(sessionId)}`, siteUrl).toString();
+  return new URL(resultPath, siteUrl).toString();
 }

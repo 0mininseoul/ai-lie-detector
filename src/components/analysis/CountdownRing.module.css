@@ -79,7 +79,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0;
+  gap: 2px;
   font-family: var(--font-mono);
   pointer-events: none;
 }
@@ -103,7 +103,7 @@
   line-height: 1;
   font-weight: var(--fw-display);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   text-shadow: 0 0 24px var(--ring-tone);
   transition: color 220ms ease;
 }
@@ -126,15 +126,12 @@
   color: var(--muted-text);
   font-size: 10px;
   font-weight: var(--fw-body-strong);
-  letter-spacing: 0.18em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
 .ring[data-size="compact"] .unit {
-  margin-top: 1px;
-  font-size: 7px;
-  line-height: 0.95;
-  letter-spacing: 0.08em;
+  display: none;
 }
 
 @keyframes digitSlot {

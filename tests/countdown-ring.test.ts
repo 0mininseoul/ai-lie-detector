@@ -11,6 +11,13 @@ const css = readFileSync(
   "utf8"
 );
 
+function selectorBlock(selector: string) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = css.match(new RegExp(`${escaped}\\s*\\{([\\s\\S]*?)\\}`));
+  if (!match) throw new Error(`Missing block for ${selector}`);
+  return match[1];
+}
+
 describe("CountdownRing timing", () => {
   it("does not drive the countdown with requestAnimationFrame", () => {
     // rAF gets starved on iOS when the session screen saturates the main
@@ -37,5 +44,13 @@ describe("CountdownRing timing", () => {
     expect(component).toContain("--ring-duration");
     expect(component).toContain("digitSlots");
     expect(component).toContain("--digit-delay");
+  });
+
+  it("keeps the compact question timer numeric-only so the unit cannot overlap", () => {
+    const compactUnit = selectorBlock('.ring[data-size="compact"] .unit');
+    const digit = selectorBlock(".digit");
+
+    expect(compactUnit).toContain("display: none");
+    expect(digit).toContain("letter-spacing: 0");
   });
 });

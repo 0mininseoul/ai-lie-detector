@@ -26,8 +26,8 @@ type FlowPhase = "setup" | "warmup" | "transition" | "target" | "error";
 
 // Fullscreen beat shown after the warmup question, before the real one. Long
 // enough for the shift in stakes to land, short enough to never read as a
-// loading hang. Camera keeps recording through it; the target analysis window
-// only opens after it (see the transition effect).
+// loading hang. The target question only appears after its recorder is live,
+// so early answers cannot fall outside the analyzed clip.
 const TRANSITION_MS = 1500;
 
 type UploadUrlResponse = {
@@ -172,12 +172,11 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     setPhase("transition");
   }, [featureCollector, recorder]);
 
-  // Transition beat ends -> reveal the real question and open the answer window.
-  // The target recording is a fresh clip, so the transition overlay never lands
-  // inside the analyzed target video.
+  // Transition beat ends -> prepare the real question answer window. The target
+  // question is revealed inside openAnswerWindow only after the fresh target
+  // recording has started.
   const startTarget = useCallback(() => {
     setAnswerOpen(false);
-    setPhase("target");
     void openAnswerWindowRef.current();
   }, []);
 
@@ -197,6 +196,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
       featureCollector.markTargetStart();
       setAnswerOpen(true);
+      setPhase("target");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "답변 녹화를 시작하지 못했습니다.");
       setPhase("error");

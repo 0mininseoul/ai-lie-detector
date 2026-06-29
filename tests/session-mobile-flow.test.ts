@@ -48,6 +48,25 @@ describe("session recorder mobile flow", () => {
     expect(recorder).toContain("void openAnswerWindowRef.current()");
   });
 
+  it("does not reveal the target question until the target recording is live", () => {
+    const startTargetBlock = recorder.slice(
+      recorder.indexOf("const startTarget"),
+      recorder.indexOf("// Open the analyzed answer window")
+    );
+    const openAnswerWindowBlock = recorder.slice(
+      recorder.indexOf("const openAnswerWindow"),
+      recorder.indexOf("const startTargetRef")
+    );
+
+    expect(startTargetBlock).not.toContain('setPhase("target")');
+    expect(openAnswerWindowBlock.indexOf("const started = await recorder.startRecording()")).toBeLessThan(
+      openAnswerWindowBlock.indexOf('setPhase("target")')
+    );
+    expect(openAnswerWindowBlock.indexOf("featureCollector.markTargetStart()")).toBeLessThan(
+      openAnswerWindowBlock.indexOf('setPhase("target")')
+    );
+  });
+
   it("resets submit state only on the error path, never after a successful finish", () => {
     // A `finally` that reset isSubmitting ran on the success path too (finally
     // runs after the `return`), flipping the countdown ring active again and

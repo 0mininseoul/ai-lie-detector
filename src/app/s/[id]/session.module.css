@@ -320,8 +320,7 @@
   min-width: 0;
 }
 
-/* Shown in the countdown slot while the question is being read aloud, before
- * the answer window (and its ring) opens. */
+/* Shown in the countdown slot while the answer is being finalized. */
 .listeningHint {
   flex-shrink: 0;
   font-family: var(--font-mono);
