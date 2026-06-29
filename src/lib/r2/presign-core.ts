@@ -14,8 +14,11 @@ export type R2PresignInput = {
 const r2Region = "auto";
 const r2Service = "s3";
 
-export function buildRecordingObjectKey(sessionId: string, mimeType: string) {
+export function buildRecordingObjectKey(sessionId: string, mimeType: string, segment?: "warmup" | "target") {
   const extension = mimeType.startsWith("video/mp4") ? "mp4" : "webm";
+  if (segment) {
+    return `recordings/${sessionId}/${segment}/${randomUUID()}.${extension}`;
+  }
   return `recordings/${sessionId}/${randomUUID()}.${extension}`;
 }
 

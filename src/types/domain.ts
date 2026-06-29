@@ -1,4 +1,5 @@
 export type QuestionType = "warmup" | "target";
+export type RecordingSegment = "warmup" | "target";
 export type Verdict = "truth" | "lie";
 export type Headline = "진실" | "거짓";
 

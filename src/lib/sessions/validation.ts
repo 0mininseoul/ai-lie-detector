@@ -49,6 +49,16 @@ const questionValueSchema = z.object({
   value: z.number().finite()
 }).strict();
 
+const recordingSegmentInputSchema = z.object({
+  r2Key: z.string().trim().min(1).max(1024),
+  mimeType: z.string().trim().min(1).max(255).refine(
+    (mimeType) => mimeType.startsWith("video/webm") || mimeType.startsWith("video/mp4"),
+    "mimeType must be a supported video MIME type"
+  ),
+  byteSize: positiveIntBytesSchema,
+  durationMs: positiveIntMsSchema
+}).strict();
+
 const sessionTimingsSchema = z.object({
   durationMs: positiveIntMsSchema,
   warmupStartMs: nonnegativeIntMsSchema,
@@ -102,12 +112,10 @@ export const createSessionSchema = z.object({
 }).strict();
 
 export const completeUploadSchema = z.object({
-  r2Key: z.string().trim().min(1).max(1024),
-  mimeType: z.string().trim().min(1).max(255).refine(
-    (mimeType) => mimeType.startsWith("video/webm") || mimeType.startsWith("video/mp4"),
-    "mimeType must be a supported video MIME type"
-  ),
-  byteSize: positiveIntBytesSchema,
+  recordings: z.object({
+    warmup: recordingSegmentInputSchema,
+    target: recordingSegmentInputSchema
+  }).strict(),
   durationMs: positiveIntMsSchema,
   warmupStartMs: nonnegativeIntMsSchema,
   warmupEndMs: nonnegativeIntMsSchema,
@@ -138,6 +146,10 @@ export function parseCompleteUploadInput(input: unknown): CompleteUploadInput {
 
   if (JSON.stringify(parsed.featurePayload.session) !== JSON.stringify(timings)) {
     throw new Error("featurePayload session timings must match upload timings");
+  }
+
+  if (parsed.recordings.warmup.durationMs <= 0 || parsed.recordings.target.durationMs <= 0) {
+    throw new Error("recording segment durations must be positive");
   }
 
   return parsed;

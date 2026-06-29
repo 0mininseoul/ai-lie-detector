@@ -22,6 +22,10 @@ type RecordingTiming = {
   target_end_ms: number;
 };
 
+type TargetSegmentTiming = {
+  duration_ms: number;
+};
+
 function getSiteUrl() {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://nogoora.vercel.app").replace(/\/$/, "");
 }
@@ -83,7 +87,7 @@ export async function generateMetadata({ params }: ResultPageProps): Promise<Met
 export default async function ResultPage({ params }: ResultPageProps) {
   const { id } = await params;
   const supabase = getSupabaseServer();
-  const [sessionResponse, recordingResponse] = await Promise.all([
+  const [sessionResponse, recordingResponse, targetSegmentResponse] = await Promise.all([
     supabase
       .from("sessions")
       .select("id, target_question")
@@ -93,7 +97,13 @@ export default async function ResultPage({ params }: ResultPageProps) {
       .from("recordings")
       .select("target_start_ms, target_end_ms")
       .eq("session_id", id)
-      .maybeSingle<RecordingTiming>()
+      .maybeSingle<RecordingTiming>(),
+    supabase
+      .from("recording_segments")
+      .select("duration_ms")
+      .eq("session_id", id)
+      .eq("segment", "target")
+      .maybeSingle<TargetSegmentTiming>()
   ]);
 
   const { data: session, error } = sessionResponse;
@@ -107,7 +117,12 @@ export default async function ResultPage({ params }: ResultPageProps) {
       sessionId={session.id}
       question={session.target_question}
       initialTiming={
-        recordingResponse.data
+        targetSegmentResponse.data
+          ? {
+              targetStartMs: 0,
+              targetEndMs: targetSegmentResponse.data.duration_ms
+            }
+          : recordingResponse.data
           ? {
               targetStartMs: recordingResponse.data.target_start_ms,
               targetEndMs: recordingResponse.data.target_end_ms

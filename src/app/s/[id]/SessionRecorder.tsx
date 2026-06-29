@@ -46,6 +46,15 @@ type UploadTimings = {
   targetEndMs: number;
 };
 
+type RecordingSegment = "warmup" | "target";
+
+type UploadedRecordingSegment = {
+  r2Key: string;
+  mimeType: string;
+  byteSize: number;
+  durationMs: number;
+};
+
 function getInitialPhase(status: string): FlowPhase {
   if (status === "failed" || status === "expired") return "error";
   return "setup";
@@ -73,6 +82,8 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   const [cameraAspect, setCameraAspect] = useState("3 / 4");
   const [analysisHudTopPx, setAnalysisHudTopPx] = useState<number | null>(null);
   const targetPanelRef = useRef<HTMLElement | null>(null);
+  const warmupRecordingPromiseRef = useRef<Promise<RecordingStopResult | null> | null>(null);
+  const warmupUploadPromiseRef = useRef<Promise<UploadedRecordingSegment> | null>(null);
   // The real question is read aloud first; the answer window (and its countdown)
   // only opens once narration ends, so the analyzed audio is the answer.
   const [answerOpen, setAnswerOpen] = useState(false);
@@ -153,8 +164,18 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
   const finishWarmup = useCallback(() => {
     featureCollector.markWarmupEnd();
+    const warmupRecordingPromise = recorder.stopRecording();
+    warmupRecordingPromiseRef.current = warmupRecordingPromise;
+    const warmupUploadPromise = warmupRecordingPromise.then((recording) => {
+      if (!recording || recording.sizeBytes <= 0) {
+        throw new Error("웜업 영상이 비었습니다. 한 번만 다시 진행해 주세요.");
+      }
+      return uploadRecordingSegment("warmup", recording);
+    });
+    warmupUploadPromiseRef.current = warmupUploadPromise;
+    void warmupUploadPromise.catch(() => undefined);
     setPhase("transition");
-  }, [featureCollector]);
+  }, [featureCollector, recorder]);
 
   // Transition beat ends -> reveal the real question (and narrate it). The
   // analyzed window is NOT opened here; it waits for narration to finish so
@@ -166,25 +187,45 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
   // Narration finished -> open the analyzed answer window and start the
   // countdown. This is where markTargetStart() finally fires.
-  const openAnswerWindow = useCallback(() => {
-    featureCollector.markTargetStart();
-    setAnswerOpen(true);
-  }, [featureCollector]);
+  const openAnswerWindow = useCallback(async () => {
+    try {
+      const warmupRecording = await warmupRecordingPromiseRef.current;
+      if (!warmupRecording || warmupRecording.sizeBytes <= 0) {
+        throw new Error("웜업 영상을 정리하지 못했습니다.");
+      }
+
+      const started = await recorder.startRecording();
+      if (!started) {
+        throw new Error(recorder.latestError ?? "타깃 답변 녹화를 시작하지 못했습니다.");
+      }
+
+      featureCollector.markTargetStart();
+      setAnswerOpen(true);
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "답변 녹화를 시작하지 못했습니다.");
+      setPhase("error");
+    }
+  }, [featureCollector, recorder]);
 
   const startTargetRef = useRef<() => void>(() => undefined);
-  const openAnswerWindowRef = useRef<() => void>(() => undefined);
+  const openAnswerWindowRef = useRef<() => void | Promise<void>>(() => undefined);
   const finishTargetRef = useRef<() => void>(() => undefined);
 
-  async function uploadRecordingForAnalysis(
+  async function uploadRecordingSegment(
+    segment: RecordingSegment,
     recording: RecordingStopResult,
-    timings: UploadTimings,
-    featurePayload: unknown
-  ) {
+  ): Promise<UploadedRecordingSegment> {
+    if (!recording || recording.sizeBytes <= 0) {
+      throw new Error(`${segment === "warmup" ? "웜업" : "타깃"} 영상이 비었습니다.`);
+    }
+
+    const mimeType = recording.mimeType || "video/webm";
     const uploadUrlResponse = await fetch(`/api/sessions/${session.id}/upload-url`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        mimeType: recording.mimeType || "video/webm",
+        segment,
+        mimeType,
         byteSize: recording.sizeBytes
       })
     });
@@ -196,7 +237,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
     const uploadResponse = await fetch(uploadUrlData.uploadUrl, {
       method: "PUT",
-      headers: uploadUrlData.requiredHeaders ?? { "content-type": recording.mimeType || "video/webm" },
+      headers: uploadUrlData.requiredHeaders ?? { "content-type": mimeType },
       body: recording.blob
     });
 
@@ -204,13 +245,27 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
       throw new Error("영상 업로드가 막혔습니다. Worker 업로드 설정을 확인해야 합니다.");
     }
 
+    return {
+      r2Key: uploadUrlData.r2Key,
+      mimeType,
+      byteSize: recording.sizeBytes,
+      durationMs: recording.durationMs
+    };
+  }
+
+  async function completeSplitRecordingUpload(
+    recordings: {
+      warmup: UploadedRecordingSegment;
+      target: UploadedRecordingSegment;
+    },
+    timings: UploadTimings,
+    featurePayload: unknown
+  ) {
     const response = await fetch(`/api/sessions/${session.id}/complete-upload`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        r2Key: uploadUrlData.r2Key,
-        mimeType: recording.mimeType || "video/webm",
-        byteSize: recording.sizeBytes,
+        recordings,
         durationMs: timings.durationMs,
         warmupStartMs: timings.warmupStartMs,
         warmupEndMs: timings.warmupEndMs,
@@ -235,8 +290,8 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
       featureCollector.markRecordingEnd();
       featureCollector.stopSampling();
 
-      const recording = await recorder.stopRecording();
-      if (!recording || recording.sizeBytes <= 0) {
+      const targetRecording = await recorder.stopRecording();
+      if (!targetRecording || targetRecording.sizeBytes <= 0) {
         throw new Error("녹화된 영상이 비었습니다. 한 번만 다시 진행해 주세요.");
       }
 
@@ -246,11 +301,28 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
       }
 
       const timings = featureResult.payload.session;
-      recordingLocalStore.set(session.id, recording.blob, {
-        targetStartMs: timings.targetStartMs,
-        targetEndMs: timings.targetEndMs
+      const warmupUploadPromise = warmupUploadPromiseRef.current;
+      if (!warmupUploadPromise) {
+        throw new Error("웜업 업로드가 시작되지 않았습니다.");
+      }
+
+      const [warmupRecording, targetUpload] = await Promise.all([
+        warmupUploadPromise,
+        uploadRecordingSegment("target", targetRecording)
+      ]);
+
+      recordingLocalStore.set(session.id, targetRecording.blob, {
+        targetStartMs: 0,
+        targetEndMs: targetRecording.durationMs
       });
-      await uploadRecordingForAnalysis(recording, timings, featureResult.payload);
+      await completeSplitRecordingUpload(
+        {
+          warmup: warmupRecording,
+          target: targetUpload
+        },
+        timings,
+        featureResult.payload
+      );
       router.replace(`/result/${session.id}`);
       return;
     } catch (caughtError) {
@@ -296,7 +368,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   // speech is unavailable/stalls, so the flow never hangs. Cancels on cleanup.
   useEffect(() => {
     if (phase !== "target") return;
-    const handle = speakQuestion(session.targetQuestion, () => openAnswerWindowRef.current());
+    const handle = speakQuestion(session.targetQuestion, () => void openAnswerWindowRef.current());
     return () => handle.cancel();
   }, [phase, session.targetQuestion]);
 
@@ -333,6 +405,8 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   async function restart() {
     await recorder.resetRecording();
     featureCollector.reset();
+    warmupRecordingPromiseRef.current = null;
+    warmupUploadPromiseRef.current = null;
     setError("");
     setRequiresNewSession(false);
     setRefundState("idle");

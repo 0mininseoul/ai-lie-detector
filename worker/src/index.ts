@@ -62,6 +62,16 @@ type RecordingRow = {
   target_end_ms: number;
 };
 
+type RecordingSegmentName = "warmup" | "target";
+
+type RecordingSegmentRow = {
+  segment: RecordingSegmentName;
+  r2_key: string;
+  mime_type: string;
+  byte_size: number;
+  duration_ms: number;
+};
+
 type FeaturePayloadRow = {
   payload_json: unknown;
   schema_version: number;
@@ -89,9 +99,21 @@ type VertexVideoPart = {
 );
 
 type VertexVideoPartResult = {
+  segment: RecordingSegmentName;
   part: VertexVideoPart;
   source: "inline" | "gcs";
   gcsObjectName?: string;
+};
+
+type AnalysisVideoInput = {
+  segment: RecordingSegmentName;
+  r2Key: string;
+  mimeType: string;
+  byteSize: number;
+  durationMs: number;
+  startOffset: string;
+  endOffset: string;
+  fps: number;
 };
 
 type VertexGenerateResponse = {
@@ -273,6 +295,7 @@ async function handleUpload(request: Request, env: Env, url: URL, context: Worke
   if (contentType !== payload.mimeType) {
     logUploadFailure("content_type_mismatch", {
       sessionId: payload.sessionId,
+      segment: payload.segment,
       expectedMimeType: payload.mimeType,
       actualMimeType: contentType
     });
@@ -282,13 +305,14 @@ async function handleUpload(request: Request, env: Env, url: URL, context: Worke
   const contentLengthHeader = request.headers.get("content-length");
   const contentLength = Number(contentLengthHeader);
   if (!contentLengthHeader || !Number.isFinite(contentLength) || contentLength <= 0) {
-    logUploadFailure("content_length_missing", { sessionId: payload.sessionId });
+    logUploadFailure("content_length_missing", { sessionId: payload.sessionId, segment: payload.segment });
     return Response.json({ error: "Upload content length is required" }, { status: 411, headers: corsHeaders });
   }
 
   if (payload.byteSize > maxWorkerUploadByteSize || contentLength > payload.byteSize) {
     logUploadFailure("body_too_large", {
       sessionId: payload.sessionId,
+      segment: payload.segment,
       expectedByteSize: payload.byteSize,
       contentLength
     });
@@ -296,7 +320,7 @@ async function handleUpload(request: Request, env: Env, url: URL, context: Worke
   }
 
   if (!request.body) {
-    logUploadFailure("body_missing", { sessionId: payload.sessionId });
+    logUploadFailure("body_missing", { sessionId: payload.sessionId, segment: payload.segment });
     return Response.json({ error: "Upload body is required" }, { status: 400, headers: corsHeaders });
   }
 
@@ -309,6 +333,7 @@ async function handleUpload(request: Request, env: Env, url: URL, context: Worke
   } catch (error) {
     logUploadFailure("r2_put_failed", {
       sessionId: payload.sessionId,
+      segment: payload.segment,
       error: error instanceof Error ? error.message : String(error)
     });
     return Response.json({ error: "Upload storage failed" }, { status: 500, headers: corsHeaders });
@@ -319,6 +344,7 @@ async function handleUpload(request: Request, env: Env, url: URL, context: Worke
     level: "info",
     source: "worker_upload_route",
     sessionId: payload.sessionId,
+    segment: payload.segment,
     byteSize: payload.byteSize,
     mimeType: payload.mimeType
   });
@@ -334,13 +360,32 @@ async function handleRecordingDownload(request: Request, env: Env, url: URL) {
   }
 
   const supabase = createSupabase(env);
-  const { data: recording, error } = await supabase
-    .from("recordings")
+  const { data: targetSegment, error: segmentError } = await supabase
+    .from("recording_segments")
     .select("r2_key, mime_type")
     .eq("session_id", sessionId)
+    .eq("segment", "target")
     .maybeSingle<{ r2_key: string; mime_type: string }>();
 
-  if (error || !recording) {
+  if (segmentError) {
+    return Response.json({ error: "Recording not ready" }, { status: 404, headers: corsHeaders });
+  }
+
+  let recording = targetSegment;
+  if (!recording) {
+    const { data: legacyRecording, error } = await supabase
+      .from("recordings")
+      .select("r2_key, mime_type")
+      .eq("session_id", sessionId)
+      .maybeSingle<{ r2_key: string; mime_type: string }>();
+
+    if (error || !legacyRecording) {
+      return Response.json({ error: "Recording not ready" }, { status: 404, headers: corsHeaders });
+    }
+    recording = legacyRecording;
+  }
+
+  if (!recording) {
     return Response.json({ error: "Recording not ready" }, { status: 404, headers: corsHeaders });
   }
 
@@ -463,7 +508,7 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
 
   logStage("claimed");
 
-  const [recordingResult, featurePayloadResult] = await Promise.all([
+  const [recordingResult, featurePayloadResult, recordingSegmentsResult] = await Promise.all([
     supabase
       .from("recordings")
       .select(
@@ -475,7 +520,13 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
       .from("feature_payloads")
       .select("payload_json, schema_version")
       .eq("session_id", sessionId)
-      .maybeSingle<FeaturePayloadRow>()
+      .maybeSingle<FeaturePayloadRow>(),
+    supabase
+      .from("recording_segments")
+      .select("segment, r2_key, mime_type, byte_size, duration_ms")
+      .eq("session_id", sessionId)
+      .in("segment", ["warmup", "target"])
+      .returns<RecordingSegmentRow[]>()
   ]);
 
   if (recordingResult.error || !recordingResult.data) {
@@ -486,31 +537,32 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
     throw new Error("Feature payload not found");
   }
 
+  if (recordingSegmentsResult.error) {
+    throw new Error("Recording segments not found");
+  }
+
   const recording = recordingResult.data;
+  const recordingSegments = recordingSegmentsResult.data ?? [];
   logStage("recording_loaded", {
     byteSize: recording.byte_size,
     durationMs: recording.duration_ms,
-    mimeType: recording.mime_type
+    mimeType: recording.mime_type,
+    segmentCount: recordingSegments.length
   });
 
-  const r2Object = await env.RECORDINGS.get(recording.r2_key);
-  if (!r2Object) {
-    throw new Error("R2 recording object not found");
-  }
-
-  const videoBytes = await r2Object.arrayBuffer();
-  logStage("r2_downloaded", { byteSize: videoBytes.byteLength });
-
-  const videoPartResult = await buildGeminiVideoPart({
+  const videoInputs = buildAnalysisVideoInputs(recording, recordingSegments);
+  const videoPartResults = await buildGeminiVideoParts({
     env,
     vertexConfig,
     sessionId,
-    recording,
-    videoBytes,
+    videoInputs,
     logStage
   });
 
-  logStage("vertex_generate_started", { modelName: vertexConfig.model, videoSource: videoPartResult.source });
+  logStage("vertex_generate_started", {
+    modelName: vertexConfig.model,
+    videoSources: videoPartResults.map((result) => `${result.segment}:${result.source}`).join(",")
+  });
 
   // The generateContent call is the longest, riskiest leg (the silent-death
   // zone in past failures). Emit a heartbeat every ~10s so the runtime logs
@@ -525,11 +577,12 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
           {
             role: "user",
             parts: [
-              videoPartResult.part,
+              ...videoPartResults.map((result) => result.part),
               {
                 text: buildTextPayload({
                   session,
                   recording,
+                  videoInputs,
                   featurePayload: featurePayloadResult.data?.payload_json ?? null
                 })
               }
@@ -554,18 +607,21 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
     );
   } finally {
     heartbeat.stop();
-    if (videoPartResult.gcsObjectName) {
-      context.waitUntil(
-        deleteVertexGcsObject(env, vertexConfig, videoPartResult.gcsObjectName)
-          .then(() => {
-            logStage("vertex_gcs_video_deleted");
-          })
-          .catch((error) => {
-            logStage("vertex_gcs_video_delete_failed", {
-              error: error instanceof Error ? error.message : String(error)
-            });
-          })
-      );
+    for (const videoPartResult of videoPartResults) {
+      if (videoPartResult.gcsObjectName) {
+        context.waitUntil(
+          deleteVertexGcsObject(env, vertexConfig, videoPartResult.gcsObjectName)
+            .then(() => {
+              logStage("vertex_gcs_video_deleted", { segment: videoPartResult.segment });
+            })
+            .catch((error) => {
+              logStage("vertex_gcs_video_delete_failed", {
+                segment: videoPartResult.segment,
+                error: error instanceof Error ? error.message : String(error)
+              });
+            })
+        );
+      }
     }
   }
   logStage("vertex_generate_completed", { textLength: responseText.length });
@@ -607,35 +663,151 @@ async function analyzeSession(sessionId: string, env: Env, context: WorkerContex
   logStage("completed", { totalMs: Date.now() - startedAt, modelName: vertexConfig.model });
 }
 
+function buildAnalysisVideoInputs(
+  recording: RecordingRow,
+  recordingSegments: RecordingSegmentRow[]
+): AnalysisVideoInput[] {
+  const warmup = recordingSegments.find((segment) => segment.segment === "warmup");
+  const target = recordingSegments.find((segment) => segment.segment === "target");
+
+  if (warmup && target) {
+    return [
+      {
+        segment: "warmup",
+        r2Key: warmup.r2_key,
+        mimeType: warmup.mime_type,
+        byteSize: warmup.byte_size,
+        durationMs: warmup.duration_ms,
+        startOffset: "0s",
+        endOffset: `${Math.max(1, Math.ceil(warmup.duration_ms / 1000))}s`,
+        fps: 1
+      },
+      {
+        segment: "target",
+        r2Key: target.r2_key,
+        mimeType: target.mime_type,
+        byteSize: target.byte_size,
+        durationMs: target.duration_ms,
+        startOffset: "0s",
+        endOffset: `${Math.max(1, Math.ceil(target.duration_ms / 1000))}s`,
+        fps: 3
+      }
+    ];
+  }
+
+  return [
+    {
+      segment: "target",
+      r2Key: recording.r2_key,
+      mimeType: recording.mime_type,
+      byteSize: recording.byte_size,
+      durationMs: Math.max(1, recording.target_end_ms - recording.target_start_ms),
+      startOffset: `${Math.max(0, Math.floor(recording.target_start_ms / 1000))}s`,
+      endOffset: `${Math.max(1, Math.ceil(recording.target_end_ms / 1000))}s`,
+      fps: 3
+    }
+  ];
+}
+
+async function buildGeminiVideoParts({
+  env,
+  vertexConfig,
+  sessionId,
+  videoInputs,
+  logStage
+}: {
+  env: Env;
+  vertexConfig: ReturnType<typeof getVertexConfig>;
+  sessionId: string;
+  videoInputs: AnalysisVideoInput[];
+  logStage: (stage: string, fields?: Record<string, unknown>) => void;
+}): Promise<VertexVideoPartResult[]> {
+  const settledParts = await Promise.allSettled(
+    videoInputs.map(async (videoInput) => {
+      const r2Object = await env.RECORDINGS.get(videoInput.r2Key);
+      if (!r2Object) {
+        throw new Error(`R2 recording object not found for ${videoInput.segment}`);
+      }
+
+      const videoBytes = await r2Object.arrayBuffer();
+      logStage("r2_downloaded", { segment: videoInput.segment, byteSize: videoBytes.byteLength });
+
+      return buildGeminiVideoPart({
+        env,
+        vertexConfig,
+        sessionId,
+        videoInput,
+        videoBytes,
+        logStage
+      });
+    })
+  );
+
+  const videoPartResults: VertexVideoPartResult[] = [];
+  const failures: unknown[] = [];
+  for (const settledPart of settledParts) {
+    if (settledPart.status === "fulfilled") {
+      videoPartResults.push(settledPart.value);
+    } else {
+      failures.push(settledPart.reason);
+    }
+  }
+
+  if (failures.length > 0) {
+    const cleanupPromises: Array<Promise<void>> = [];
+    for (const result of videoPartResults) {
+      if (!result.gcsObjectName) continue;
+      cleanupPromises.push(
+        deleteVertexGcsObject(env, vertexConfig, result.gcsObjectName)
+          .then(() => {
+            logStage("vertex_gcs_video_prepare_cleanup_completed", { segment: result.segment });
+          })
+          .catch((error) => {
+            logStage("vertex_gcs_video_prepare_cleanup_failed", {
+              segment: result.segment,
+              error: error instanceof Error ? error.message : String(error)
+            });
+          })
+      );
+    }
+    await Promise.all(cleanupPromises);
+    throw failures[0];
+  }
+
+  return videoPartResults;
+}
+
 async function buildGeminiVideoPart({
   env,
   vertexConfig,
   sessionId,
-  recording,
+  videoInput,
   videoBytes,
   logStage
 }: {
   env: Env;
   vertexConfig: ReturnType<typeof getVertexConfig>;
   sessionId: string;
-  recording: RecordingRow;
+  videoInput: AnalysisVideoInput;
   videoBytes: ArrayBuffer;
   logStage: (stage: string, fields?: Record<string, unknown>) => void;
 }): Promise<VertexVideoPartResult> {
   const videoMetadata = {
-    startOffset: `${Math.max(0, Math.floor(recording.target_start_ms / 1000))}s`,
-    endOffset: `${Math.max(1, Math.ceil(recording.target_end_ms / 1000))}s`,
-    fps: 3
+    startOffset: videoInput.startOffset,
+    endOffset: videoInput.endOffset,
+    fps: videoInput.fps
   };
-  const geminiMimeType = normalizeGeminiVideoMimeType(recording.mime_type);
+  const geminiMimeType = normalizeGeminiVideoMimeType(videoInput.mimeType);
 
   if (videoBytes.byteLength <= inlineVideoMaxBytes) {
     logStage("gemini_inline_video_prepared", {
+      segment: videoInput.segment,
       byteSize: videoBytes.byteLength,
-      originalMimeType: recording.mime_type,
+      originalMimeType: videoInput.mimeType,
       geminiMimeType
     });
     return {
+      segment: videoInput.segment,
       source: "inline",
       part: {
         inlineData: {
@@ -651,17 +823,19 @@ async function buildGeminiVideoPart({
     env,
     vertexConfig,
     sessionId,
-    recording,
+    videoInput,
     videoBytes,
     mimeType: geminiMimeType
   });
   logStage("vertex_gcs_video_prepared", {
+    segment: videoInput.segment,
     byteSize: videoBytes.byteLength,
-    originalMimeType: recording.mime_type,
+    originalMimeType: videoInput.mimeType,
     geminiMimeType
   });
 
   return {
+    segment: videoInput.segment,
     source: "gcs",
     gcsObjectName,
     part: {
@@ -687,14 +861,14 @@ async function uploadVertexVideoToGcs({
   env,
   vertexConfig,
   sessionId,
-  recording,
+  videoInput,
   videoBytes,
   mimeType
 }: {
   env: Env;
   vertexConfig: ReturnType<typeof getVertexConfig>;
   sessionId: string;
-  recording: RecordingRow;
+  videoInput: AnalysisVideoInput;
   videoBytes: ArrayBuffer;
   mimeType: string;
 }) {
@@ -703,8 +877,8 @@ async function uploadVertexVideoToGcs({
     throw new Error("VERTEX_AI_GCS_BUCKET is required for videos over the inline limit");
   }
 
-  const extension = recording.mime_type.startsWith("video/mp4") ? "mp4" : "webm";
-  const gcsObjectName = `vertex-inputs/${sessionId}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+  const extension = videoInput.mimeType.startsWith("video/mp4") ? "mp4" : "webm";
+  const gcsObjectName = `vertex-inputs/${sessionId}/${videoInput.segment}-${Date.now()}-${crypto.randomUUID()}.${extension}`;
   const accessToken = await getVertexAccessToken(env);
   const uploadUrl = new URL(`https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(bucket)}/o`);
   uploadUrl.searchParams.set("uploadType", "media");
@@ -1051,10 +1225,12 @@ async function requireNoSupabaseError<T>(promise: PromiseLike<{ error: unknown; 
 function buildTextPayload({
   session,
   recording,
+  videoInputs,
   featurePayload
 }: {
   session: SessionRow;
   recording: RecordingRow;
+  videoInputs: AnalysisVideoInput[];
   featurePayload: unknown;
 }) {
   return JSON.stringify(
@@ -1079,6 +1255,19 @@ function buildTextPayload({
         byte_size: recording.byte_size,
         mime_type: recording.mime_type
       },
+      recording_video_parts: videoInputs.map((input, index) => ({
+        part_index: index,
+        segment: input.segment,
+        role: input.segment === "warmup" ? "baseline comparison answer" : "target answer for final judgment",
+        duration_ms: input.durationMs,
+        byte_size: input.byteSize,
+        mime_type: input.mimeType,
+        video_metadata: {
+          start_offset: input.startOffset,
+          end_offset: input.endOffset,
+          fps: input.fps
+        }
+      })),
       feature_payload: featurePayload,
       roast_examples: {
         lie: [

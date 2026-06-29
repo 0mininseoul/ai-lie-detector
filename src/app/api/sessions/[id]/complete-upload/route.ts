@@ -42,7 +42,8 @@ export async function POST(request: Request, context: RouteContext) {
 
   try {
     input = parseCompleteUploadInput(await request.json());
-    assertR2KeyMatchesSession(input.r2Key, sessionId.data);
+    assertR2KeyMatchesSession(input.recordings.warmup.r2Key, sessionId.data);
+    assertR2KeyMatchesSession(input.recordings.target.r2Key, sessionId.data);
   } catch (error) {
     return badRequest(error, sessionId.data);
   }
@@ -51,9 +52,14 @@ export async function POST(request: Request, context: RouteContext) {
   const expiresAt = new Date(Date.now() + recordingExpiresInMs).toISOString();
   const { data: session, error } = await supabase.rpc("complete_session_upload", {
     p_session_id: sessionId.data,
-    p_r2_key: input.r2Key,
-    p_mime_type: input.mimeType,
-    p_byte_size: input.byteSize,
+    p_warmup_r2_key: input.recordings.warmup.r2Key,
+    p_warmup_mime_type: input.recordings.warmup.mimeType,
+    p_warmup_byte_size: input.recordings.warmup.byteSize,
+    p_warmup_duration_ms: input.recordings.warmup.durationMs,
+    p_target_r2_key: input.recordings.target.r2Key,
+    p_target_mime_type: input.recordings.target.mimeType,
+    p_target_byte_size: input.recordings.target.byteSize,
+    p_target_duration_ms: input.recordings.target.durationMs,
     p_duration_ms: input.durationMs,
     p_warmup_start_ms: input.warmupStartMs,
     p_warmup_end_ms: input.warmupEndMs,
@@ -69,8 +75,10 @@ export async function POST(request: Request, context: RouteContext) {
     const status = error.message.includes("Session not found") ? 404 : 500;
     console.error("[complete-upload] rpc error", {
       sessionId: sessionId.data,
-      r2Key: input.r2Key,
-      byteSize: input.byteSize,
+      warmupR2Key: input.recordings.warmup.r2Key,
+      targetR2Key: input.recordings.target.r2Key,
+      warmupByteSize: input.recordings.warmup.byteSize,
+      targetByteSize: input.recordings.target.byteSize,
       durationMs: input.durationMs,
       message: error.message,
       hint: error.hint,
@@ -81,7 +89,8 @@ export async function POST(request: Request, context: RouteContext) {
       level: "error",
       source: "next_complete_upload_route",
       sessionId: sessionId.data,
-      byteSize: input.byteSize,
+      warmupByteSize: input.recordings.warmup.byteSize,
+      targetByteSize: input.recordings.target.byteSize,
       durationMs: input.durationMs,
       errorCode: error.code,
       error: error.message
@@ -94,9 +103,11 @@ export async function POST(request: Request, context: RouteContext) {
     level: "info",
     source: "next_complete_upload_route",
     sessionId: sessionId.data,
-    byteSize: input.byteSize,
+    warmupByteSize: input.recordings.warmup.byteSize,
+    targetByteSize: input.recordings.target.byteSize,
     durationMs: input.durationMs,
-    mimeType: input.mimeType,
+    warmupMimeType: input.recordings.warmup.mimeType,
+    targetMimeType: input.recordings.target.mimeType,
     analysisQueued: false
   });
 

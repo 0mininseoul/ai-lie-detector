@@ -128,7 +128,7 @@ export async function GET(_request: Request, context: RouteContext) {
     }
   }
 
-  const [resultResponse, recordingResponse] = await Promise.all([
+  const [resultResponse, recordingResponse, targetSegmentResponse] = await Promise.all([
     supabase
       .from("analysis_results")
       .select("verdict, headline, roast_comment, public_json")
@@ -138,11 +138,18 @@ export async function GET(_request: Request, context: RouteContext) {
       .from("recordings")
       .select("target_start_ms, target_end_ms")
       .eq("session_id", sessionId.data)
-      .maybeSingle<{ target_start_ms: number; target_end_ms: number }>()
+      .maybeSingle<{ target_start_ms: number; target_end_ms: number }>(),
+    supabase
+      .from("recording_segments")
+      .select("duration_ms")
+      .eq("session_id", sessionId.data)
+      .eq("segment", "target")
+      .maybeSingle<{ duration_ms: number }>()
   ]);
 
   const { data: result, error: resultError } = resultResponse;
   const { data: recording, error: recordingError } = recordingResponse;
+  const { data: targetSegment, error: targetSegmentError } = targetSegmentResponse;
 
   if (resultError) {
     console.error("[status] failed to load result", {
@@ -156,6 +163,13 @@ export async function GET(_request: Request, context: RouteContext) {
     console.error("[status] failed to load recording timing", {
       sessionId: sessionId.data,
       error: recordingError.message
+    });
+  }
+
+  if (targetSegmentError) {
+    console.error("[status] failed to load target segment timing", {
+      sessionId: sessionId.data,
+      error: targetSegmentError.message
     });
   }
 
@@ -190,7 +204,12 @@ export async function GET(_request: Request, context: RouteContext) {
           public: result.public_json
         }
       : null,
-    recording: recording
+    recording: targetSegment
+      ? {
+          targetStartMs: 0,
+          targetEndMs: targetSegment.duration_ms
+        }
+      : recording
       ? {
           targetStartMs: recording.target_start_ms,
           targetEndMs: recording.target_end_ms

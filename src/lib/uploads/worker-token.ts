@@ -4,6 +4,7 @@ export const maxWorkerUploadByteSize = 32 * 1024 * 1024;
 
 const uploadTokenPayloadSchema = z.object({
   sessionId: z.uuid(),
+  segment: z.enum(["warmup", "target"]).optional(),
   r2Key: z.string().min(1).max(1024),
   mimeType: z.string().min(1).max(255),
   byteSize: z.number().int().positive().max(maxWorkerUploadByteSize),

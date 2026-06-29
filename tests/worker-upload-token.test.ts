@@ -3,7 +3,8 @@ import { createWorkerUploadToken, maxWorkerUploadByteSize, verifyWorkerUploadTok
 
 const payload = {
   sessionId: "00000000-0000-4000-8000-000000000001",
-  r2Key: "recordings/00000000-0000-4000-8000-000000000001/capture.webm",
+  segment: "target" as const,
+  r2Key: "recordings/00000000-0000-4000-8000-000000000001/target/capture.webm",
   mimeType: "video/webm",
   byteSize: 1_000_000,
   expiresAtMs: 4_102_444_800_000

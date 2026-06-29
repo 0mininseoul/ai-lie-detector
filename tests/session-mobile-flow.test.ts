@@ -64,13 +64,21 @@ describe("session recorder mobile flow", () => {
 
   it("waits for upload completion before moving to the result page", () => {
     const localStoreIndex = recorder.indexOf("recordingLocalStore.set(session.id");
-    const uploadIndex = recorder.indexOf("await uploadRecordingForAnalysis");
+    const uploadIndex = recorder.indexOf("await completeSplitRecordingUpload");
     const routeIndex = recorder.indexOf("router.replace(`/result/${session.id}`)");
 
     expect(localStoreIndex).toBeGreaterThan(-1);
     expect(uploadIndex).toBeGreaterThan(localStoreIndex);
     expect(routeIndex).toBeGreaterThan(uploadIndex);
     expect(recorder).not.toContain("recordingLocalStore.setUploadPromise");
+  });
+
+  it("uploads the warmup clip in the background before the target answer finishes", () => {
+    expect(recorder).toContain("warmupUploadPromiseRef");
+    expect(recorder).toContain('uploadRecordingSegment("warmup"');
+    expect(recorder).toContain('uploadRecordingSegment("target"');
+    expect(recorder).toContain("void warmupUploadPromise.catch");
+    expect(recorder).toContain("recordingLocalStore.set(session.id, targetRecording.blob");
   });
 
   it("moves live metrics away from the face center on mobile", () => {

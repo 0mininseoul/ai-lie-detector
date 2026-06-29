@@ -90,4 +90,9 @@ describe("result experience mobile layout", () => {
     expect(resultTsx).toContain("fetch(`/api/sessions/${sessionId}/analyze`");
     expect(resultTsx).toContain('method: "POST"');
   });
+
+  it("refreshes session status immediately when the analyze request returns", () => {
+    expect(resultTsx).toContain("refreshStatus");
+    expect(resultTsx).toContain("await refreshStatus()");
+  });
 });

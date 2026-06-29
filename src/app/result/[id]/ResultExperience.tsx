@@ -118,6 +118,38 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
     };
   }, [sessionId]);
 
+  const applyStatusResponse = useCallback((data: StatusResponse) => {
+    const playbackClip = coercePlaybackClip(data.recording);
+    if (playbackClip) {
+      setClip(playbackClip);
+    }
+
+    if (data.status === "complete" && data.result) {
+      setResult(data.result);
+      setStatus("revealed");
+      setIsTakingLong(false);
+      setRevealing(true);
+      window.setTimeout(() => setRevealing(false), 1400);
+      return true;
+    }
+    if (data.status === "failed" || data.status === "expired") {
+      setErrorDetail(getFriendlyStatusError(data));
+      setStatus("failed");
+      return true;
+    }
+    return false;
+  }, []);
+
+  const refreshStatus = useCallback(async () => {
+    const response = await fetch(`/api/sessions/${sessionId}/status`, { cache: "no-store" });
+    if (!response.ok) return null;
+    const data = (await response.json()) as StatusResponse;
+    return {
+      data,
+      done: applyStatusResponse(data)
+    };
+  }, [applyStatusResponse, sessionId]);
+
   const startAnalysisOnce = useCallback(async () => {
     if (analysisStartAttemptedRef.current) return;
     analysisStartAttemptedRef.current = true;
@@ -131,11 +163,13 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
         const data = (await response.json().catch(() => null)) as { error?: string } | null;
         setErrorDetail(data?.error ?? "분석 요청을 시작하지 못했어요.");
         setStatus("failed");
+        return;
       }
+      await refreshStatus();
     } catch {
       analysisStartAttemptedRef.current = false;
     }
-  }, [sessionId]);
+  }, [refreshStatus, sessionId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -145,30 +179,14 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
     const tick = async () => {
       if (cancelled) return true;
       try {
-        const response = await fetch(`/api/sessions/${sessionId}/status`, { cache: "no-store" });
-        if (!response.ok) return false;
-        const data = (await response.json()) as StatusResponse;
+        const refreshed = await refreshStatus();
+        if (!refreshed) return false;
         if (cancelled) return true;
 
-        const playbackClip = coercePlaybackClip(data.recording);
-        if (playbackClip) {
-          setClip(playbackClip);
-        }
-
-        if (data.status === "complete" && data.result) {
-          setResult(data.result);
-          setStatus("revealed");
-          setIsTakingLong(false);
-          setRevealing(true);
-          window.setTimeout(() => setRevealing(false), 1400);
+        if (refreshed.done) {
           return true;
         }
-        if (data.status === "failed" || data.status === "expired") {
-          setErrorDetail(getFriendlyStatusError(data));
-          setStatus("failed");
-          return true;
-        }
-        if (data.status === "uploaded") {
+        if (refreshed.data.status === "uploaded") {
           void startAnalysisOnce();
         }
         if (Date.now() - startedAt > analysisSlowMs) {
@@ -191,7 +209,7 @@ export function ResultExperience({ sessionId, question, initialTiming = null }: 
       cancelled = true;
       if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [sessionId, startAnalysisOnce]);
+  }, [refreshStatus, startAnalysisOnce]);
 
   const toggleMute = useCallback(() => {
     setMuted((current) => {

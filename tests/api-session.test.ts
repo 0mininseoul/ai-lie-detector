@@ -12,6 +12,20 @@ const validTimings = {
 };
 
 const validFeaturePayload = createEmptyFeaturePayload(validTimings);
+const validSplitRecordings = {
+  warmup: {
+    r2Key: "recordings/session-1/warmup/capture.webm",
+    mimeType: "video/webm",
+    byteSize: 50_000,
+    durationMs: 4_000
+  },
+  target: {
+    r2Key: "recordings/session-1/target/capture.webm",
+    mimeType: "video/webm",
+    byteSize: 80_000,
+    durationMs: 6_000
+  }
+};
 
 describe("session API validation", () => {
   it("accepts a valid Korean session question and defaults locale to ko", () => {
@@ -56,9 +70,7 @@ describe("session API validation", () => {
   it("rejects complete-upload timing intervals that violate recording constraints", () => {
     expect(() =>
       parseCompleteUploadInput({
-        r2Key: "recordings/session-1.webm",
-        mimeType: "video/webm",
-        byteSize: 100_000,
+        recordings: validSplitRecordings,
         ...validTimings,
         warmupEndMs: 5_000,
         targetStartMs: 4_000,
@@ -68,9 +80,7 @@ describe("session API validation", () => {
 
     expect(() =>
       parseCompleteUploadInput({
-        r2Key: "recordings/session-1.webm",
-        mimeType: "video/webm",
-        byteSize: 100_000,
+        recordings: validSplitRecordings,
         ...validTimings,
         targetEndMs: 12_000,
         featurePayload: validFeaturePayload
@@ -78,12 +88,20 @@ describe("session API validation", () => {
     ).toThrow("target segment cannot exceed recording duration");
   });
 
-  it("rejects complete-upload feature payloads whose session timings do not match the recording", () => {
+  it("accepts split recording uploads while keeping feature timings on the full session timeline", () => {
+    expect(
+      parseCompleteUploadInput({
+        recordings: validSplitRecordings,
+        ...validTimings,
+        featurePayload: validFeaturePayload
+      }).recordings
+    ).toEqual(validSplitRecordings);
+  });
+
+  it("rejects complete-upload feature payloads whose session timings do not match the full session timeline", () => {
     expect(() =>
       parseCompleteUploadInput({
-        r2Key: "recordings/session-1.webm",
-        mimeType: "video/webm",
-        byteSize: 100_000,
+        recordings: validSplitRecordings,
         ...validTimings,
         featurePayload: createEmptyFeaturePayload({
           ...validTimings,
@@ -97,6 +115,8 @@ describe("session API validation", () => {
     const sessionId = "00000000-0000-4000-8000-000000000001";
 
     expect(() => assertR2KeyMatchesSession(`recordings/${sessionId}/capture.webm`, sessionId)).not.toThrow();
+    expect(() => assertR2KeyMatchesSession(`recordings/${sessionId}/warmup/capture.webm`, sessionId)).not.toThrow();
+    expect(() => assertR2KeyMatchesSession(`recordings/${sessionId}/target/capture.webm`, sessionId)).not.toThrow();
     expect(() => assertR2KeyMatchesSession("recordings/other-session/capture.webm", sessionId)).toThrow(
       "r2Key must belong to the session"
     );

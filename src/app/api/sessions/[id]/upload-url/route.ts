@@ -13,6 +13,7 @@ type RouteContext = {
 
 const sessionIdSchema = z.uuid();
 const uploadUrlSchema = z.object({
+  segment: z.enum(["warmup", "target"]),
   mimeType: z.string().trim().min(1).max(255).refine(
     (mimeType) => mimeType.startsWith("video/webm") || mimeType.startsWith("video/mp4"),
     "mimeType must be a supported video MIME type"
@@ -103,11 +104,12 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   try {
-    const r2Key = buildRecordingObjectKey(sessionId.data, input.mimeType);
+    const r2Key = buildRecordingObjectKey(sessionId.data, input.mimeType, input.segment);
     const expiresAtMs = Date.now() + uploadUrlExpiresInSeconds * 1000;
     const token = await createWorkerUploadToken(
       {
         sessionId: sessionId.data,
+        segment: input.segment,
         r2Key,
         mimeType: input.mimeType,
         byteSize: input.byteSize,
@@ -123,6 +125,7 @@ export async function POST(request: Request, context: RouteContext) {
       level: "info",
       source: "next_upload_url_route",
       sessionId: sessionId.data,
+      segment: input.segment,
       byteSize: input.byteSize,
       mimeType: input.mimeType
     });
@@ -141,6 +144,7 @@ export async function POST(request: Request, context: RouteContext) {
       level: "error",
       source: "next_upload_url_route",
       sessionId: sessionId.data,
+      segment: input.segment,
       byteSize: input.byteSize,
       mimeType: input.mimeType,
       error: error instanceof Error ? error.message : String(error)

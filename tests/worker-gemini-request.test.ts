@@ -11,7 +11,7 @@ describe("worker Gemini video request", () => {
   });
 
   it("normalizes recorder MIME types before passing video to Gemini", () => {
-    expect(worker).toContain("normalizeGeminiVideoMimeType(recording.mime_type)");
+    expect(worker).toContain("normalizeGeminiVideoMimeType(videoInput.mimeType)");
     expect(worker).toContain("mimeType: geminiMimeType");
   });
 
@@ -27,5 +27,17 @@ describe("worker Gemini video request", () => {
     expect(worker).toContain("VERTEX_AI_GCS_BUCKET");
     expect(worker).toContain("uploadVertexVideoToGcs");
     expect(worker).toContain("fileData: { fileUri: gcsFileUri");
+  });
+
+  it("builds separate warmup and target video parts for Gemini", () => {
+    expect(worker).toContain("buildGeminiVideoParts");
+    expect(worker).toContain('segment: "warmup"');
+    expect(worker).toContain('segment: "target"');
+    expect(worker).toContain("...videoPartResults.map((result) => result.part)");
+  });
+
+  it("cleans up staged GCS video parts if another video part fails to prepare", () => {
+    expect(worker).toContain("Promise.allSettled");
+    expect(worker).toContain("vertex_gcs_video_prepare_cleanup_failed");
   });
 });
