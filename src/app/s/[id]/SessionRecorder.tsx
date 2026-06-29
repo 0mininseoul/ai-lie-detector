@@ -297,6 +297,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
       }
 
       const timings = featureResult.payload.session;
+      const targetWindowDurationMs = Math.max(1, timings.targetEndMs - timings.targetStartMs);
       const warmupUploadPromise = warmupUploadPromiseRef.current;
       if (!warmupUploadPromise) {
         throw new Error("웜업 업로드가 시작되지 않았습니다.");
@@ -306,15 +307,20 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
         warmupUploadPromise,
         uploadRecordingSegment("target", targetRecording)
       ]);
+      const targetSegmentDurationMs = Math.min(targetRecording.durationMs, targetWindowDurationMs);
+      const targetSegmentUpload = {
+        ...targetUpload,
+        durationMs: targetSegmentDurationMs
+      };
 
       recordingLocalStore.set(session.id, targetRecording.blob, {
         targetStartMs: 0,
-        targetEndMs: targetRecording.durationMs
+        targetEndMs: targetSegmentDurationMs
       });
       await completeSplitRecordingUpload(
         {
           warmup: warmupRecording,
-          target: targetUpload
+          target: targetSegmentUpload
         },
         timings,
         featureResult.payload

@@ -23,7 +23,7 @@ describe("result experience mobile layout", () => {
     expect(resultTsx).toContain("분석 서버가 응답을 마치지 못했어요.");
   });
 
-  it("promotes the question to a centered top card", () => {
+  it("promotes the question to a centered top card without overflowing long questions", () => {
     const topMeta = selectorBlock(".topMeta");
     const question = selectorBlock(".question");
     const brand = selectorBlock(".brand");
@@ -32,9 +32,17 @@ describe("result experience mobile layout", () => {
     expect(topMeta).toContain("right: auto");
     expect(topMeta).toContain("transform: translateX(-50%)");
     expect(topMeta).toContain("align-items: center");
+    expect(topMeta).toContain("max-width: min(92vw, 520px)");
     expect(brand).toContain("font-size: 13px");
     expect(question).toContain("text-align: center");
-    expect(question).toContain("font-size: clamp(21px");
+    expect(question).toContain("font-size: clamp(17px");
+    expect(question).toContain("display: -webkit-box");
+    expect(question).toContain("-webkit-line-clamp: 2");
+    expect(question).toContain("-webkit-box-orient: vertical");
+    expect(question).toContain("overflow: hidden");
+    expect(question).toContain("white-space: normal");
+    expect(question).toContain("overflow-wrap: anywhere");
+    expect(question).not.toContain("white-space: nowrap");
   });
 
   it("keeps verdict copy readable and action chips in one row", () => {

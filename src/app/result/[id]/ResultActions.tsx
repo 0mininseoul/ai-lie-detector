@@ -56,6 +56,7 @@ export function ResultActions({
 
   async function share() {
     const shareUrl = getResultShareUrl(sessionId);
+    const kakaoShareUrl = getKakaoResultShareUrl(sessionId);
 
     if (!shareImageReady) {
       showToast("공유 이미지를 준비하고 있어요.");
@@ -68,7 +69,7 @@ export function ResultActions({
     }
 
     const kakaoShared = shareResultWithKakao({
-      url: shareUrl,
+      url: kakaoShareUrl,
       imageUrl: shareImageUrl(sessionId)
     });
     if (kakaoShared) return;
@@ -133,6 +134,16 @@ function isShareDismissed(error: unknown) {
 function getResultShareUrl(sessionId: string) {
   const resultPath = `/result/${encodeURIComponent(sessionId)}`;
 
+  return getAbsoluteShareUrl(resultPath);
+}
+
+function getKakaoResultShareUrl(sessionId: string) {
+  const kakaoResultPath = `/kakao/result/${encodeURIComponent(sessionId)}`;
+
+  return getAbsoluteShareUrl(kakaoResultPath);
+}
+
+function getAbsoluteShareUrl(resultPath: string) {
   if (typeof window !== "undefined" && window.location.origin) {
     return new URL(resultPath, window.location.origin).toString();
   }

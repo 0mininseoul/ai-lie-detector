@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -10,6 +10,8 @@ const newPageTsx = readFileSync(join(process.cwd(), "src/app/new/page.tsx"), "ut
 const completeUploadRoute = readFileSync(join(process.cwd(), "src/app/api/sessions/[id]/complete-upload/route.ts"), "utf8");
 const r2Lifecycle = readFileSync(join(process.cwd(), "worker/r2-lifecycle.json"), "utf8");
 const worker = readFileSync(join(process.cwd(), "worker/src/index.ts"), "utf8");
+const kakaoRedirectPath = join(process.cwd(), "src/app/kakao/result/[id]/route.ts");
+const kakaoRedirectRoute = existsSync(kakaoRedirectPath) ? readFileSync(kakaoRedirectPath, "utf8") : "";
 
 describe("result sharing", () => {
   it("shares a Kakao feed card before falling back to Web Share and clipboard", () => {
@@ -21,6 +23,8 @@ describe("result sharing", () => {
     expect(actionsTsx).toContain('typeof window !== "undefined"');
     expect(actionsTsx).toContain("window.location.origin");
     expect(actionsTsx).toContain("new URL(resultPath, window.location.origin)");
+    expect(actionsTsx).toContain("getKakaoResultShareUrl(sessionId)");
+    expect(actionsTsx).toContain("const kakaoResultPath = `/kakao/result/${encodeURIComponent(sessionId)}`");
     expect(actionsTsx).toContain("NEXT_PUBLIC_SITE_URL");
     expect(actionsTsx).toContain("https://nogoora.vercel.app");
     expect(actionsTsx).toContain("shareResultWithKakao");
@@ -29,6 +33,12 @@ describe("result sharing", () => {
     expect(actionsTsx).toContain("navigator.share({ url: shareUrl })");
     expect(actionsTsx).toContain("navigator.clipboard.writeText(shareUrl)");
     expect(actionsTsx).not.toContain("text: shareText");
+  });
+
+  it("routes Kakao button taps through a fresh result redirect URL", () => {
+    expect(kakaoRedirectRoute).toContain("NextResponse.redirect");
+    expect(kakaoRedirectRoute).toContain("new URL(`/result/${encodeURIComponent(id)}`, request.url)");
+    expect(kakaoRedirectRoute).toContain("status: 302");
   });
 
   it("configures Kakao sharing with a neutral feed and result button", () => {
@@ -57,18 +67,22 @@ describe("result sharing", () => {
     expect(worker).toContain("share-images/${sessionId}/preview-20260526-centered-question.jpg");
   });
 
-  it("keeps the generated Kakao preview image to one bottom question line", () => {
+  it("keeps the generated Kakao preview image text inside the Kakao card safe area", () => {
     expect(experienceTsx).toContain("const shareImageWidth = 1080");
     expect(experienceTsx).toContain("const shareImageHeight = 1440");
     expect(experienceTsx).toContain("setShareImageReady(uploaded)");
     expect(experienceTsx).toContain("drawFallbackShareImageBackground(ctx)");
     expect(experienceTsx).toContain("video?.videoWidth && video.videoHeight");
     expect(experienceTsx).toContain("videoSrc={recordingUnavailable ? null : videoSrc}");
-    expect(experienceTsx).toContain("shareQuestionMinFontPx = 70");
-    expect(experienceTsx).toContain("shareQuestionMaxLines = 3");
+    expect(experienceTsx).toContain("shareQuestionMinFontPx = 52");
+    expect(experienceTsx).toContain("shareQuestionMaxFontPx = 96");
+    expect(experienceTsx).toContain("shareQuestionMaxLines = 4");
+    expect(experienceTsx).toContain("shareQuestionSidePadding = 72");
+    expect(experienceTsx).toContain("shareQuestionBlockCenterY = 980");
     expect(experienceTsx).toContain('ctx.textAlign = "center"');
     expect(experienceTsx).toContain("drawShareQuestion(ctx, question)");
     expect(experienceTsx).toContain("layoutQuestionLines");
+    expect(experienceTsx).not.toContain("const blockCenterY = 1170");
     expect(experienceTsx).not.toContain("shareImageCallToAction");
     expect(experienceTsx).not.toContain("roundRect(ctx");
     expect(experienceTsx).not.toContain("ctx.fillText(headline");

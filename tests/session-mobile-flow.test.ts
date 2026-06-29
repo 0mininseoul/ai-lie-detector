@@ -107,6 +107,16 @@ describe("session recorder mobile flow", () => {
     expect(recorder).toContain("recordingLocalStore.set(session.id, targetRecording.blob");
   });
 
+  it("uses the timer-derived target window for local playback and uploaded target timing", () => {
+    expect(recorder).toContain("const targetWindowDurationMs = Math.max(1, timings.targetEndMs - timings.targetStartMs)");
+    expect(recorder).toContain("const targetSegmentDurationMs = Math.min(targetRecording.durationMs, targetWindowDurationMs)");
+    expect(recorder).toContain("const targetSegmentUpload = {");
+    expect(recorder).toContain("...targetUpload");
+    expect(recorder).toContain("durationMs: targetSegmentDurationMs");
+    expect(recorder).toContain("targetEndMs: targetSegmentDurationMs");
+    expect(recorder).toContain("target: targetSegmentUpload");
+  });
+
   it("moves live metrics away from the face center on mobile", () => {
     const sideMetrics = selectorBlock(hudMobileCss, ".sideMetrics");
     const topBar = selectorBlock(hudMobileCss, ".topBar");

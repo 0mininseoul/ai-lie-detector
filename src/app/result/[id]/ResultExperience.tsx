@@ -51,10 +51,11 @@ type ShareImageUploadUrlResponse = {
 const pollIntervalMs = 1500;
 const shareImageWidth = 1080;
 const shareImageHeight = 1440;
-const shareQuestionMinFontPx = 70;
-const shareQuestionMaxFontPx = 118;
-const shareQuestionMaxLines = 3;
-const shareQuestionSidePadding = 48;
+const shareQuestionMinFontPx = 52;
+const shareQuestionMaxFontPx = 96;
+const shareQuestionMaxLines = 4;
+const shareQuestionSidePadding = 72;
+const shareQuestionBlockCenterY = 980;
 
 function getFriendlyStatusError(data: Pick<StatusResponse, "status" | "errorCode" | "errorDetail">) {
   if (data.status === "expired") return "세션이 만료되었어요.";
@@ -507,9 +508,8 @@ function drawShareQuestion(ctx: CanvasRenderingContext2D, question: string) {
     lines = layoutQuestionLines(ctx, text, shareQuestionMinFontPx, maxW, shareQuestionMaxLines, true).lines;
   }
 
-  const lineHeight = Math.round(fontSize * 1.14);
-  const blockCenterY = 1170;
-  const firstBaselineY = blockCenterY - ((lines.length - 1) * lineHeight) / 2;
+  const lineHeight = Math.round(fontSize * 1.16);
+  const firstBaselineY = shareQuestionBlockCenterY - ((lines.length - 1) * lineHeight) / 2;
 
   ctx.font = canvasQuestionFont(fontSize);
   ctx.textAlign = "center";
