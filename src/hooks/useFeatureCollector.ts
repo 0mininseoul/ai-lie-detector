@@ -70,6 +70,7 @@ const emptyMarks: FeatureTimingMarks = {
   targetEndMs: null,
   recordingEndMs: null
 };
+const featureSampleIntervalMs = 200;
 
 function nowMs() {
   if (typeof performance !== "undefined" && typeof performance.now === "function") {
@@ -222,10 +223,8 @@ export function useFeatureCollector() {
       setupAudioSampler(stream, audioContextRef, mediaSourceRef, audioAnalyserRef, audioBufferRef);
       void getFaceLandmarker(faceLandmarkerRef, faceLandmarkerPromiseRef, liveFaceBoxRef);
 
-      // 100ms (10fps) — smooth enough for the HUD face mesh to *visibly*
-      // track head movement without driving up sample volume too much
-      // (50 samples per 5s target window). Without this the mesh appeared
-      // to drift ~250ms behind the actual face.
+      // 200ms (5fps) keeps enough signal for segment-level analysis while
+      // leaving more room for MediaRecorder chunk flushing on iOS WebKit.
       samplerIntervalRef.current = window.setInterval(() => {
         const sample: FeatureSample = { timestampMs: nowMs() };
         Object.assign(sample, sampleVideoFrame(videoElement, sampleCanvasRef, previousFrameRef));
@@ -235,7 +234,7 @@ export function useFeatureCollector() {
         if (Object.keys(sample).length > 1) {
           samplesRef.current.push(sample);
         }
-      }, 100);
+      }, featureSampleIntervalMs);
     },
     [stopSampling]
   );

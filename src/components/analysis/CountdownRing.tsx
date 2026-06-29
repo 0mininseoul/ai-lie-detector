@@ -9,13 +9,10 @@ import styles from "./CountdownRing.module.css";
  * at ≤1s. Fires `onComplete()` exactly once when time hits zero.
  *
  * Timing must survive a saturated main thread: this screen runs the camera,
- * MediaRecorder, and a 10fps synchronous feature sampler (canvas diff +
- * MediaPipe FaceLandmarker), which starves requestAnimationFrame on iOS
- * WebKit. So the ring and visible digit slots drain via declarative CSS
- * animations (compositor timeline, no JS per frame — see .progress/.digit).
- * React state does not tick during the active animation; repeated renders can
- * restart CSS animations on iOS WebKit. Completion is a single setTimeout that
- * never waits on a paint frame.
+ * MediaRecorder, and browser-local feature sampling, which can delay animation
+ * frames on iOS WebKit. The ring still drains via CSS, but the visible digit
+ * is derived from a real deadline. If a tick is delayed, the next tick catches
+ * up from Date.now() instead of continuing from a stale visual slot.
  */
 
 type Props = {
@@ -30,7 +27,6 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export function CountdownRing({ durationMs = 5000, active, onComplete, size = "default" }: Props) {
   const totalSeconds = Math.ceil(durationMs / 1000);
-  const digitSlots = Array.from({ length: totalSeconds + 1 }, (_, index) => totalSeconds - index);
   const [seconds, setSeconds] = useState(totalSeconds);
   const firedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
@@ -47,14 +43,27 @@ export function CountdownRing({ durationMs = 5000, active, onComplete, size = "d
 
     firedRef.current = false;
     setSeconds(totalSeconds);
-    const done = window.setTimeout(() => {
+    const deadlineMs = Date.now() + durationMs;
+
+    const complete = () => {
       if (firedRef.current) return;
       firedRef.current = true;
       setSeconds(0);
       onCompleteRef.current();
-    }, durationMs);
+    };
+
+    const updateRemaining = () => {
+      const remainingMs = Math.max(0, deadlineMs - Date.now());
+      setSeconds(Math.ceil(remainingMs / 1000));
+      if (remainingMs <= 0) complete();
+    };
+
+    updateRemaining();
+    const tick = window.setInterval(updateRemaining, 100);
+    const done = window.setTimeout(updateRemaining, durationMs + 30);
 
     return () => {
+      window.clearInterval(tick);
       window.clearTimeout(done);
     };
   }, [active, durationMs, totalSeconds]);
@@ -82,19 +91,7 @@ export function CountdownRing({ durationMs = 5000, active, onComplete, size = "d
       </svg>
       <div className={styles.center} aria-label={`${seconds}초 남음`}>
         <span className={styles.digits} aria-hidden>
-          {digitSlots.map((digit, index) => (
-            <strong
-              className={styles.digit}
-              data-start={index === 0}
-              key={digit}
-              style={{
-                "--digit-delay": `${index * 1000}ms`,
-                "--digit-duration": `${digit === 0 ? 160 : Math.min(1000, Math.max(160, durationMs - index * 1000))}ms`
-              } as CSSProperties}
-            >
-              {digit}
-            </strong>
-          ))}
+          <strong className={styles.digit}>{seconds}</strong>
         </span>
         <span className={styles.unit} aria-hidden>
           sec

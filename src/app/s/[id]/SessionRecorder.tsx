@@ -65,6 +65,43 @@ function getInitialError(status: string) {
   return "";
 }
 
+type ClientSessionEventName =
+  | "warmup_stop_requested"
+  | "warmup_stop_resolved"
+  | "warmup_blob_empty"
+  | "warmup_upload_started"
+  | "target_slice_started"
+  | "target_stop_requested"
+  | "target_stop_resolved"
+  | "recorder_boundary_error";
+
+type ClientSessionEventDetails = Record<string, string | number | boolean | null>;
+
+function recordingEventDetails(recording: RecordingStopResult | null): ClientSessionEventDetails {
+  return {
+    sizeBytes: recording?.sizeBytes ?? null,
+    chunkCount: recording?.chunkCount ?? null,
+    durationMs: recording?.durationMs ?? null,
+    mimeType: recording?.mimeType ?? null
+  };
+}
+
+function logClientEvent({
+  sessionId,
+  event,
+  details
+}: {
+  sessionId: string;
+  event: ClientSessionEventName;
+  details?: ClientSessionEventDetails;
+}) {
+  return fetch("/api/client-events", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ sessionId, event, details })
+  }).catch(() => undefined);
+}
+
 export function SessionRecorder({ session }: SessionRecorderProps) {
   const router = useRouter();
   const recorder = useCameraRecorder();
@@ -81,8 +118,9 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   const [cameraAspect, setCameraAspect] = useState("3 / 4");
   const [analysisHudTopPx, setAnalysisHudTopPx] = useState<number | null>(null);
   const targetPanelRef = useRef<HTMLElement | null>(null);
-  const warmupRecordingPromiseRef = useRef<Promise<RecordingStopResult | null> | null>(null);
   const warmupUploadPromiseRef = useRef<Promise<UploadedRecordingSegment> | null>(null);
+  const warmupFinalizingRef = useRef(false);
+  const [isWarmupFinalizing, setIsWarmupFinalizing] = useState(false);
   const [answerOpen, setAnswerOpen] = useState(false);
 
   const currentQuestion = useMemo(() => {
@@ -157,20 +195,60 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     setPhase("warmup");
   }
 
-  const finishWarmup = useCallback(() => {
-    featureCollector.markWarmupEnd();
-    const warmupRecordingPromise = recorder.stopRecording();
-    warmupRecordingPromiseRef.current = warmupRecordingPromise;
-    const warmupUploadPromise = warmupRecordingPromise.then((recording) => {
-      if (!recording || recording.sizeBytes <= 0) {
-        throw new Error("웜업 영상이 비었습니다. 한 번만 다시 진행해 주세요.");
-      }
-      return uploadRecordingSegment("warmup", recording);
+  const finishWarmup = useCallback(async () => {
+    if (warmupFinalizingRef.current) return;
+    warmupFinalizingRef.current = true;
+    setIsWarmupFinalizing(true);
+    setError("");
+    void logClientEvent({
+      sessionId: session.id,
+      event: "warmup_stop_requested"
     });
-    warmupUploadPromiseRef.current = warmupUploadPromise;
-    void warmupUploadPromise.catch(() => undefined);
-    setPhase("transition");
-  }, [featureCollector, recorder]);
+
+    featureCollector.markWarmupEnd();
+    try {
+      const warmupRecording = await recorder.captureRecordingSlice();
+      void logClientEvent({
+        sessionId: session.id,
+        event: "warmup_stop_resolved",
+        details: recordingEventDetails(warmupRecording)
+      });
+
+      if (!warmupRecording || warmupRecording.sizeBytes <= 0) {
+        void logClientEvent({
+          sessionId: session.id,
+          event: "warmup_blob_empty",
+          details: recordingEventDetails(warmupRecording)
+        });
+        throw new Error("웜업 녹화가 비었습니다. 카메라를 유지한 상태로 한 번만 다시 진행해 주세요.");
+      }
+
+      const warmupUploadPromise = uploadRecordingSegment("warmup", warmupRecording);
+      warmupUploadPromiseRef.current = warmupUploadPromise;
+      void logClientEvent({
+        sessionId: session.id,
+        event: "warmup_upload_started",
+        details: recordingEventDetails(warmupRecording)
+      });
+      void warmupUploadPromise.catch(() => undefined);
+      setPhase("transition");
+      warmupFinalizingRef.current = false;
+      setIsWarmupFinalizing(false);
+    } catch (caughtError) {
+      void logClientEvent({
+        sessionId: session.id,
+        event: "recorder_boundary_error",
+        details: {
+          phase: "warmup",
+          message: caughtError instanceof Error ? caughtError.message : "unknown"
+        }
+      });
+      setError(caughtError instanceof Error ? caughtError.message : "웜업 영상을 정리하지 못했습니다.");
+      setPhase("error");
+      warmupFinalizingRef.current = false;
+      setIsWarmupFinalizing(false);
+    }
+  }, [featureCollector, recorder, session.id]);
 
   // Transition beat ends -> prepare the real question answer window. The target
   // question is revealed inside openAnswerWindow only after the fresh target
@@ -184,14 +262,18 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   // markTargetStart() fires.
   const openAnswerWindow = useCallback(async () => {
     try {
-      const warmupRecording = await warmupRecordingPromiseRef.current;
-      if (!warmupRecording || warmupRecording.sizeBytes <= 0) {
-        throw new Error("웜업 영상을 정리하지 못했습니다.");
+      if (!warmupUploadPromiseRef.current) {
+        throw new Error("웜업 업로드가 준비되지 않았습니다.");
       }
 
-      const started = await recorder.startRecording();
-      if (!started) {
-        throw new Error(recorder.latestError ?? "타깃 답변 녹화를 시작하지 못했습니다.");
+      const targetSliceReady = await recorder.startNewRecordingSlice();
+      void logClientEvent({
+        sessionId: session.id,
+        event: "target_slice_started",
+        details: { ready: targetSliceReady }
+      });
+      if (!targetSliceReady) {
+        throw new Error(recorder.latestError ?? "타깃 답변 녹화를 준비하지 못했습니다.");
       }
 
       featureCollector.markTargetStart();
@@ -201,7 +283,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
       setError(caughtError instanceof Error ? caughtError.message : "답변 녹화를 시작하지 못했습니다.");
       setPhase("error");
     }
-  }, [featureCollector, recorder]);
+  }, [featureCollector, recorder, session.id]);
 
   const startTargetRef = useRef<() => void>(() => undefined);
   const openAnswerWindowRef = useRef<() => void | Promise<void>>(() => undefined);
@@ -286,7 +368,16 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
       featureCollector.markRecordingEnd();
       featureCollector.stopSampling();
 
+      void logClientEvent({
+        sessionId: session.id,
+        event: "target_stop_requested"
+      });
       const targetRecording = await recorder.stopRecording();
+      void logClientEvent({
+        sessionId: session.id,
+        event: "target_stop_resolved",
+        details: recordingEventDetails(targetRecording)
+      });
       if (!targetRecording || targetRecording.sizeBytes <= 0) {
         throw new Error("녹화된 영상이 비었습니다. 한 번만 다시 진행해 주세요.");
       }
@@ -346,9 +437,9 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   }, [isSubmitting]);
 
   const handleWarmupComplete = useCallback(() => {
-    if (isSubmitting) return;
-    finishWarmup();
-  }, [finishWarmup, isSubmitting]);
+    if (isSubmitting || isWarmupFinalizing) return;
+    void finishWarmup();
+  }, [finishWarmup, isSubmitting, isWarmupFinalizing]);
 
   useEffect(() => {
     finishTargetRef.current = finishTarget;
@@ -398,11 +489,12 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   async function restart() {
     await recorder.resetRecording();
     featureCollector.reset();
-    warmupRecordingPromiseRef.current = null;
     warmupUploadPromiseRef.current = null;
+    warmupFinalizingRef.current = false;
     setError("");
     setRequiresNewSession(false);
     setRefundState("idle");
+    setIsWarmupFinalizing(false);
     setAnswerOpen(false);
     setPhase("setup");
   }
@@ -556,7 +648,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
                 <span className={styles.questionEyebrow}>WARM-UP</span>
                 <CountdownRing
                   durationMs={5000}
-                  active={!isSubmitting}
+                  active={!isWarmupFinalizing}
                   onComplete={handleWarmupComplete}
                   size="compact"
                 />

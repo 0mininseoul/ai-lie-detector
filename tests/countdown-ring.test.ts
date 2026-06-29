@@ -28,22 +28,26 @@ describe("CountdownRing timing", () => {
     expect(component).not.toContain("cancelAnimationFrame(");
   });
 
-  it("completes on a single deterministic timer without rerendering during the active animation", () => {
+  it("completes from a real clock so delayed ticks catch up instead of freezing visible seconds", () => {
     expect(component).toContain("setTimeout");
-    expect(component).not.toContain("setInterval");
+    expect(component).toContain("setInterval");
+    expect(component).toContain("Date.now()");
+    expect(component).toContain("deadlineMs");
+    expect(component).toContain("remainingMs");
     // onComplete must fire exactly once even if timers double up under
     // StrictMode or re-entrancy.
     expect(component).toContain("firedRef");
   });
 
-  it("drains the ring and visible digits on the CSS animation timeline", () => {
+  it("drains the ring on CSS but renders the visible digit from React state", () => {
     expect(css).toContain("@keyframes ringDrain");
-    expect(css).toContain("@keyframes digitSlot");
     expect(css).toContain("animation-play-state");
     expect(component).toContain('data-active={active}');
     expect(component).toContain("--ring-duration");
-    expect(component).toContain("digitSlots");
-    expect(component).toContain("--digit-delay");
+    expect(component).toContain("{seconds}");
+    expect(component).not.toContain("digitSlots");
+    expect(component).not.toContain("--digit-delay");
+    expect(css).not.toContain("@keyframes digitSlot");
   });
 
   it("keeps the compact question timer numeric-only so the unit cannot overlap", () => {

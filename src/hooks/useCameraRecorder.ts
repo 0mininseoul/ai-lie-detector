@@ -77,6 +77,9 @@ export function useCameraRecorder() {
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const dataWaitersRef = useRef<Array<() => void>>([]);
+  const sliceChunkStartIndexRef = useRef(0);
+  const sliceStartedAtMsRef = useRef<number | null>(null);
   const recordingStartedAtRef = useRef<number | null>(null);
   const stopRecordingPromiseRef = useRef<Promise<RecordingStopResult | null> | null>(null);
   const startCameraPromiseRef = useRef<Promise<MediaStream | null> | null>(null);
@@ -110,6 +113,9 @@ export function useCameraRecorder() {
 
     recorderRef.current = null;
     chunksRef.current = [];
+    dataWaitersRef.current = [];
+    sliceChunkStartIndexRef.current = 0;
+    sliceStartedAtMsRef.current = null;
     recordingStartedAtRef.current = null;
     stopRecordingPromiseRef.current = null;
     setRecording(null);
@@ -227,14 +233,20 @@ export function useCameraRecorder() {
       };
       const recorder = new MediaRecorder(activeStream, options);
 
+      const startedAtMs = getNowMs();
       chunksRef.current = [];
-      recordingStartedAtRef.current = getNowMs();
+      dataWaitersRef.current = [];
+      sliceChunkStartIndexRef.current = 0;
+      sliceStartedAtMsRef.current = startedAtMs;
+      recordingStartedAtRef.current = startedAtMs;
       stopRecordingPromiseRef.current = null;
 
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           chunksRef.current.push(event.data);
         }
+        const waiters = dataWaitersRef.current.splice(0);
+        waiters.forEach((waiter) => waiter());
       };
       recorder.onerror = () => {
         setMountedState(setLatestError, "MediaRecorder reported a recording error");
@@ -256,6 +268,79 @@ export function useCameraRecorder() {
     }
   }, [setMountedState, startCamera]);
 
+  const flushRecorderData = useCallback((recorder: MediaRecorder) => {
+    if (recorder.state === "inactive") return Promise.resolve();
+
+    return new Promise<void>((resolve) => {
+      let settled = false;
+      let timeout: number | undefined;
+
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        if (timeout !== undefined) window.clearTimeout(timeout);
+        dataWaitersRef.current = dataWaitersRef.current.filter((waiter) => waiter !== done);
+        resolve();
+      };
+
+      dataWaitersRef.current.push(done);
+      timeout = window.setTimeout(done, 1200);
+
+      try {
+        recorder.requestData();
+      } catch {
+        done();
+      }
+    });
+  }, []);
+
+  const captureRecordingSlice = useCallback(async () => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state !== "recording") {
+      setLatestError("No active recording slice to capture");
+      setRecordingStatus("error");
+      return null;
+    }
+
+    const stoppedAtMs = getNowMs();
+    await flushRecorderData(recorder);
+
+    const startedAtMs = sliceStartedAtMsRef.current ?? recordingStartedAtRef.current ?? stoppedAtMs;
+    const mimeType = recorder.mimeType || selectedMimeType;
+    const sliceChunks = chunksRef.current.slice(sliceChunkStartIndexRef.current);
+    const blob = new Blob(sliceChunks, mimeType ? { type: mimeType } : undefined);
+    const result = {
+      blob,
+      mimeType,
+      durationMs: Math.max(0, stoppedAtMs - startedAtMs),
+      startedAtMs,
+      stoppedAtMs,
+      chunkCount: sliceChunks.length,
+      sizeBytes: blob.size
+    };
+
+    setMountedState(setRecording, result);
+    setMountedState(setSelectedMimeType, mimeType);
+    setMountedState(setLatestError, null);
+    return result;
+  }, [flushRecorderData, selectedMimeType, setMountedState]);
+
+  const startNewRecordingSlice = useCallback(async () => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state !== "recording") {
+      setLatestError("No active recording to split");
+      setRecordingStatus("error");
+      return false;
+    }
+
+    await flushRecorderData(recorder);
+    sliceChunkStartIndexRef.current = chunksRef.current.length;
+    sliceStartedAtMsRef.current = getNowMs();
+    setMountedState(setRecording, null);
+    setMountedState(setLatestError, null);
+    return true;
+  }, [flushRecorderData, setMountedState]);
+
   const stopRecording = useCallback(async () => {
     const recorder = recorderRef.current;
     if (!recorder) {
@@ -269,25 +354,30 @@ export function useCameraRecorder() {
     }
 
     const stoppedAtMs = getNowMs();
+    const sliceChunkStartIndex = sliceChunkStartIndexRef.current;
+    const sliceStartedAtMs = sliceStartedAtMsRef.current ?? recordingStartedAtRef.current ?? stoppedAtMs;
     setRecordingStatus("stopping");
 
     stopRecordingPromiseRef.current = new Promise<RecordingStopResult | null>((resolve) => {
       recorder.onstop = () => {
-        const startedAtMs = recordingStartedAtRef.current ?? stoppedAtMs;
         const mimeType = recorder.mimeType || selectedMimeType;
-        const blob = new Blob(chunksRef.current, mimeType ? { type: mimeType } : undefined);
+        const sliceChunks = chunksRef.current.slice(sliceChunkStartIndex);
+        const blob = new Blob(sliceChunks, mimeType ? { type: mimeType } : undefined);
         const result = {
           blob,
           mimeType,
-          durationMs: Math.max(0, stoppedAtMs - startedAtMs),
-          startedAtMs,
+          durationMs: Math.max(0, stoppedAtMs - sliceStartedAtMs),
+          startedAtMs: sliceStartedAtMs,
           stoppedAtMs,
-          chunkCount: chunksRef.current.length,
+          chunkCount: sliceChunks.length,
           sizeBytes: blob.size
         };
 
         recorderRef.current = null;
         recordingStartedAtRef.current = null;
+        sliceStartedAtMsRef.current = null;
+        sliceChunkStartIndexRef.current = 0;
+        dataWaitersRef.current = [];
         setMountedState(setRecording, result);
         setMountedState(setSelectedMimeType, mimeType);
         setMountedState(setRecordingStatus, "recorded");
@@ -298,6 +388,13 @@ export function useCameraRecorder() {
       if (recorder.state === "inactive") {
         recorder.onstop?.(new Event("stop"));
       } else {
+        try {
+          recorder.requestData();
+        } catch {
+          // stop() will still trigger a final dataavailable event in browsers
+          // that support MediaRecorder; requestData() is only a best-effort
+          // flush to reduce empty final slices on iOS.
+        }
         recorder.stop();
       }
     });
@@ -333,6 +430,9 @@ export function useCameraRecorder() {
         recorder.stop();
       }
       recorderRef.current = null;
+      dataWaitersRef.current = [];
+      sliceChunkStartIndexRef.current = 0;
+      sliceStartedAtMsRef.current = null;
       cameraStartTokenRef.current += 1;
       startCameraPromiseRef.current = null;
       stopStreamTracks(streamRef.current);
@@ -353,6 +453,8 @@ export function useCameraRecorder() {
     recording,
     startCamera,
     startRecording,
+    captureRecordingSlice,
+    startNewRecordingSlice,
     stopRecording,
     resetRecording,
     stopCamera

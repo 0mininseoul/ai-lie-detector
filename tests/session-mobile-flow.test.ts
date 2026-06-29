@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const recorder = readFileSync(join(process.cwd(), "src/app/s/[id]/SessionRecorder.tsx"), "utf8");
+const recorderHook = readFileSync(join(process.cwd(), "src/hooks/useCameraRecorder.ts"), "utf8");
+const featureCollector = readFileSync(join(process.cwd(), "src/hooks/useFeatureCollector.ts"), "utf8");
 const hudCss = readFileSync(join(process.cwd(), "src/components/analysis/LiveAnalysisHud.module.css"), "utf8");
 const hudMobileCss = hudCss.slice(hudCss.indexOf("@media (max-width: 720px)"));
 
@@ -59,7 +61,7 @@ describe("session recorder mobile flow", () => {
     );
 
     expect(startTargetBlock).not.toContain('setPhase("target")');
-    expect(openAnswerWindowBlock.indexOf("const started = await recorder.startRecording()")).toBeLessThan(
+    expect(openAnswerWindowBlock.indexOf("const targetSliceReady = await recorder.startNewRecordingSlice()")).toBeLessThan(
       openAnswerWindowBlock.indexOf('setPhase("target")')
     );
     expect(openAnswerWindowBlock.indexOf("featureCollector.markTargetStart()")).toBeLessThan(
@@ -105,6 +107,42 @@ describe("session recorder mobile flow", () => {
     expect(recorder).toContain('uploadRecordingSegment("target"');
     expect(recorder).toContain("void warmupUploadPromise.catch");
     expect(recorder).toContain("recordingLocalStore.set(session.id, targetRecording.blob");
+  });
+
+  it("does not stop and restart MediaRecorder between warmup and target", () => {
+    const finishWarmupBlock = recorder.slice(
+      recorder.indexOf("const finishWarmup"),
+      recorder.indexOf("// Transition beat ends")
+    );
+    const openAnswerWindowBlock = recorder.slice(
+      recorder.indexOf("const openAnswerWindow"),
+      recorder.indexOf("const startTargetRef")
+    );
+
+    expect(recorderHook).toContain("captureRecordingSlice");
+    expect(recorderHook).toContain("startNewRecordingSlice");
+    expect(recorderHook).toContain("recorder.requestData()");
+    expect(recorderHook).toContain("dataWaitersRef");
+    expect(recorderHook).toContain("sliceChunkStartIndexRef");
+    expect(finishWarmupBlock).toContain("await recorder.captureRecordingSlice()");
+    expect(finishWarmupBlock).not.toContain("recorder.stopRecording()");
+    expect(openAnswerWindowBlock).toContain("await recorder.startNewRecordingSlice()");
+    expect(openAnswerWindowBlock).not.toContain("await recorder.startRecording()");
+  });
+
+  it("logs client recorder boundaries around warmup and target slicing", () => {
+    expect(recorder).toContain("logClientEvent");
+    expect(recorder).toContain('event: "warmup_stop_requested"');
+    expect(recorder).toContain('event: "warmup_stop_resolved"');
+    expect(recorder).toContain('event: "warmup_blob_empty"');
+    expect(recorder).toContain('event: "target_slice_started"');
+    expect(recorder).toContain('event: "target_stop_resolved"');
+  });
+
+  it("backs off local feature sampling to reduce iOS recorder pressure", () => {
+    expect(featureCollector).toContain("const featureSampleIntervalMs = 200");
+    expect(featureCollector).toContain("window.setInterval");
+    expect(featureCollector).toContain("featureSampleIntervalMs");
   });
 
   it("uses the timer-derived target window for local playback and uploaded target timing", () => {
