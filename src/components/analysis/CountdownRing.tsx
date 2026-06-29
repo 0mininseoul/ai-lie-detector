@@ -13,8 +13,9 @@ import styles from "./CountdownRing.module.css";
  * MediaPipe FaceLandmarker), which starves requestAnimationFrame on iOS
  * WebKit. So the ring and visible digit slots drain via declarative CSS
  * animations (compositor timeline, no JS per frame — see .progress/.digit).
- * A coarse setInterval only updates tone + aria text, and completion is a
- * single setTimeout that never waits on a paint frame.
+ * React state does not tick during the active animation; repeated renders can
+ * restart CSS animations on iOS WebKit. Completion is a single setTimeout that
+ * never waits on a paint frame.
  */
 
 type Props = {
@@ -46,13 +47,6 @@ export function CountdownRing({ durationMs = 5000, active, onComplete, size = "d
 
     firedRef.current = false;
     setSeconds(totalSeconds);
-    const startedAt = performance.now();
-
-    const interval = window.setInterval(() => {
-      const remaining = Math.max(0, durationMs - (performance.now() - startedAt));
-      setSeconds(Math.ceil(remaining / 1000));
-    }, 200);
-
     const done = window.setTimeout(() => {
       if (firedRef.current) return;
       firedRef.current = true;
@@ -61,7 +55,6 @@ export function CountdownRing({ durationMs = 5000, active, onComplete, size = "d
     }, durationMs);
 
     return () => {
-      window.clearInterval(interval);
       window.clearTimeout(done);
     };
   }, [active, durationMs, totalSeconds]);

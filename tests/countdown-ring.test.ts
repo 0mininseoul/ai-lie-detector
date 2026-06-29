@@ -21,9 +21,9 @@ describe("CountdownRing timing", () => {
     expect(component).not.toContain("cancelAnimationFrame(");
   });
 
-  it("completes on a single deterministic timer and updates non-visual state coarsely", () => {
+  it("completes on a single deterministic timer without rerendering during the active animation", () => {
     expect(component).toContain("setTimeout");
-    expect(component).toContain("setInterval");
+    expect(component).not.toContain("setInterval");
     // onComplete must fire exactly once even if timers double up under
     // StrictMode or re-entrancy.
     expect(component).toContain("firedRef");

@@ -9,7 +9,6 @@ import { TelemetryStrip } from "@/components/analysis/TelemetryStrip";
 import { useCameraRecorder, type RecordingStopResult } from "@/hooks/useCameraRecorder";
 import { useFeatureCollector } from "@/hooks/useFeatureCollector";
 import { recordingLocalStore } from "@/lib/recording/local-store";
-import { primeSpeech, speakQuestion } from "@/lib/sessions/speech";
 import styles from "./session.module.css";
 
 type RefundState = "idle" | "pending" | "granted" | "failed";
@@ -84,8 +83,6 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   const targetPanelRef = useRef<HTMLElement | null>(null);
   const warmupRecordingPromiseRef = useRef<Promise<RecordingStopResult | null> | null>(null);
   const warmupUploadPromiseRef = useRef<Promise<UploadedRecordingSegment> | null>(null);
-  // The real question is read aloud first; the answer window (and its countdown)
-  // only opens once narration ends, so the analyzed audio is the answer.
   const [answerOpen, setAnswerOpen] = useState(false);
 
   const currentQuestion = useMemo(() => {
@@ -143,8 +140,6 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
   async function startWarmup() {
     setError("");
-    // Unlock speech inside this tap so the later auto-narration plays on iOS.
-    primeSpeech();
     setAnswerOpen(false);
     const started = await recorder.startRecording();
     if (!started) {
@@ -177,16 +172,17 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     setPhase("transition");
   }, [featureCollector, recorder]);
 
-  // Transition beat ends -> reveal the real question (and narrate it). The
-  // analyzed window is NOT opened here; it waits for narration to finish so
-  // neither the transition overlay nor the spoken prompt lands inside it.
+  // Transition beat ends -> reveal the real question and open the answer window.
+  // The target recording is a fresh clip, so the transition overlay never lands
+  // inside the analyzed target video.
   const startTarget = useCallback(() => {
     setAnswerOpen(false);
     setPhase("target");
+    void openAnswerWindowRef.current();
   }, []);
 
-  // Narration finished -> open the analyzed answer window and start the
-  // countdown. This is where markTargetStart() finally fires.
+  // Open the analyzed answer window and start the countdown. This is where
+  // markTargetStart() fires.
   const openAnswerWindow = useCallback(async () => {
     try {
       const warmupRecording = await warmupRecordingPromiseRef.current;
@@ -362,15 +358,6 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     const timer = setTimeout(() => startTargetRef.current(), TRANSITION_MS);
     return () => clearTimeout(timer);
   }, [phase]);
-
-  // Read the real question aloud (TTS) on reveal; open the answer window only
-  // when narration ends. speakQuestion guarantees the callback fires even if
-  // speech is unavailable/stalls, so the flow never hangs. Cancels on cleanup.
-  useEffect(() => {
-    if (phase !== "target") return;
-    const handle = speakQuestion(session.targetQuestion, () => void openAnswerWindowRef.current());
-    return () => handle.cancel();
-  }, [phase, session.targetQuestion]);
 
   useEffect(() => {
     if (phase !== "target") {

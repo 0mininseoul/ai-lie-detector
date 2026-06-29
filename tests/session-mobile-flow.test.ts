@@ -41,6 +41,13 @@ describe("session recorder mobile flow", () => {
     expect(targetStartIndex).toBeGreaterThan(transitionPhaseIndex);
   });
 
+  it("opens the target answer window directly without text-to-speech narration", () => {
+    expect(recorder).not.toContain("primeSpeech");
+    expect(recorder).not.toContain("speakQuestion");
+    expect(recorder).not.toContain("speechSynthesis");
+    expect(recorder).toContain("void openAnswerWindowRef.current()");
+  });
+
   it("resets submit state only on the error path, never after a successful finish", () => {
     // A `finally` that reset isSubmitting ran on the success path too (finally
     // runs after the `return`), flipping the countdown ring active again and
