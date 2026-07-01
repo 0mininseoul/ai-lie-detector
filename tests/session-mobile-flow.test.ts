@@ -91,7 +91,7 @@ describe("session recorder mobile flow", () => {
   });
 
   it("waits for upload completion before moving to the result page", () => {
-    const localStoreIndex = recorder.indexOf("recordingLocalStore.set(session.id");
+    const localStoreIndex = recorder.indexOf("recordingLocalStore.set(");
     const uploadIndex = recorder.indexOf("await completeSplitRecordingUpload");
     const routeIndex = recorder.indexOf("router.replace(`/result/${session.id}`)");
 
@@ -106,7 +106,7 @@ describe("session recorder mobile flow", () => {
     expect(recorder).toContain('uploadRecordingSegment("warmup"');
     expect(recorder).toContain('uploadRecordingSegment("target"');
     expect(recorder).toContain("void warmupUploadPromise.catch");
-    expect(recorder).toContain("recordingLocalStore.set(session.id, targetRecording.blob");
+    expect(recorder).toContain("targetUploadSource.blob");
   });
 
   it("does not stop and restart MediaRecorder between warmup and target", () => {
@@ -132,6 +132,8 @@ describe("session recorder mobile flow", () => {
 
   it("logs client recorder boundaries around warmup and target slicing", () => {
     expect(recorder).toContain("logClientEvent");
+    expect(recorder).toContain('event: "warmup_timer_started"');
+    expect(recorder).toContain('event: "warmup_timer_completed"');
     expect(recorder).toContain('event: "warmup_stop_requested"');
     expect(recorder).toContain('event: "warmup_stop_resolved"');
     expect(recorder).toContain('event: "warmup_blob_empty"');
@@ -150,9 +152,29 @@ describe("session recorder mobile flow", () => {
     expect(recorder).toContain("const targetSegmentDurationMs = Math.min(targetRecording.durationMs, targetWindowDurationMs)");
     expect(recorder).toContain("const targetSegmentUpload = {");
     expect(recorder).toContain("...targetUpload");
-    expect(recorder).toContain("durationMs: targetSegmentDurationMs");
+    expect(recorder).toContain("shouldUseFullRecordingForTarget ? targetUploadSource.durationMs : targetSegmentDurationMs");
     expect(recorder).toContain("targetEndMs: targetSegmentDurationMs");
     expect(recorder).toContain("target: targetSegmentUpload");
+  });
+
+  it("keeps a full recording blob when the final target slice is a fragmented MP4", () => {
+    expect(recorderHook).toContain("fullBlob?: Blob");
+    expect(recorderHook).toContain("fullDurationMs?: number");
+    expect(recorderHook).toContain("fullSizeBytes?: number");
+    expect(recorderHook).toContain("const fullChunks = chunksRef.current");
+    expect(recorderHook).toContain("fullBlob");
+  });
+
+  it("falls back to the full recording when the target MP4 slice is not standalone", () => {
+    expect(recorder).toContain("blobLooksLikeStandaloneMp4");
+    expect(recorder).toContain("const targetIsStandalone = await blobLooksLikeStandaloneMp4(targetRecording.blob)");
+    expect(recorder).toContain("const shouldUseFullRecordingForTarget");
+    expect(recorder).toContain("targetUploadSource");
+    expect(recorder).toContain("event: \"target_upload_source_selected\"");
+    expect(recorder).toContain("usedFullRecording: Boolean(shouldUseFullRecordingForTarget)");
+    expect(recorder).toContain("targetStartMs: timings.targetStartMs");
+    expect(recorder).toContain("targetEndMs: timings.targetEndMs");
+    expect(recorder).toContain("uploadRecordingSegment(\"target\", targetUploadSource)");
   });
 
   it("moves live metrics away from the face center on mobile", () => {

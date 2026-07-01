@@ -14,6 +14,10 @@ export type RecordingStopResult = {
   stoppedAtMs: number;
   chunkCount: number;
   sizeBytes: number;
+  fullBlob?: Blob;
+  fullDurationMs?: number;
+  fullSizeBytes?: number;
+  fullChunkCount?: number;
 };
 
 function getNowMs() {
@@ -363,6 +367,9 @@ export function useCameraRecorder() {
         const mimeType = recorder.mimeType || selectedMimeType;
         const sliceChunks = chunksRef.current.slice(sliceChunkStartIndex);
         const blob = new Blob(sliceChunks, mimeType ? { type: mimeType } : undefined);
+        const fullChunks = chunksRef.current;
+        const fullBlob = new Blob(fullChunks, mimeType ? { type: mimeType } : undefined);
+        const fullStartedAtMs = recordingStartedAtRef.current ?? sliceStartedAtMs;
         const result = {
           blob,
           mimeType,
@@ -370,7 +377,11 @@ export function useCameraRecorder() {
           startedAtMs: sliceStartedAtMs,
           stoppedAtMs,
           chunkCount: sliceChunks.length,
-          sizeBytes: blob.size
+          sizeBytes: blob.size,
+          fullBlob,
+          fullDurationMs: Math.max(0, stoppedAtMs - fullStartedAtMs),
+          fullSizeBytes: fullBlob.size,
+          fullChunkCount: fullChunks.length
         };
 
         recorderRef.current = null;

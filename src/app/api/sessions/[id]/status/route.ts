@@ -6,6 +6,7 @@ import {
   analysisTimeoutErrorDetail,
   isAnalysisStale
 } from "@/lib/sessions/analysis-timeout";
+import { resolveTargetPlaybackTiming } from "@/lib/sessions/playback-timing";
 import {
   isUploadStale,
   uploadTimeoutErrorCode,
@@ -136,15 +137,15 @@ export async function GET(_request: Request, context: RouteContext) {
       .maybeSingle(),
     supabase
       .from("recordings")
-      .select("target_start_ms, target_end_ms")
+      .select("r2_key, target_start_ms, target_end_ms")
       .eq("session_id", sessionId.data)
-      .maybeSingle<{ target_start_ms: number; target_end_ms: number }>(),
+      .maybeSingle<{ r2_key: string; target_start_ms: number; target_end_ms: number }>(),
     supabase
       .from("recording_segments")
-      .select("duration_ms")
+      .select("r2_key, duration_ms")
       .eq("session_id", sessionId.data)
       .eq("segment", "target")
-      .maybeSingle<{ duration_ms: number }>()
+      .maybeSingle<{ r2_key: string; duration_ms: number }>()
   ]);
 
   const { data: result, error: resultError } = resultResponse;
@@ -204,16 +205,9 @@ export async function GET(_request: Request, context: RouteContext) {
           public: result.public_json
         }
       : null,
-    recording: targetSegment
-      ? {
-          targetStartMs: 0,
-          targetEndMs: targetSegment.duration_ms
-        }
-      : recording
-      ? {
-          targetStartMs: recording.target_start_ms,
-          targetEndMs: recording.target_end_ms
-        }
-      : null
+    recording: resolveTargetPlaybackTiming({
+      recording: recording ?? null,
+      targetSegment: targetSegment ?? null
+    })
   });
 }

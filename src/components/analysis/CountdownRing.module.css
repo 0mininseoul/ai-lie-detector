@@ -39,37 +39,15 @@
   stroke-width: 5;
 }
 
-/*
- * The ring drains on the CSS animation timeline, not a per-frame rAF + React
- * state update. On this screen the main thread is saturated (camera +
- * MediaRecorder + 10fps feature sampling) and rAF callbacks get starved on iOS,
- * which froze the old ring. A declarative animation keeps advancing regardless.
- * It's applied (paused) at all times so animation-fill-mode holds the right
- * frame: paused-at-start shows a full ring, paused-after-complete an empty one.
- * --ring-duration / --ring-circumference are injected inline by the component.
- */
 .progress {
   fill: none;
   stroke: var(--ring-tone);
   stroke-width: 5;
   stroke-linecap: round;
   filter: drop-shadow(0 0 16px var(--ring-tone));
-  transition: stroke 220ms ease;
-  animation: ringDrain var(--ring-duration, 5000ms) linear both;
-  animation-play-state: paused;
-}
-
-.progress[data-active="true"] {
-  animation-play-state: running;
-}
-
-@keyframes ringDrain {
-  from {
-    stroke-dashoffset: 0;
-  }
-  to {
-    stroke-dashoffset: var(--ring-circumference, 351.858);
-  }
+  transition:
+    stroke 220ms ease,
+    stroke-dashoffset 120ms linear;
 }
 
 .center {

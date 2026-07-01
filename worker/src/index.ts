@@ -7,10 +7,19 @@ import { logAxiomEvent, type AxiomEvent } from "./observability";
 type R2ObjectBody = {
   arrayBuffer(): Promise<ArrayBuffer>;
   body: ReadableStream;
+  size: number;
 };
 
 type R2Bucket = {
-  get(key: string): Promise<R2ObjectBody | null>;
+  get(
+    key: string,
+    options?: {
+      range?: {
+        offset: number;
+        length?: number;
+      };
+    }
+  ): Promise<R2ObjectBody | null>;
   put(
     key: string,
     value: ReadableStream | ArrayBuffer | ArrayBufferView | string | null,
@@ -206,8 +215,8 @@ export default {
       if (request.method === "OPTIONS") {
         return new Response(null, { status: 204, headers: downloadCorsHeaders(request) });
       }
-      if (request.method === "GET") {
-        return handleRecordingDownload(request, env, url);
+      if (request.method === "GET" || request.method === "HEAD") {
+        return handleRecordingDownload(request, env, url, request.method === "HEAD");
       }
     }
 
@@ -352,7 +361,7 @@ async function handleUpload(request: Request, env: Env, url: URL, context: Worke
   return Response.json({ ok: true, r2Key: payload.r2Key }, { headers: corsHeaders });
 }
 
-async function handleRecordingDownload(request: Request, env: Env, url: URL) {
+async function handleRecordingDownload(request: Request, env: Env, url: URL, headOnly = false) {
   const corsHeaders = downloadCorsHeaders(request);
   const sessionId = url.pathname.slice("/recording/".length);
   if (!isUuid(sessionId)) {
@@ -397,7 +406,35 @@ async function handleRecordingDownload(request: Request, env: Env, url: URL) {
   const headers = new Headers(corsHeaders);
   headers.set("content-type", recording.mime_type);
   headers.set("cache-control", "private, max-age=3600");
-  return new Response(object.body, { headers });
+  headers.set("accept-ranges", "bytes");
+  headers.set("content-length", String(object.size));
+
+  const byteRange = parseByteRange(request.headers.get("range"), object.size);
+  if (byteRange === "invalid") {
+    headers.set("content-range", `bytes */${object.size}`);
+    return new Response(null, { status: 416, headers });
+  }
+
+  if (byteRange) {
+    const length = byteRange.end - byteRange.start + 1;
+    const rangedObject = headOnly
+      ? object
+      : await env.RECORDINGS.get(recording.r2_key, {
+          range: {
+            offset: byteRange.start,
+            length
+          }
+        });
+    if (!rangedObject) {
+      return Response.json({ error: "R2 object missing" }, { status: 404, headers: corsHeaders });
+    }
+
+    headers.set("content-range", `bytes ${byteRange.start}-${byteRange.end}/${object.size}`);
+    headers.set("content-length", String(length));
+    return new Response(headOnly ? null : rangedObject.body, { status: 206, headers });
+  }
+
+  return new Response(headOnly ? null : object.body, { headers });
 }
 
 async function handleShareImageDownload(request: Request, env: Env, url: URL, headOnly = false) {
@@ -440,8 +477,9 @@ function buildFallbackShareImageSvg() {
 function downloadCorsHeaders(request: Request) {
   const origin = request.headers.get("origin") ?? "";
   const headers = new Headers({
-    "access-control-allow-methods": "GET, OPTIONS",
-    "access-control-allow-headers": "content-type",
+    "access-control-allow-methods": "GET, HEAD, OPTIONS",
+    "access-control-allow-headers": "content-type, range",
+    "access-control-expose-headers": "accept-ranges, content-length, content-range",
     "access-control-max-age": "300"
   });
   if (isAllowedUploadOrigin(origin)) {
@@ -449,6 +487,35 @@ function downloadCorsHeaders(request: Request) {
     headers.set("vary", "Origin");
   }
   return headers;
+}
+
+function parseByteRange(rangeHeader: string | null, size: number) {
+  if (!rangeHeader) return null;
+  if (!Number.isFinite(size) || size <= 0) return null;
+
+  const match = rangeHeader.match(/^bytes=(\d*)-(\d*)$/);
+  if (!match) return "invalid" as const;
+
+  const [, rawStart, rawEnd] = match;
+  if (!rawStart && !rawEnd) return "invalid" as const;
+
+  if (!rawStart) {
+    const suffixLength = Number(rawEnd);
+    if (!Number.isInteger(suffixLength) || suffixLength <= 0) return "invalid" as const;
+    const start = Math.max(0, size - suffixLength);
+    return { start, end: size - 1 };
+  }
+
+  const start = Number(rawStart);
+  const end = rawEnd ? Number(rawEnd) : size - 1;
+  if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end < start || start >= size) {
+    return "invalid" as const;
+  }
+
+  return {
+    start,
+    end: Math.min(end, size - 1)
+  };
 }
 
 async function analyzeSession(sessionId: string, env: Env, context: WorkerContext) {
@@ -671,6 +738,11 @@ function buildAnalysisVideoInputs(
   const target = recordingSegments.find((segment) => segment.segment === "target");
 
   if (warmup && target) {
+    const targetWindowDurationMs = Math.max(1, recording.target_end_ms - recording.target_start_ms);
+    const targetUsesFullRecording = target.duration_ms > targetWindowDurationMs + 750;
+    const targetStartMs = targetUsesFullRecording ? recording.target_start_ms : 0;
+    const targetEndMs = targetUsesFullRecording ? recording.target_end_ms : target.duration_ms;
+
     return [
       {
         segment: "warmup",
@@ -687,9 +759,9 @@ function buildAnalysisVideoInputs(
         r2Key: target.r2_key,
         mimeType: target.mime_type,
         byteSize: target.byte_size,
-        durationMs: target.duration_ms,
-        startOffset: "0s",
-        endOffset: `${Math.max(1, Math.ceil(target.duration_ms / 1000))}s`,
+        durationMs: Math.max(1, targetEndMs - targetStartMs),
+        startOffset: `${Math.max(0, Math.floor(targetStartMs / 1000))}s`,
+        endOffset: `${Math.max(1, Math.ceil(targetEndMs / 1000))}s`,
         fps: 3
       }
     ];

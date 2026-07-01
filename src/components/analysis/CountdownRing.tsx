@@ -9,10 +9,10 @@ import styles from "./CountdownRing.module.css";
  * at ≤1s. Fires `onComplete()` exactly once when time hits zero.
  *
  * Timing must survive a saturated main thread: this screen runs the camera,
- * MediaRecorder, and browser-local feature sampling, which can delay animation
- * frames on iOS WebKit. The ring still drains via CSS, but the visible digit
- * is derived from a real deadline. If a tick is delayed, the next tick catches
- * up from Date.now() instead of continuing from a stale visual slot.
+ * MediaRecorder, and browser-local feature sampling, which can delay timer
+ * callbacks on iOS WebKit. Both the visible digit and ring progress are derived
+ * from a real deadline. If a tick is delayed, the next tick catches up from
+ * Date.now() instead of continuing from a stale visual slot.
  */
 
 type Props = {
@@ -26,8 +26,7 @@ const RADIUS = 56;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export function CountdownRing({ durationMs = 5000, active, onComplete, size = "default" }: Props) {
-  const totalSeconds = Math.ceil(durationMs / 1000);
-  const [seconds, setSeconds] = useState(totalSeconds);
+  const [remainingMs, setRemainingMs] = useState(durationMs);
   const firedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
 
@@ -37,24 +36,24 @@ export function CountdownRing({ durationMs = 5000, active, onComplete, size = "d
 
   useEffect(() => {
     if (!active) {
-      setSeconds(totalSeconds);
+      setRemainingMs(durationMs);
       return;
     }
 
     firedRef.current = false;
-    setSeconds(totalSeconds);
+    setRemainingMs(durationMs);
     const deadlineMs = Date.now() + durationMs;
 
     const complete = () => {
       if (firedRef.current) return;
       firedRef.current = true;
-      setSeconds(0);
+      setRemainingMs(0);
       onCompleteRef.current();
     };
 
     const updateRemaining = () => {
       const remainingMs = Math.max(0, deadlineMs - Date.now());
-      setSeconds(Math.ceil(remainingMs / 1000));
+      setRemainingMs(remainingMs);
       if (remainingMs <= 0) complete();
     };
 
@@ -66,13 +65,16 @@ export function CountdownRing({ durationMs = 5000, active, onComplete, size = "d
       window.clearInterval(tick);
       window.clearTimeout(done);
     };
-  }, [active, durationMs, totalSeconds]);
+  }, [active, durationMs]);
 
+  const seconds = Math.ceil(remainingMs / 1000);
   const tone = seconds <= 1 ? "danger" : seconds <= 2 ? "warn" : "live";
+  const progressRatio = durationMs > 0 ? Math.max(0, Math.min(1, remainingMs / durationMs)) : 0;
 
   const progressStyle = {
     "--ring-duration": `${durationMs}ms`,
-    "--ring-circumference": `${CIRCUMFERENCE}`
+    "--ring-circumference": `${CIRCUMFERENCE}`,
+    strokeDashoffset: CIRCUMFERENCE * (1 - progressRatio)
   } as CSSProperties;
 
   return (

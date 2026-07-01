@@ -9,6 +9,7 @@ import { TelemetryStrip } from "@/components/analysis/TelemetryStrip";
 import { useCameraRecorder, type RecordingStopResult } from "@/hooks/useCameraRecorder";
 import { useFeatureCollector } from "@/hooks/useFeatureCollector";
 import { recordingLocalStore } from "@/lib/recording/local-store";
+import { blobLooksLikeStandaloneMp4 } from "@/lib/recording/mp4";
 import styles from "./session.module.css";
 
 type RefundState = "idle" | "pending" | "granted" | "failed";
@@ -65,7 +66,17 @@ function getInitialError(status: string) {
   return "";
 }
 
+function nowMs() {
+  if (typeof performance !== "undefined" && typeof performance.now === "function") {
+    return performance.now();
+  }
+
+  return Date.now();
+}
+
 type ClientSessionEventName =
+  | "warmup_timer_started"
+  | "warmup_timer_completed"
   | "warmup_stop_requested"
   | "warmup_stop_resolved"
   | "warmup_blob_empty"
@@ -73,6 +84,7 @@ type ClientSessionEventName =
   | "target_slice_started"
   | "target_stop_requested"
   | "target_stop_resolved"
+  | "target_upload_source_selected"
   | "recorder_boundary_error";
 
 type ClientSessionEventDetails = Record<string, string | number | boolean | null>;
@@ -120,6 +132,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
   const targetPanelRef = useRef<HTMLElement | null>(null);
   const warmupUploadPromiseRef = useRef<Promise<UploadedRecordingSegment> | null>(null);
   const warmupFinalizingRef = useRef(false);
+  const warmupTimerStartedAtRef = useRef<number | null>(null);
   const [isWarmupFinalizing, setIsWarmupFinalizing] = useState(false);
   const [answerOpen, setAnswerOpen] = useState(false);
 
@@ -188,6 +201,11 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
     featureCollector.markRecordingStart();
     featureCollector.markWarmupStart();
+    warmupTimerStartedAtRef.current = nowMs();
+    void logClientEvent({
+      sessionId: session.id,
+      event: "warmup_timer_started"
+    });
     featureCollector.startSampling({
       stream: (recorder.videoRef.current?.srcObject as MediaStream | null) ?? recorder.stream,
       videoElement: recorder.videoRef.current
@@ -389,6 +407,33 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
       const timings = featureResult.payload.session;
       const targetWindowDurationMs = Math.max(1, timings.targetEndMs - timings.targetStartMs);
+      const targetIsStandalone = await blobLooksLikeStandaloneMp4(targetRecording.blob);
+      const shouldUseFullRecordingForTarget = Boolean(
+        targetRecording.mimeType.toLowerCase().startsWith("video/mp4") &&
+        !targetIsStandalone &&
+        targetRecording.fullBlob &&
+        targetRecording.fullSizeBytes &&
+        targetRecording.fullDurationMs
+      );
+      const targetUploadSource: RecordingStopResult = shouldUseFullRecordingForTarget
+        ? {
+            ...targetRecording,
+            blob: targetRecording.fullBlob as Blob,
+            durationMs: targetRecording.fullDurationMs as number,
+            sizeBytes: targetRecording.fullSizeBytes as number,
+            chunkCount: targetRecording.fullChunkCount ?? targetRecording.chunkCount
+          }
+        : targetRecording;
+      void logClientEvent({
+        sessionId: session.id,
+        event: "target_upload_source_selected",
+        details: {
+          targetIsStandalone,
+          usedFullRecording: Boolean(shouldUseFullRecordingForTarget),
+          targetSizeBytes: targetRecording.sizeBytes,
+          fullSizeBytes: targetRecording.fullSizeBytes ?? null
+        }
+      });
       const warmupUploadPromise = warmupUploadPromiseRef.current;
       if (!warmupUploadPromise) {
         throw new Error("웜업 업로드가 시작되지 않았습니다.");
@@ -396,18 +441,27 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
       const [warmupRecording, targetUpload] = await Promise.all([
         warmupUploadPromise,
-        uploadRecordingSegment("target", targetRecording)
+        uploadRecordingSegment("target", targetUploadSource)
       ]);
       const targetSegmentDurationMs = Math.min(targetRecording.durationMs, targetWindowDurationMs);
       const targetSegmentUpload = {
         ...targetUpload,
-        durationMs: targetSegmentDurationMs
+        durationMs: shouldUseFullRecordingForTarget ? targetUploadSource.durationMs : targetSegmentDurationMs
       };
 
-      recordingLocalStore.set(session.id, targetRecording.blob, {
-        targetStartMs: 0,
-        targetEndMs: targetSegmentDurationMs
-      });
+      recordingLocalStore.set(
+        session.id,
+        targetUploadSource.blob,
+        shouldUseFullRecordingForTarget
+          ? {
+              targetStartMs: timings.targetStartMs,
+              targetEndMs: timings.targetEndMs
+            }
+          : {
+              targetStartMs: 0,
+              targetEndMs: targetSegmentDurationMs
+            }
+      );
       await completeSplitRecordingUpload(
         {
           warmup: warmupRecording,
@@ -438,8 +492,15 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
 
   const handleWarmupComplete = useCallback(() => {
     if (isSubmitting || isWarmupFinalizing) return;
+    void logClientEvent({
+      sessionId: session.id,
+      event: "warmup_timer_completed",
+      details: {
+        elapsedMs: warmupTimerStartedAtRef.current === null ? null : Math.max(0, Math.round(nowMs() - warmupTimerStartedAtRef.current))
+      }
+    });
     void finishWarmup();
-  }, [finishWarmup, isSubmitting, isWarmupFinalizing]);
+  }, [finishWarmup, isSubmitting, isWarmupFinalizing, session.id]);
 
   useEffect(() => {
     finishTargetRef.current = finishTarget;
@@ -491,6 +552,7 @@ export function SessionRecorder({ session }: SessionRecorderProps) {
     featureCollector.reset();
     warmupUploadPromiseRef.current = null;
     warmupFinalizingRef.current = false;
+    warmupTimerStartedAtRef.current = null;
     setError("");
     setRequiresNewSession(false);
     setRefundState("idle");

@@ -39,14 +39,16 @@ describe("CountdownRing timing", () => {
     expect(component).toContain("firedRef");
   });
 
-  it("drains the ring on CSS but renders the visible digit from React state", () => {
-    expect(css).toContain("@keyframes ringDrain");
-    expect(css).toContain("animation-play-state");
+  it("drains the ring from deadline-derived React state instead of a CSS timeline", () => {
+    expect(component).toContain("progressRatio");
+    expect(component).toContain("strokeDashoffset");
     expect(component).toContain('data-active={active}');
     expect(component).toContain("--ring-duration");
     expect(component).toContain("{seconds}");
     expect(component).not.toContain("digitSlots");
     expect(component).not.toContain("--digit-delay");
+    expect(css).not.toContain("@keyframes ringDrain");
+    expect(css).not.toContain("animation-play-state");
     expect(css).not.toContain("@keyframes digitSlot");
   });
 

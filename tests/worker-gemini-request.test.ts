@@ -40,4 +40,10 @@ describe("worker Gemini video request", () => {
     expect(worker).toContain("Promise.allSettled");
     expect(worker).toContain("vertex_gcs_video_prepare_cleanup_failed");
   });
+
+  it("uses recording timing offsets when the target segment points at the full recording", () => {
+    expect(worker).toContain("targetUsesFullRecording");
+    expect(worker).toContain("recording.target_start_ms");
+    expect(worker).toContain("recording.target_end_ms");
+  });
 });

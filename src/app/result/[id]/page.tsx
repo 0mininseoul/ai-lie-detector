@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { resolveTargetPlaybackTiming } from "@/lib/sessions/playback-timing";
 import { shareImageUrl } from "@/lib/sessions/video-url";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { ResultExperience } from "./ResultExperience";
@@ -18,11 +19,13 @@ type SessionRecord = {
 };
 
 type RecordingTiming = {
+  r2_key: string;
   target_start_ms: number;
   target_end_ms: number;
 };
 
 type TargetSegmentTiming = {
+  r2_key: string;
   duration_ms: number;
 };
 
@@ -95,12 +98,12 @@ export default async function ResultPage({ params }: ResultPageProps) {
       .single<SessionRecord>(),
     supabase
       .from("recordings")
-      .select("target_start_ms, target_end_ms")
+      .select("r2_key, target_start_ms, target_end_ms")
       .eq("session_id", id)
       .maybeSingle<RecordingTiming>(),
     supabase
       .from("recording_segments")
-      .select("duration_ms")
+      .select("r2_key, duration_ms")
       .eq("session_id", id)
       .eq("segment", "target")
       .maybeSingle<TargetSegmentTiming>()
@@ -116,19 +119,10 @@ export default async function ResultPage({ params }: ResultPageProps) {
     <ResultExperience
       sessionId={session.id}
       question={session.target_question}
-      initialTiming={
-        targetSegmentResponse.data
-          ? {
-              targetStartMs: 0,
-              targetEndMs: targetSegmentResponse.data.duration_ms
-            }
-          : recordingResponse.data
-          ? {
-              targetStartMs: recordingResponse.data.target_start_ms,
-              targetEndMs: recordingResponse.data.target_end_ms
-            }
-          : null
-      }
+      initialTiming={resolveTargetPlaybackTiming({
+        recording: recordingResponse.data ?? null,
+        targetSegment: targetSegmentResponse.data ?? null
+      })}
     />
   );
 }
