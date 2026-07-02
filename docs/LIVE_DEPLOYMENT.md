@@ -1,6 +1,6 @@
 # Live Deployment
 
-마지막 업데이트: 2026-06-02
+마지막 업데이트: 2026-07-02
 
 ## Provisioned Resources
 
@@ -11,7 +11,9 @@
 - Supabase URL: `https://btifyegcjbknhxynkxpl.supabase.co`
 - Cloudflare Worker: `https://ai-lie-detector-worker.tnsb5373.workers.dev`
 - R2 bucket: `ai-lie-detector-recordings`
-- Vertex AI GCS staging bucket: `gs://ai-baram-detector-vertex-staging`
+- Vertex AI GCP project: `gen-lang-client-0311522474` (`Ascentum`)
+- Vertex AI service account currently applied: `ai-lie-detector-vertex-ai@gen-lang-client-0311522474.iam.gserviceaccount.com`
+- Vertex AI GCS staging bucket: `gs://ascentum-ai-lie-detector-vertex-staging`
 
 ## Cost Guardrails Applied
 
